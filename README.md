@@ -19,16 +19,16 @@ We chose this project because it is a proven object-oriented analysis and design
 
 ## Team
 
-| Name               | Major / background                                                     | Strengths for the project                                                                | Proposed role\* | GitHub username | Student ID |
+| Name               | Major / background                                                     | Strengths for the project                                                                | Role | GitHub username | Student ID |
 | ------------------ | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | --------------- | --------------- | ---------- |
-| Alfonso Pinto      | Double degree in Computer Science and Business (Spain)                 | C++, Java, Python; software engineering knowledge; communication                         |                 |                 |            |
-| Haifa Chkoundali   | Telecommunications / Computer Science, INSA Lyon (Tunisia)             | Full-stack development; coding practices; AI / LLM integration; creative problem-solving |                 |                 |            |
-| Borja Nicolás      | Computer Engineering, major in Cyberspace Security                     | Java; UML modeling; teamwork; documentation and presentation                             | UML modeling | borjacyberesc | LS2639207 |
-| Yasmine Chkoundali | Telecommunications & Digital Services Engineering, INSA Lyon (Tunisia) | UI/UX design; system design and information-system overview; programming                 |                 |                 |            |
-| Josué Rodríguez    | Cyberspace Security (Ecuador)                                          | Secure design, privacy and compliance; requirements traceability; risk analysis          |                 |                 |            |
-| Avni Oflaz         | Computer Engineering (exchange student)                                | C/C++; ROS2 and Gazebo; Python                                                           |                 |                 |            |
+| Alfonso Pinto      | Double degree in Computer Science and Business (Spain)                 | C++, Java, Python; software engineering knowledge; communication                         | Project lead · Requirements engineer | TBC | TBC |
+| Haifa Chkoundali   | Telecommunications / Computer Science, INSA Lyon (Tunisia)             | Full-stack development; coding practices; AI / LLM integration; creative problem-solving | Integration & full-stack developer | haifachkondali | TBC |
+| Borja Nicolás      | Computer Engineering, major in Cyberspace Security                     | Java; UML modeling; teamwork; documentation and presentation                             | UML modeler · Documentation | borjacyberesc | LS2639207 |
+| Yasmine Chkoundali | Telecommunications & Digital Services Engineering, INSA Lyon (Tunisia) | UI/UX design; system design and information-system overview; programming                 | UI/UX designer · Front-End developer | yasminechk | TBC |
+| Josué Rodríguez    | Cyberspace Security (Ecuador)                                          | Secure design, privacy and compliance; requirements traceability; risk analysis          | Quality, security & traceability | TBC | TBC |
+| Avni Oflaz         | Computer Engineering (exchange student)                                | C/C++; ROS2 and Gazebo; Python                                                           | Developer · Testing | itu-itis24-oflaz23 | TBC |
 
-\* Roles are a first proposal based on each member's strengths and will be confirmed by the team.
+Roles were confirmed by the team in W05 (see the [W05 report](weekly-reports/W05/Weekly_Report_W05.pptx)).
 
 ## Repository structure
 
@@ -50,6 +50,7 @@ We chose this project because it is a proven object-oriented analysis and design
 | Week | Report                                                              | Summary                                                 |
 | ---- | ------------------------------------------------------------------- | ------------------------------------------------------- |
 | W01  | [Weekly_Report_W01.pptx](weekly-reports/W01/Weekly_Report_W01.pptx) | Found the idea, researched feasibility, discussed roles |
+| W05  | [Weekly_Report_W05.pptx](weekly-reports/W05/Weekly_Report_W05.pptx) | Foundations: use case diagram and scope, quality goals, process model chosen (iterative-incremental: 3 increments + release), requirements classification, roles and Gantt schedule |
 
 ## Working rules
 
