@@ -1,0 +1,65 @@
+@startuml
+' NewEra POS - Use case diagram (overview)
+' Team D - W06 - editable source of assets/use_case_diagram.png
+' Render with: java -jar plantuml.jar -tpng assets/use_case_diagram.puml
+' Note: the declaration order of the use cases is deliberate; it makes the
+' automatic layout show UC1-UC4 from top to bottom.
+
+left to right direction
+skinparam shadowing false
+skinparam dpi 150
+skinparam packageStyle rectangle
+skinparam defaultFontName Arial
+skinparam ArrowColor #444444
+skinparam ActorBorderColor #444444
+skinparam ActorBackgroundColor #FFFFFF
+skinparam UsecaseBorderColor #1F4E79
+skinparam UsecaseBackgroundColor #EAF1FB
+skinparam RectangleBorderColor #1F4E79
+skinparam RectangleBackgroundColor #FFFFFF
+skinparam nodesep 40
+skinparam ranksep 120
+
+title NewEra POS - Use case diagram
+
+actor "Cashier" as Cashier
+
+rectangle "NewEra POS" {
+  usecase "UC1\nProcess Sale" as UC1
+  usecase "UC2\nHandle Returns" as UC2
+  usecase "UC4\nStart Up" as UC4
+  usecase "UC3\nProcess Rental" as UC3
+}
+
+actor "Payment Service\n<<external system>>" as Payment
+actor "Tax Calculator\n<<external system>>" as Tax
+actor "Accounting System\n<<external system>>" as Accounting
+actor "HR System\n<<external system>>" as HR
+
+' Primary actor
+Cashier -- UC1
+Cashier -- UC2
+Cashier -- UC4
+Cashier -- UC3
+
+' Supporting actors (external systems)
+UC1 -- Payment
+UC2 -- Payment
+UC3 -- Payment
+
+UC1 -- Tax
+UC2 -- Tax
+UC3 -- Tax
+
+UC1 -- Accounting
+UC2 -- Accounting
+UC3 -- Accounting
+UC4 -- Accounting
+
+UC4 -- HR
+
+legend bottom
+  Primary actor (left): Cashier.  Supporting actors (right): the 4 external systems.
+  The Customer takes part in UC1-UC3 through the Cashier; he/she does not use the POS directly.
+endlegend
+@enduml
