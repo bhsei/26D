@@ -16,10 +16,11 @@ This document defines the quality goals for our POS (Point of Sale) system, base
 
 ## 4. Security
 - Why it matters: The POS handles money, sensitive customer data, and employee information. Unauthorized access or fraud could ruin the business.
-- Measurable target: The system must enforce role-based access control (e.g., Cashier vs. Store Manager). All user passwords and payment data must be encrypted.
+- Measurable target: The system must enforce role-based access control (for example, Cashier vs. Store Manager). All user passwords and payment data must be encrypted.
 
 ## 5. Maintainability
 - Why it matters: The store might need to add new features in the future (like a new payment gateway or a loyalty program).
+
 - **Measurable target:** The codebase must have clear documentation, and adding a new payment method should take less than 3 development days.
 
 ## 6. Compatibility
