@@ -59,5 +59,6 @@ The full rules (Git workflow, file naming, branches and reviews with GitHub Issu
 - Run `git pull --rebase` before editing.
 - One document (or one coherent change) per commit.
 - Commit message format: `W<week> - <change summary>; <change description>`
+
   Example: `W2 - Initial project plan; completed work breakdown and milestone schedule`
 - Never commit passwords, tokens, API keys or other secrets.
