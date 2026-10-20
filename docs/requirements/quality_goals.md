@@ -20,6 +20,7 @@ This document defines the quality goals for our POS (Point of Sale) system, base
 
 ## 5. Maintainability
 - Why it matters: The store might need to add new features in the future (like a new payment gateway or a loyalty program).
+  
 - **Measurable target:** The codebase must have clear documentation, and adding a new payment method should take less than 3 development days.
 
 ## 6. Compatibility
