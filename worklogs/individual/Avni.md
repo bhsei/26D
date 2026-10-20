@@ -31,3 +31,14 @@
 - **Hours:** **[2]**
 - **Problems:** We had little time to prepare.
 - **Next:** In W06, write the glossary and business rules list (B8) and the team work log (B10), and review the SRS sections 1–2 (B1).
+
+## W06
+- **What I did:**
+  - Wrote the team work logs W02–W05 (A7) and my individual log W01–W05 (A9), and pushed them to GitHub.
+  - Set up GitHub access from my computer (personal access token and credential storage).
+  - Wrote the glossary and first business rules list (B8): 46 domain terms, BR-01 to BR-14, and open questions for the team. Aligned the terms with the project proposal and my UC3/UC4 drafts.
+  - Reviewed Alfonso's SRS sections 1–2 (B1) in a GitHub Issue.
+  - Wrote the team work log W06 (B10) after the Tuesday sync.
+- **Hours:** 6 h
+- **Problems:**The proposal does not contain the store's business rules, so most rules are marked *Proposed* until we check the full case study.
+- **Next:** Write the fully dressed use cases UC3 Process Rental and UC4 Start Up (W07), and update the glossary with any terms or rules found in the case study and the other SRS sections.
