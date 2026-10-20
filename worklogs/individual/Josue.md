@@ -1,31 +1,42 @@
-# Josué - Individual Work Log
+# Individual Work Log - Josué Rodríguez
+Team: D · Project: NewEra POS / Role: Quality and Requirements
 
-## W01
-**Summary:** Read the initial project description and learned the team tools.
-**Findings:** The project is a POS system for a small shop.
-**Decisions:** We chose an iterative-incremental process model.
-**Next steps:** Wait for the software characteristics class.
+### W01
+**What I did:** Read the initial project description and learned the team tools. Looked for possible project ideas.
+**Hours:** 2
+**Problems:** We had several ideas and needed time to agree on one.
+**Next:** Learn how the course expects the repository to be organized.
 
-## W02
-**Summary:** Learned about software characteristics and quality models.
-**Findings:** Quality is not just code working, it's about usability and security.
-**Decisions:** We will use ISO 25010 as a reference.
-**Next steps:** Prepare for the catch-up tasks.
+### W02
+**What I did:** Learned about software characteristics and quality models. Studied the ISO/IEC 25010 standard.
+**Hours:** 1.5
+**Problems:** It was difficult to turn abstract qualities into measurable targets.
+**Next:** Draft the quality goals for our project.
 
-## W03
-**Summary:** Holiday week. No team meetings.
-**Findings:** N/A
-**Decisions:** N/A
-**Next steps:** Resume work on W04.
+### W03
+**What I did:** Holiday week, no project work.
+**Hours:** 0
+**Problems:** None.
+**Next:** Resume work on the requirements phase.
 
-## W04
-**Summary:** Studied software engineering overview and process models.
-**Findings:** Waterfall is too rigid for our project; we need increments.
-**Decisions:** Agreed with the team to use 3 increments.
-**Next steps:** Start writing the quality goals document.
+### W04
+**What I did:** Studied software engineering overview and process models. Agreed with the team to use 3 increments.
+**Hours:** 1
+**Problems:** The team had some communication issues regarding deadlines.
+**Next:** Start writing the quality goals document.
 
-## W05
-**Summary:** Wrote the Quality Goals document (Task A4).
-**Findings:** Defining measurable targets is harder than just saying "it must be fast".
-**Decisions:** Used ISO 25010 to structure the quality goals.
-**Next steps:** Upload everything to GitHub.
+### W05
+**What I did:** Wrote the Quality Goals document (`docs/requirements/quality_goals.md`). Defined why reliability, usability, performance efficiency, security, maintainability, and compatibility matter.
+**Hours:** 3
+**Problems:** Defining measurable targets is harder than it looks.
+**Next:** Upload the document to GitHub and prepare for the W06 tasks.
+
+### W06
+**What I did:** 
+- Created the Requirements Conventions document including the ID scheme, MoSCoW priorities, and rules for writing good requirements.
+- Converted my Quality Goals into formal Non-Functional Requirements (NFR-01 to NFR-09).
+- Built the Traceability Matrix for UC1, aligning it with SRS requirements (FR-01 to FR-17) and ensuring the tax calculation test points to the external Tax Calculator (BR-01).
+- Reviewed Haifa's external interfaces document and left feedback in a GitHub Issue.
+**Hours:** 7
+**Problems:** Ensuring the traceability matrix correctly linked the requirements to both the design and test phases, especially distinguishing between internal processes and external system calls.
+**Next:** Finalize the remaining requirements sections for the SRS and prepare for the W07 fully dressed use cases.
