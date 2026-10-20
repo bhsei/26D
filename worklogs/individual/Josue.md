@@ -34,6 +34,7 @@ Team: D · Project: NewEra POS · Role: Quality and Requirements
 ### W06
 **What I did:** 
 - Created the Requirements Conventions document (`docs/requirements/requirements_conventions.md`) including the ID scheme, MoSCoW priorities, and rules for good requirements.
+- 
 - Converted my ISO 25010 Quality Goals into formal Non-Functional Requirements (`docs/requirements/nfrs.md` - NFR-01 to NFR-09).
 - Built the Traceability Matrix specifically for UC1 (Process Sale), linking the requirements to the design and test phases.
 - Reviewed Haifa's external interfaces document and left feedback.
