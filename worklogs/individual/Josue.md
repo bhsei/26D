@@ -40,3 +40,4 @@ Team: D · Project: NewEra POS / Role: Quality and Requirements
 **Hours:** 7
 **Problems:** Ensuring the traceability matrix correctly linked the requirements to both the design and test phases, especially distinguishing between internal processes and external system calls.
 **Next:** Finalize the remaining requirements sections for the SRS and prepare for the W07 fully dressed use cases.
+**Update (Post-review):** Aligned the Traceability Matrix with official SRS (FR-01 to FR-17). Reorganized NFRs to perfectly match the structure required in SRS sections 3.4 (Performance) and 3.8 (System Attributes).
