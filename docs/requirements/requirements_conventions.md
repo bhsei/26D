@@ -21,11 +21,13 @@ This document defines the rules for writing, prioritizing, and tracing requireme
 - **Complete:** Contains all necessary information.
 
 ## 4. Traceability Matrix for UC1 (Process Sale)
+This matrix links the official SRS requirements (FR-01 to FR-17) to the design and test phases for UC1. 
 
 | Req ID | Requirement Summary | Use Case | Design (UML/UI) | Test Case |
 | :--- | :--- | :--- | :--- | :--- |
-| FR-01 | Start a new sale inside a cashier session | UC1 (Process Sale) | Class Diagram: Sale | TC-01: Verify sale initialization |
-| FR-02 | Add a product to the sale | UC1 (Process Sale) | Sequence Diagram: AddItem | TC-02: Scan barcode and add item |
-| NFR-01 | Fast checkout (< 1s per line) | UC1 (Process Sale) | UI: Optimized layout | TC-03: Time processing < 1s |
-| BR-01 | Calculate tax based on location | UC1 (Process Sale) | Component: TaxCalculator | TC-04: Request tax from Tax Calculator |
-| IR-01 | Request payment authorization | UC1 (Process Sale) | Sequence Diagram: Payment Service | TC-05: Card payment approved |
+| FR-01 | Start a new sale in a session | UC1 (Process Sale) | Class Diagram: CashierSession, Sale | TC-01: Verify sale cannot start without session |
+| FR-02 | Record a sale line item | UC1 (Process Sale) | Sequence Diagram: AddItem | TC-02: Scan barcode and check subtotal |
+| FR-08 | Obtain tax from Tax Calculator | UC1 (Process Sale) | Interface: TaxCalculator | TC-03: Request tax from external system |
+| FR-10 | Complete card payment after authorization | UC1 (Process Sale) | Sequence Diagram: Payment Service | TC-04: Verify payment blocked if not approved |
+| FR-13 | Save completed sale | UC1 (Process Sale) | Database Schema: Sales table | TC-05: Check sale saved with correct tender |
+| FR-16 | Print receipt (only last 4 digits) | UC1 (Process Sale) | UI: Receipt Layout | TC-06: Verify card digits masked on receipt |
