@@ -1,9 +1,9 @@
 @startuml
-' NewEra POS - Use case diagram (overview)
-' Team D - W06 - editable source of assets/use_case_diagram.png
+' NewEra POS - Use case diagram (overview), W06 update: UC5 Return Rental added
+' Team D - editable source of assets/use_case_diagram.png
 ' Render with: java -jar plantuml.jar -tpng assets/use_case_diagram.puml
 ' Note: the declaration order of the use cases is deliberate; it makes the
-' automatic layout show UC1-UC4 from top to bottom.
+' automatic layout show the transaction use cases first and Start Up (UC4) last.
 
 left to right direction
 skinparam shadowing false
@@ -27,8 +27,9 @@ actor "Cashier" as Cashier
 rectangle "NewEra POS" {
   usecase "UC1\nProcess Sale" as UC1
   usecase "UC2\nHandle Returns" as UC2
-  usecase "UC4\nStart Up" as UC4
   usecase "UC3\nProcess Rental" as UC3
+  usecase "UC5\nReturn Rental" as UC5
+  usecase "UC4\nStart Up" as UC4
 }
 
 actor "Payment Service\n<<external system>>" as Payment
@@ -39,27 +40,31 @@ actor "HR System\n<<external system>>" as HR
 ' Primary actor
 Cashier -- UC1
 Cashier -- UC2
-Cashier -- UC4
 Cashier -- UC3
+Cashier -- UC5
+Cashier -- UC4
 
 ' Supporting actors (external systems)
 UC1 -- Payment
 UC2 -- Payment
 UC3 -- Payment
+UC5 -- Payment
 
 UC1 -- Tax
 UC2 -- Tax
 UC3 -- Tax
+UC5 -- Tax
 
 UC1 -- Accounting
 UC2 -- Accounting
 UC3 -- Accounting
+UC5 -- Accounting
 UC4 -- Accounting
 
 UC4 -- HR
 
 legend bottom
   Primary actor (left): Cashier.  Supporting actors (right): the 4 external systems.
-  The Customer takes part in UC1-UC3 through the Cashier; he/she does not use the POS directly.
+  The Customer is a stakeholder, not an actor: he/she acts only through the Cashier.
 endlegend
 @enduml
