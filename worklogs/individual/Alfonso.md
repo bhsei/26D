@@ -34,7 +34,7 @@
 - **Next:** Start the SRS (W06).
 
 ## W06
-- **What I did:** Created the SRS following ISO/IEC/IEEE 29148: sections 1 (Introduction) and 2 (References), links to the team's W06 requirement documents, and the team decisions on actors (Customer as stakeholder), payment methods (cash, credit card, check) and the new use case UC5 Return Rental. Wrote UC1 Process Sale as a fully dressed use case and derived the functional requirements FR-01 to FR-17. Reviewed Borja's use case model in a GitHub Issue. Organised extra tasks for the team (UI prototype, sequence diagram, NFRs and traceability, acceptance criteria).
-- **Hours:** 4
+- **What I did:** Created the SRS following ISO/IEC/IEEE 29148: sections 1 (Introduction) and 2 (References), links to the team's W06 requirement documents, and the team decisions on actors (Customer as stakeholder), payment methods (cash, credit card, check) and the new use case UC5 Return Rental. Wrote UC1 Process Sale as a fully dressed use case and derived the functional requirements FR-01 to FR-17. Reviewed Borja's use case model in a GitHub Issue (#16) and fixed the review of my SRS (#19) in SRS v0.2. Prepared the W06 report slides. Organised extra tasks for the team (UI prototype, sequence diagram, NFRs and traceability, acceptance criteria).
+- **Hours:** 4.5
 - **Problems:** The teacher asked for more depth after W05, so the team added extra tasks focused on UC1 end to end.
 - **Next:** Prepare the W06 report slides; W07 fully dressed use cases and SRS v1.0.
