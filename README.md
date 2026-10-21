@@ -21,7 +21,7 @@ We chose this project because it is a proven object-oriented analysis and design
 
 | Name               | Major / background                                                     | Strengths for the project                                                                | Role | GitHub username | Student ID |
 | ------------------ | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | --------------- | --------------- | ---------- |
-| Alfonso Pinto      | Double degree in Computer Science and Business (Spain)                 | C++, Java, Python; software engineering knowledge; communication                         | Project lead · Requirements engineer | TBC | TBC |
+| Alfonso Pinto      | Double degree in Computer Science and Business (Spain)                 | C++, Java, Python; software engineering knowledge; communication                         | Project lead · Requirements engineer | fpiinto | 2606216 |
 | Haifa Chkoundali   | Telecommunications / Computer Science, INSA Lyon (Tunisia)             | Full-stack development; coding practices; AI / LLM integration; creative problem-solving | Integration & full-stack developer | haifachkondali | TBC |
 | Borja Nicolás      | Computer Engineering, major in Cyberspace Security                     | Java; UML modeling; teamwork; documentation and presentation                             | UML modeler · Documentation | borjacyberesc | LS2639207 |
 | Yasmine Chkoundali | Telecommunications & Digital Services Engineering, INSA Lyon (Tunisia) | UI/UX design; system design and information-system overview; programming                 | UI/UX designer · Front-End developer | yasminechk | TBC |
