@@ -108,21 +108,31 @@ Every document is reviewed by another team member (the review pairs are in the w
 
 The **reviewer** opens one issue per reviewed document:
 
-- **Title:** `[Review] W<week> - <file name> (<author>)`
-  Example: `[Review] W6 - glossary.md (Avni)`
+- **Title:** `Team <X> review of Team <Y> - <Document Name> <Version> - Issue List`
+  Example: `Team D review of Team D - Glossary and Business Rules v0.1 - Issue List`
 - **Assignee:** the author of the document.
 - **Label:** `review`.
-- **Description:** a link to the reviewed file and the commit that was reviewed, plus a one-line overall opinion.
+- **Description:** use this template:
+
+```markdown
+Reviewer: <reviewer name>
+Reviewed: <author name>
+Document: <document name>
+Version: <version, for example v0.1>
+Review date: YYYY-MM-DD
+
+Please use one comment per finding so that each finding can be discussed and resolved independently.
+```
 
 ### 7.2 One comment per finding
 
 Each finding is a **separate comment** in the issue, so that each one can be answered and closed on its own. Use this template:
 
 ```markdown
-**Location:** <section / table row / line>
-**Type:** error | inconsistency | missing | unclear | suggestion
+**Location:** <section, ID, figure or line>
+**Type:** Ambiguity | Consistency | Completeness | Verifiability | Other
 **Finding:** <what is wrong, in one or two sentences>
-**Proposal:** <how to fix it>
+**Recommendation:** <how to fix it>
 ```
 
 Tips: be specific and point to the exact place; explain *why* it is a problem (for example, a requirement that cannot be tested); be polite and comment on the document, not the person.
