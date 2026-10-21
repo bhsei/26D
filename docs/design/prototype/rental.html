@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NewEra POS - Rental</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="screen">
+    <div class="topbar">
+      <span class="logo">NewEra POS</span>
+      <span class="title">Rental</span>
+      <span class="info">Register 03</span>
+      <span class="info" id="cashier"></span>
+      <span class="info" id="clock"></span>
+    </div>
+
+    <div class="main">
+      <div class="left">
+        <div class="panel">
+          <div class="row">
+            <div class="field">
+              <label for="customer">Customer ID</label>
+              <input id="customer" type="text" value="C-105" oninput="checkCustomer()">
+            </div>
+            <div class="field">
+              <label for="days">Rental period</label>
+              <select id="days" onchange="update()">
+                <option value="1">1 day</option>
+                <option value="3" selected>3 days</option>
+                <option value="7">7 days</option>
+              </select>
+            </div>
+          </div>
+          <div id="overdue" class="msg msg-error hidden">
+            This customer has an overdue rental and cannot start a new one (BR-12).
+          </div>
+        </div>
+
+        <div class="panel grow">
+          <div class="row" style="align-items:center; margin-bottom:12px">
+            <h2 style="flex:1; margin:0">Choose the item (scan or pick the serial number)</h2>
+            <button class="btn" onclick="scanSerial()">&#9783; Scan</button>
+          </div>
+          <div id="scan-err" class="msg msg-error hidden" style="margin-bottom:12px"></div>
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th>Serial number</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th class="num">Fee / day</th>
+                <th class="num">Deposit</th>
+              </tr>
+            </thead>
+            <tbody id="items"></tbody>
+          </table>
+          <p style="font-size:13px; color:#52606d; margin-top:12px">Only items with status Available can be rented (BR-11).</p>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="panel totals">
+          <div><span>Item</span><span id="sel-name">-</span></div>
+          <div><span>Due date</span><span id="due"></span></div>
+          <div><span>Rental fee</span><span id="fee"></span></div>
+          <div><span>Tax (21%)</span><span id="tax"></span></div>
+          <div><span>Deposit</span><span id="deposit"></span></div>
+          <div class="total"><span>Total</span><span id="total"></span></div>
+        </div>
+        <p style="font-size:13px; color:#52606d">The deposit is refunded when the item comes back undamaged (BR-10).</p>
+
+        <div style="flex:1"></div>
+
+        <button id="pay" class="btn btn-ok btn-big" onclick="pay()" disabled>Pay</button>
+        <a class="btn btn-big" href="menu.html" onclick="clearTx()">Cancel rental</a>
+      </div>
+    </div>
+
+    <div class="demo">
+      <strong>Prototype:</strong>
+      <span>Customer C-200 has an overdue rental. Fee, deposit and rental period are examples (still open questions).</span>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    var OVERDUE_CUSTOMERS = ["C-200"];
+    var selected = null;
+
+    function badge(status) {
+      var cls = status === "Available" ? "badge-available" :
+                status === "Rented" ? "badge-rented" : "badge-maintenance";
+      return "<span class='badge " + cls + "'>" + status + "</span>";
+    }
+
+    function drawItems() {
+      var body = document.getElementById("items");
+      body.innerHTML = "";
+      Object.keys(RENTAL_ITEMS).forEach(function (sn) {
+        var item = RENTAL_ITEMS[sn];
+        var p = CATALOG[item.product];
+        var free = item.status === "Available";
+        var tr = document.createElement("tr");
+        if (!free) tr.style.color = "#9aa5b1";
+        tr.innerHTML =
+          "<td><input type='radio' name='item' value='" + sn + "' style='width:22px;height:22px'" +
+          (free ? "" : " disabled") + (selected === sn ? " checked" : "") + " onchange='pick(this.value)'></td>" +
+          "<td>" + sn + "</td>" +
+          "<td>" + p.name + "</td>" +
+          "<td>" + badge(item.status) + "</td>" +
+          "<td class='num'>" + money(p.fee) + "</td>" +
+          "<td class='num'>" + money(p.deposit) + "</td>";
+        body.appendChild(tr);
+      });
+    }
+
+    function scanSerial() {
+      var codes = Object.keys(RENTAL_ITEMS).map(function (sn) {
+        return { code: sn, label: CATALOG[RENTAL_ITEMS[sn].product].name };
+      });
+      codes.push({ code: "SN-9999-99", label: "Unknown barcode" });
+      openScanner("Scan rental item", codes, function (sn) {
+        var err = document.getElementById("scan-err");
+        var item = RENTAL_ITEMS[sn];
+        if (!item) {
+          err.textContent = "Item " + sn + " not found.";
+        } else if (item.status !== "Available") {
+          err.textContent = "Item " + sn + " cannot be rented: " + item.status + " (BR-11).";
+        } else {
+          err.classList.add("hidden");
+          pick(sn);
+          drawItems();
+          return;
+        }
+        err.classList.remove("hidden");
+      });
+    }
+
+    function pick(sn) {
+      selected = sn;
+      update();
+    }
+
+    function checkCustomer() {
+      var c = document.getElementById("customer").value.trim().toUpperCase();
+      var blocked = OVERDUE_CUSTOMERS.indexOf(c) >= 0;
+      document.getElementById("overdue").classList.toggle("hidden", !blocked);
+      update();
+      return !blocked;
+    }
+
+    function dueDate(days) {
+      var d = new Date();
+      d.setDate(d.getDate() + days);
+      return d.toLocaleDateString("en-GB");
+    }
+
+    function buildTx() {
+      var days = parseInt(document.getElementById("days").value, 10);
+      if (!selected) return null;
+      var p = CATALOG[RENTAL_ITEMS[selected].product];
+      return {
+        type: "Rental",
+        lines: [{ id: RENTAL_ITEMS[selected].product, serial: selected, name: p.name + " - rental, " + days + " day(s)", price: p.fee, qty: days }],
+        deposit: p.deposit,
+        dueDate: dueDate(days)
+      };
+    }
+
+    function update() {
+      var days = parseInt(document.getElementById("days").value, 10);
+      var tx = buildTx();
+      var t = tx ? computeTotals(tx) : { subtotal: 0, tax: 0, deposit: 0, total: 0 };
+
+      document.getElementById("sel-name").textContent = selected ? selected : "-";
+      document.getElementById("due").textContent = dueDate(days);
+      document.getElementById("fee").textContent = money(t.subtotal);
+      document.getElementById("tax").textContent = money(t.tax);
+      document.getElementById("deposit").textContent = money(t.deposit);
+      document.getElementById("total").textContent = money(t.total);
+
+      var blocked = !document.getElementById("overdue").classList.contains("hidden");
+      document.getElementById("pay").disabled = !tx || blocked;
+    }
+
+    function pay() {
+      if (!checkCustomer()) return;
+      var tx = buildTx();
+      tx.customer = document.getElementById("customer").value.trim().toUpperCase();
+      saveTx(tx);
+      window.location.href = "payment.html";
+    }
+
+    drawItems();
+    update();
+  </script>
+</body>
+</html>

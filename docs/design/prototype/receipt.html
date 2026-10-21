@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NewEra POS - Receipt</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="screen">
+    <div class="topbar">
+      <span class="logo">NewEra POS</span>
+      <span class="title">Receipt</span>
+      <span class="info">Register 03</span>
+      <span class="info" id="cashier"></span>
+      <span class="info" id="clock"></span>
+    </div>
+
+    <div class="main">
+      <div class="left">
+        <div class="panel grow" style="background:#eef1f4">
+          <div class="receipt" id="receipt"></div>
+        </div>
+      </div>
+
+      <div class="right no-print">
+        <div class="msg msg-ok" id="done"></div>
+        <div class="panel totals" id="cash-box">
+          <div><span>Amount tendered</span><span id="paid"></span></div>
+          <div class="total"><span>Change due</span><span id="change"></span></div>
+        </div>
+
+        <div style="flex:1"></div>
+
+        <button class="btn btn-primary btn-big" onclick="window.print()">Print receipt</button>
+        <a class="btn btn-ok btn-big" id="again" href="sale.html" onclick="clearTx()">New sale</a>
+        <a class="btn btn-big" href="menu.html" onclick="clearTx()">Main menu</a>
+      </div>
+    </div>
+
+    <div class="demo">
+      <strong>Prototype:</strong>
+      <span>Stock levels and the Accounting System are updated in the background (not shown).</span>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    var tx = loadTx() || {
+      type: "Sale", tender: "cash", paid: 20, change: 4.39, number: "S-10234",
+      date: new Date().toLocaleString("en-GB"),
+      lines: [{ id: "1001", name: "Hammer 500 g", price: 12.90, qty: 1 }]
+    };
+    var t = computeTotals(tx);
+    var TENDER_NAMES = { cash: "Cash", card: "Credit card", check: "Check" };
+
+    function line(left, right, cls) {
+      return "<div class='line " + (cls || "") + "'><span>" + left + "</span><span>" + right + "</span></div>";
+    }
+
+    var html = "";
+    html += "<h3>NewEra Store</h3>";
+    html += "<div class='center-text'>Calle Mayor 12, Madrid</div>";
+    html += "<hr>";
+    html += line(tx.type + " " + (tx.number || ""), "");
+    html += line(tx.date || "", "");
+    html += line("Register 03", "Cashier: " + getSetting("cashier", "Li Wei"));
+    html += "<hr>";
+
+    tx.lines.forEach(function (l) {
+      html += "<div>" + l.name + (l.serial ? " (" + l.serial + ")" : "") + "</div>";
+      html += line("  " + l.qty + " x " + money(l.price), money(l.price * l.qty));
+    });
+
+    html += "<hr>";
+    html += line("Subtotal", money(t.subtotal));
+    html += line("Tax 21%" + (taxOffline() ? " *" : ""), money(t.tax));
+    if (t.deposit > 0) html += line("Deposit (refundable)", money(t.deposit));
+    html += line("TOTAL", money(t.total), "bold");
+    html += "<hr>";
+    html += line(TENDER_NAMES[tx.tender] || "Cash", money(tx.paid || t.total));
+    if (tx.tender === "cash") html += line("Change", money(tx.change || 0));
+    if (tx.auth) html += line("Auth. code", tx.auth);
+    if (tx.checkNo) html += line("Check no.", tx.checkNo);
+
+    if (tx.type === "Rental") {
+      html += "<hr>";
+      html += line("Due date", tx.dueDate || "");
+      html += "<div>Return the item by the due date to get the deposit back.</div>";
+    }
+    if (taxOffline()) {
+      html += "<hr><div>* default tax rate, may be corrected later</div>";
+    }
+
+    html += "<hr>";
+    html += "<div class='center-text'>Keep this receipt for returns.<br>Thank you!</div>";
+    document.getElementById("receipt").innerHTML = html;
+
+    document.getElementById("done").textContent = tx.type + " completed.";
+    if (tx.tender === "cash") {
+      document.getElementById("paid").textContent = money(tx.paid || t.total);
+      document.getElementById("change").textContent = money(tx.change || 0);
+    } else {
+      document.getElementById("cash-box").classList.add("hidden");
+    }
+    if (tx.type === "Rental") {
+      document.getElementById("again").textContent = "New rental";
+      document.getElementById("again").href = "rental.html";
+    }
+  </script>
+</body>
+</html>

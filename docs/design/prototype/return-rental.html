@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NewEra POS - Return rental</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="screen">
+    <div class="topbar">
+      <span class="logo">NewEra POS</span>
+      <span class="title">Return rental</span>
+      <span class="info">Register 03</span>
+      <span class="info" id="cashier"></span>
+      <span class="info" id="clock"></span>
+    </div>
+
+    <div class="main">
+      <div class="left">
+        <div class="panel">
+          <div class="row">
+            <div class="field">
+              <label for="serial">Serial number of the item (scan or type)</label>
+              <input id="serial" type="text" placeholder="e.g. SN-2001-02" autofocus>
+            </div>
+            <div class="field" style="flex:0">
+              <button class="btn btn-primary" onclick="findRental()">Find rental</button>
+            </div>
+            <div class="field" style="flex:0">
+              <button class="btn" onclick="scanSerial()">&#9783; Scan</button>
+            </div>
+          </div>
+          <div id="notfound" class="msg msg-error hidden">No open rental for this serial number.</div>
+        </div>
+
+        <div class="panel grow hidden" id="rental-box">
+          <h2 id="r-title"></h2>
+          <div class="status-list" style="font-size:17px">
+            <div><span>Customer</span><strong id="r-customer"></strong></div>
+            <div><span>Rented on</span><strong id="r-start"></strong></div>
+            <div><span>Due date</span><strong id="r-due"></strong></div>
+            <div><span>Returned today</span><strong id="r-today"></strong></div>
+          </div>
+          <div id="r-ontime" class="msg msg-ok hidden" style="margin-top:16px">Returned on time.</div>
+          <div id="r-late" class="msg msg-warn hidden" style="margin-top:16px"></div>
+
+          <h2 style="margin-top:24px">Condition of the item</h2>
+          <div class="btn-group">
+            <button class="btn" id="b-ok" onclick="setCondition(true)">Undamaged</button>
+            <button class="btn" id="b-bad" onclick="setCondition(false)">Damaged</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="panel totals">
+          <div><span>Deposit paid</span><span id="dep"></span></div>
+          <div><span>Late fee</span><span id="late"></span></div>
+          <div><span>Kept for damage</span><span id="kept"></span></div>
+          <div class="total"><span>Refund</span><span id="refund"></span></div>
+        </div>
+
+        <div class="panel">
+          <h2>Refund to</h2>
+          <div id="refund-to" style="font-size:18px">-</div>
+          <p style="font-size:13px; color:#52606d; margin-top:8px">Same tender as the rental payment.</p>
+        </div>
+
+        <div id="done" class="msg msg-ok hidden">Return completed. Item status is now Available.</div>
+
+        <div style="flex:1"></div>
+
+        <button id="confirm" class="btn btn-ok btn-big" onclick="confirmReturn()" disabled>Confirm return</button>
+        <a class="btn btn-big" href="menu.html">Back to menu</a>
+      </div>
+    </div>
+
+    <div class="demo">
+      <strong>Prototype:</strong>
+      <span>Serials: SN-2001-02 (2 days late), SN-2002-05 (on time). Late fee of 5 €/day is only an example (open question).</span>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    var LATE_FEE_PER_DAY = 5.00;
+
+    function daysFromToday(n) {
+      var d = new Date();
+      d.setDate(d.getDate() + n);
+      return d;
+    }
+
+    // open rentals (fake)
+    var OPEN_RENTALS = {
+      "SN-2001-02": { product: "2001", customer: "C-200", start: daysFromToday(-5), due: daysFromToday(-2), tender: "Cash" },
+      "SN-2002-05": { product: "2002", customer: "C-105", start: daysFromToday(-3), due: daysFromToday(1), tender: "Credit card **** 9310" }
+    };
+    var rental = null;
+    var undamaged = null;
+
+    function fmt(d) {
+      return d.toLocaleDateString("en-GB");
+    }
+
+    function findRental() {
+      var sn = document.getElementById("serial").value.trim().toUpperCase();
+      rental = OPEN_RENTALS[sn] || null;
+      undamaged = null;
+      document.getElementById("notfound").classList.toggle("hidden", !!rental);
+      document.getElementById("rental-box").classList.toggle("hidden", !rental);
+      document.getElementById("done").classList.add("hidden");
+
+      if (rental) {
+        var p = CATALOG[rental.product];
+        rental.deposit = p.deposit;
+        rental.lateDays = Math.max(0, Math.round((new Date() - rental.due) / 86400000));
+
+        document.getElementById("r-title").textContent = p.name + " (" + sn + ")";
+        document.getElementById("r-customer").textContent = rental.customer;
+        document.getElementById("r-start").textContent = fmt(rental.start);
+        document.getElementById("r-due").textContent = fmt(rental.due);
+        document.getElementById("r-today").textContent = fmt(new Date());
+        document.getElementById("r-ontime").classList.toggle("hidden", rental.lateDays > 0);
+        document.getElementById("r-late").classList.toggle("hidden", rental.lateDays === 0);
+        document.getElementById("r-late").textContent =
+          "Returned " + rental.lateDays + " day(s) late. A late fee is taken from the deposit.";
+        document.getElementById("refund-to").textContent = rental.tender;
+      } else {
+        document.getElementById("refund-to").textContent = "-";
+      }
+      update();
+    }
+
+    function setCondition(ok) {
+      undamaged = ok;
+      document.getElementById("b-ok").className = "btn" + (ok ? " btn-ok" : "");
+      document.getElementById("b-bad").className = "btn" + (ok ? "" : " btn-danger");
+      update();
+    }
+
+    // BR-10: the deposit is refunded when the item comes back undamaged
+    function update() {
+      var dep = rental ? rental.deposit : 0;
+      var late = rental ? Math.min(rental.lateDays * LATE_FEE_PER_DAY, dep) : 0;
+      var kept = undamaged === false ? dep - late : 0;
+      var refund = dep - late - kept;
+
+      document.getElementById("dep").textContent = money(dep);
+      document.getElementById("late").textContent = "- " + money(late);
+      document.getElementById("kept").textContent = "- " + money(kept);
+      document.getElementById("refund").textContent = money(refund);
+      document.getElementById("confirm").disabled = !rental || undamaged === null;
+    }
+
+    function confirmReturn() {
+      document.getElementById("done").classList.remove("hidden");
+      document.getElementById("confirm").disabled = true;
+    }
+
+    function scanSerial() {
+      var codes = [
+        { code: "SN-2001-02", label: "Electric drill (2 days late)" },
+        { code: "SN-2002-05", label: "Pressure washer (on time)" },
+        { code: "SN-9999-99", label: "Unknown barcode" }
+      ];
+      openScanner("Scan returned item", codes, function (code) {
+        document.getElementById("serial").value = code;
+        findRental();
+      });
+    }
+
+    document.getElementById("serial").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") findRental();
+    });
+
+    update();
+  </script>
+</body>
+</html>

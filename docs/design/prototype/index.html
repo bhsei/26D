@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NewEra POS - Start Up</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="screen">
+    <div class="topbar">
+      <span class="logo">NewEra POS</span>
+      <span class="title">Start Up</span>
+      <span class="info">Register 03</span>
+      <span class="info" id="clock"></span>
+    </div>
+
+    <div class="center">
+      <div class="panel login-box">
+        <h2>Cashier login</h2>
+
+        <div id="hr-offline" class="msg msg-warn hidden" style="margin-bottom:16px">
+          HR System not available. Using the local employee list (last update: yesterday 21:30).
+        </div>
+
+        <div id="login-error" class="msg msg-error hidden" style="margin-bottom:16px">
+          Employee ID not found or not an active cashier.
+        </div>
+
+        <div class="field">
+          <label for="emp">Employee ID</label>
+          <input id="emp" type="text" value="E-1042" autofocus>
+        </div>
+
+        <div class="field">
+          <label for="pin">PIN</label>
+          <input id="pin" type="password" value="1234">
+        </div>
+
+        <div class="field">
+          <label for="cash">Opening cash in the drawer (€)</label>
+          <input id="cash" type="text" value="150,00">
+        </div>
+
+        <button class="btn btn-primary btn-big" onclick="login()">Start session</button>
+      </div>
+    </div>
+
+    <div class="demo">
+      <strong>Prototype:</strong>
+      <label><input type="checkbox" id="hr-toggle" onchange="toggleHr()"> HR System offline</label>
+      <span>Try employee ID "E-0000" to see the error.</span>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    // the employees the HR System knows (fake)
+    var EMPLOYEES = { "E-1042": "Li Wei", "E-1055": "Marta Ruiz" };
+
+    function toggleHr() {
+      var off = document.getElementById("hr-toggle").checked;
+      document.getElementById("hr-offline").classList.toggle("hidden", !off);
+    }
+
+    function login() {
+      var id = document.getElementById("emp").value.trim().toUpperCase();
+      if (!EMPLOYEES[id]) {
+        document.getElementById("login-error").classList.remove("hidden");
+        return;
+      }
+      setSetting("cashier", EMPLOYEES[id]);
+      setSetting("opening_cash", document.getElementById("cash").value);
+      setSetting("hr_offline", document.getElementById("hr-toggle").checked ? "yes" : "no");
+      clearTx();
+      window.location.href = "menu.html";
+    }
+  </script>
+</body>
+</html>

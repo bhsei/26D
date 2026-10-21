@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NewEra POS - Main menu</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="screen">
+    <div class="topbar">
+      <span class="logo">NewEra POS</span>
+      <span class="title">Main menu</span>
+      <span class="info">Register 03</span>
+      <span class="info" id="cashier"></span>
+      <span class="info" id="clock"></span>
+    </div>
+
+    <div class="main">
+      <div class="left">
+        <div class="tiles">
+          <a class="tile" href="sale.html" onclick="clearTx()">
+            <span class="tile-title">New sale</span>
+            <span class="tile-text">Scan items and take the payment</span>
+          </a>
+          <a class="tile" href="return.html">
+            <span class="tile-title">Return</span>
+            <span class="tile-text">Customer brings back a purchased item</span>
+          </a>
+          <a class="tile" href="rental.html" onclick="clearTx()">
+            <span class="tile-title">Rental</span>
+            <span class="tile-text">Rent equipment for a few days</span>
+          </a>
+          <a class="tile" href="return-rental.html">
+            <span class="tile-title">Return rental</span>
+            <span class="tile-text">Rented item comes back, refund the deposit</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="panel">
+          <h2>Session</h2>
+          <div class="status-list">
+            <div><span>Cashier</span><strong id="s-cashier"></strong></div>
+            <div><span>Opening cash</span><strong id="s-cash"></strong></div>
+            <div><span>Transactions</span><strong>0</strong></div>
+          </div>
+        </div>
+
+        <div class="panel grow">
+          <h2>External systems</h2>
+          <div class="status-list">
+            <div><span>Payment Authorization</span><span class="dot dot-on">● online</span></div>
+            <div><span>Tax Calculator</span><span class="dot" id="s-tax"></span></div>
+            <div><span>Accounting System</span><span class="dot dot-on">● online</span></div>
+            <div><span>HR System</span><span class="dot" id="s-hr"></span></div>
+          </div>
+        </div>
+
+        <a class="btn btn-big" href="index.html">Log out</a>
+      </div>
+    </div>
+
+    <div class="demo">
+      <strong>Prototype:</strong>
+      <label><input type="checkbox" id="tax-toggle" onchange="toggleTax()"> Tax Calculator offline</label>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    function showStatus(id, off) {
+      var el = document.getElementById(id);
+      el.textContent = off ? "● offline" : "● online";
+      el.className = "dot " + (off ? "dot-off" : "dot-on");
+    }
+
+    function toggleTax() {
+      var off = document.getElementById("tax-toggle").checked;
+      setSetting("tax_offline", off ? "yes" : "no");
+      showStatus("s-tax", off);
+    }
+
+    document.getElementById("s-cashier").textContent = getSetting("cashier", "Li Wei");
+    document.getElementById("s-cash").textContent = getSetting("opening_cash", "150,00") + " €";
+    document.getElementById("tax-toggle").checked = taxOffline();
+    showStatus("s-tax", taxOffline());
+    showStatus("s-hr", getSetting("hr_offline", "no") === "yes");
+  </script>
+</body>
+</html>

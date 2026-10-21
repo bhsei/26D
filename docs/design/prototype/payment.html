@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NewEra POS - Payment</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="screen">
+    <div class="topbar">
+      <span class="logo">NewEra POS</span>
+      <span class="title" id="title">Payment</span>
+      <span class="info">Register 03</span>
+      <span class="info" id="cashier"></span>
+      <span class="info" id="clock"></span>
+    </div>
+
+    <div class="main">
+      <div class="left">
+        <div class="panel">
+          <h2>Tender</h2>
+          <div class="tenders">
+            <button class="tender selected" id="t-cash" onclick="choose('cash')">Cash</button>
+            <button class="tender" id="t-card" onclick="choose('card')">Credit card</button>
+            <button class="tender" id="t-check" onclick="choose('check')">Check<small>optional (Could)</small></button>
+          </div>
+        </div>
+
+        <!-- cash -->
+        <div class="panel grow" id="p-cash">
+          <h2>Cash payment</h2>
+          <div class="field">
+            <label for="tendered">Amount tendered (€)</label>
+            <input id="tendered" type="text" oninput="updateCash()">
+          </div>
+          <div class="quick">
+            <button class="btn" onclick="setAmount(0)">Exact</button>
+            <button class="btn" onclick="setAmount(20)">20 €</button>
+            <button class="btn" onclick="setAmount(50)">50 €</button>
+            <button class="btn" onclick="setAmount(100)">100 €</button>
+            <button class="btn" onclick="setAmount(200)">200 €</button>
+          </div>
+          <label>Change due</label>
+          <div class="change" id="change">0,00 €</div>
+          <div id="cash-error" class="msg msg-error hidden" style="margin-top:12px">
+            The amount tendered is less than the total.
+          </div>
+        </div>
+
+        <!-- credit card -->
+        <div class="panel grow hidden" id="p-card">
+          <h2>Credit card payment</h2>
+          <div id="card-wait" class="msg msg-info">Ask the customer to insert or tap the card, then press Authorize.</div>
+          <div id="card-busy" class="msg msg-info hidden">Authorizing… please wait.</div>
+          <div id="card-ok" class="msg msg-ok hidden">Payment approved. Authorization code: <strong id="auth"></strong></div>
+          <div id="card-declined" class="msg msg-error hidden">Card declined (insufficient funds). Ask the customer for another tender.</div>
+          <div id="card-down" class="msg msg-error hidden">Card payment not available. Offer another tender (cash).</div>
+          <div style="margin-top:20px">
+            <button class="btn btn-primary" id="authorize" onclick="authorize()">Authorize</button>
+          </div>
+        </div>
+
+        <!-- check -->
+        <div class="panel grow hidden" id="p-check">
+          <h2>Check payment</h2>
+          <div class="row">
+            <div class="field">
+              <label for="check-no">Check number</label>
+              <input id="check-no" type="text" oninput="updateCheck()">
+            </div>
+            <div class="field">
+              <label for="doc">Customer ID document</label>
+              <input id="doc" type="text" oninput="updateCheck()">
+            </div>
+          </div>
+          <div class="msg msg-info">Check payments are optional for the first version (priority Could).</div>
+        </div>
+      </div>
+
+      <div class="right">
+        <div id="tax-warn" class="msg msg-warn hidden">
+          Default tax rate used (Tax Calculator not available).
+        </div>
+
+        <div class="panel totals">
+          <div><span>Subtotal</span><span id="subtotal"></span></div>
+          <div><span>Tax (21%)</span><span id="tax"></span></div>
+          <div id="dep-row" class="hidden"><span>Deposit</span><span id="deposit"></span></div>
+          <div class="total"><span>Total</span><span id="total"></span></div>
+        </div>
+
+        <div style="flex:1"></div>
+
+        <button id="complete" class="btn btn-ok btn-big" onclick="complete()" disabled>Complete</button>
+        <a class="btn btn-big" id="back" href="sale.html">Back</a>
+      </div>
+    </div>
+
+    <div class="demo">
+      <strong>Prototype:</strong>
+      <span>Card result:</span>
+      <label><input type="radio" name="cardres" value="ok" checked> approved</label>
+      <label><input type="radio" name="cardres" value="declined"> declined</label>
+      <label><input type="radio" name="cardres" value="down"> service down</label>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    var tx = loadTx();
+    if (!tx) {
+      // opened directly: use a small example sale
+      tx = { type: "Sale", lines: [{ id: "1001", name: "Hammer 500 g", price: 12.90, qty: 1 }] };
+    }
+    var totals = computeTotals(tx);
+    var tender = "cash";
+    var authCode = "";
+
+    document.getElementById("title").textContent = tx.type + " - payment";
+    document.getElementById("back").href = tx.type === "Rental" ? "rental.html" : "sale.html";
+    document.getElementById("subtotal").textContent = money(totals.subtotal);
+    document.getElementById("tax").textContent = money(totals.tax);
+    document.getElementById("total").textContent = money(totals.total);
+    document.getElementById("tax-warn").classList.toggle("hidden", !taxOffline());
+    if (totals.deposit > 0) {
+      document.getElementById("dep-row").classList.remove("hidden");
+      document.getElementById("deposit").textContent = money(totals.deposit);
+    }
+
+    function choose(t) {
+      tender = t;
+      ["cash", "card", "check"].forEach(function (x) {
+        document.getElementById("t-" + x).classList.toggle("selected", x === t);
+        document.getElementById("p-" + x).classList.toggle("hidden", x !== t);
+      });
+      if (t === "cash") updateCash();
+      if (t === "card") document.getElementById("complete").disabled = authCode === "";
+      if (t === "check") updateCheck();
+    }
+
+    function parseAmount(s) {
+      return parseFloat(String(s).replace(",", ".")) || 0;
+    }
+
+    function setAmount(n) {
+      var value = n === 0 ? totals.total : n;
+      document.getElementById("tendered").value = value.toFixed(2).replace(".", ",");
+      updateCash();
+    }
+
+    // BR-06: amount tendered must cover the total, change = tendered - total
+    function updateCash() {
+      var given = parseAmount(document.getElementById("tendered").value);
+      var enough = given >= totals.total;
+      var change = enough ? given - totals.total : 0;
+      document.getElementById("change").textContent = money(change);
+      document.getElementById("cash-error").classList.toggle("hidden", enough || given === 0);
+      document.getElementById("complete").disabled = !enough;
+    }
+
+    function updateCheck() {
+      var ok = document.getElementById("check-no").value.trim() !== "" &&
+               document.getElementById("doc").value.trim() !== "";
+      document.getElementById("complete").disabled = !ok;
+    }
+
+    // BR-05: a card payment is completed only after authorization
+    function authorize() {
+      ["card-wait", "card-ok", "card-declined", "card-down"].forEach(function (id) {
+        document.getElementById(id).classList.add("hidden");
+      });
+      document.getElementById("card-busy").classList.remove("hidden");
+      document.getElementById("authorize").disabled = true;
+
+      var result = document.querySelector("input[name=cardres]:checked").value;
+      setTimeout(function () {
+        document.getElementById("card-busy").classList.add("hidden");
+        document.getElementById("authorize").disabled = false;
+        if (result === "ok") {
+          authCode = "A" + Math.floor(100000 + Math.random() * 900000);
+          document.getElementById("auth").textContent = authCode;
+          document.getElementById("card-ok").classList.remove("hidden");
+          document.getElementById("complete").disabled = false;
+        } else {
+          document.getElementById("card-" + result).classList.remove("hidden");
+        }
+      }, 1500);
+    }
+
+    function complete() {
+      tx.tender = tender;
+      tx.total = totals.total;
+      if (tender === "cash") {
+        tx.paid = parseAmount(document.getElementById("tendered").value);
+        tx.change = tx.paid - totals.total;
+      }
+      if (tender === "card") tx.auth = authCode;
+      if (tender === "check") tx.checkNo = document.getElementById("check-no").value;
+      tx.number = (tx.type === "Rental" ? "L-" : "S-") + Math.floor(10000 + Math.random() * 90000);
+      tx.date = new Date().toLocaleString("en-GB");
+      saveTx(tx);
+      window.location.href = "receipt.html";
+    }
+
+    updateCash();
+  </script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NewEra POS - Sale</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="screen">
+    <div class="topbar">
+      <span class="logo">NewEra POS</span>
+      <span class="title">New sale</span>
+      <span class="info">Register 03</span>
+      <span class="info" id="cashier"></span>
+      <span class="info" id="clock"></span>
+    </div>
+
+    <div class="main">
+      <div class="left">
+        <div class="panel">
+          <div class="row">
+            <div class="field">
+              <label for="item">Item ID (scan or type)</label>
+              <input id="item" type="text" placeholder="e.g. 1001" autofocus>
+            </div>
+            <div class="field" style="max-width:120px">
+              <label for="qty">Quantity</label>
+              <input id="qty" type="number" value="1" min="1">
+            </div>
+            <div class="field" style="flex:0">
+              <button class="btn btn-primary" onclick="addItem()">Add</button>
+            </div>
+            <div class="field" style="flex:0">
+              <button class="btn" onclick="scanItem()">&#9783; Scan</button>
+            </div>
+          </div>
+          <div id="not-found" class="msg msg-error hidden">Item not found. Check the ID or type it again.</div>
+        </div>
+
+        <div class="panel grow">
+          <table>
+            <thead>
+              <tr>
+                <th>Item ID</th>
+                <th>Description</th>
+                <th class="num">Qty</th>
+                <th class="num">Price</th>
+                <th class="num">Line total</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="lines"></tbody>
+          </table>
+          <p id="empty" style="color:#7b8794; margin-top:20px">No items yet. Scan the first item to start the sale.</p>
+        </div>
+      </div>
+
+      <div class="right">
+        <div id="tax-warn" class="msg msg-warn hidden">
+          Tax Calculator not available. Default tax rate used, the sale will be corrected later.
+        </div>
+
+        <div class="panel totals">
+          <div><span>Items</span><span id="count">0</span></div>
+          <div><span>Subtotal</span><span id="subtotal"></span></div>
+          <div><span>Tax (21%)</span><span id="tax"></span></div>
+          <div class="total"><span>Total</span><span id="total"></span></div>
+        </div>
+
+        <div style="flex:1"></div>
+
+        <button id="pay" class="btn btn-ok btn-big" onclick="pay()" disabled>Pay</button>
+        <a class="btn btn-big" href="menu.html" onclick="clearTx()">Cancel sale</a>
+      </div>
+    </div>
+
+    <div class="demo">
+      <strong>Prototype:</strong>
+      <span>Item IDs: 1001 to 1005 (try 9999 for "not found"). Use Scan to simulate the barcode scanner.</span>
+      <a href="menu.html">Back to menu</a>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    var tx = loadTx();
+    if (!tx || tx.type !== "Sale") {
+      tx = { type: "Sale", lines: [] };
+    }
+
+    function addItem() {
+      var id = document.getElementById("item").value.trim();
+      var qty = parseInt(document.getElementById("qty").value, 10) || 1;
+      var product = CATALOG[id];
+
+      if (!product || product.rentable) {
+        document.getElementById("not-found").classList.remove("hidden");
+        return;
+      }
+      document.getElementById("not-found").classList.add("hidden");
+
+      // same item again: just add to the quantity
+      var existing = tx.lines.filter(function (l) { return l.id === id; })[0];
+      if (existing) {
+        existing.qty += qty;
+      } else {
+        tx.lines.push({ id: id, name: product.name, price: product.price, qty: qty });
+      }
+
+      document.getElementById("item").value = "";
+      document.getElementById("qty").value = 1;
+      document.getElementById("item").focus();
+      render();
+    }
+
+    function scanItem() {
+      var codes = [];
+      Object.keys(CATALOG).forEach(function (id) {
+        if (!CATALOG[id].rentable) codes.push({ code: id, label: CATALOG[id].name });
+      });
+      codes.push({ code: "9999", label: "Unknown barcode" });
+      openScanner("Scan item", codes, function (code) {
+        document.getElementById("item").value = code;
+        addItem();
+      });
+    }
+
+    function removeLine(i) {
+      tx.lines.splice(i, 1);
+      render();
+    }
+
+    function render() {
+      var body = document.getElementById("lines");
+      body.innerHTML = "";
+      tx.lines.forEach(function (l, i) {
+        var tr = document.createElement("tr");
+        tr.innerHTML =
+          "<td>" + l.id + "</td>" +
+          "<td>" + l.name + "</td>" +
+          "<td class='num'>" + l.qty + "</td>" +
+          "<td class='num'>" + money(l.price) + "</td>" +
+          "<td class='num'>" + money(l.price * l.qty) + "</td>" +
+          "<td class='num'><button class='remove' onclick='removeLine(" + i + ")'>✕</button></td>";
+        body.appendChild(tr);
+      });
+
+      var t = computeTotals(tx);
+      var count = 0;
+      tx.lines.forEach(function (l) { count += l.qty; });
+
+      document.getElementById("count").textContent = count;
+      document.getElementById("subtotal").textContent = money(t.subtotal);
+      document.getElementById("tax").textContent = money(t.tax);
+      document.getElementById("total").textContent = money(t.total);
+      document.getElementById("empty").classList.toggle("hidden", tx.lines.length > 0);
+      document.getElementById("pay").disabled = tx.lines.length === 0;
+      document.getElementById("tax-warn").classList.toggle("hidden", !taxOffline());
+
+      saveTx(tx);
+    }
+
+    function pay() {
+      saveTx(tx);
+      window.location.href = "payment.html";
+    }
+
+    // Enter in the item field works like the Add button (like a scanner)
+    document.getElementById("item").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") addItem();
+    });
+
+    render();
+  </script>
+</body>
+</html>

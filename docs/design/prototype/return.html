@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NewEra POS - Return</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="screen">
+    <div class="topbar">
+      <span class="logo">NewEra POS</span>
+      <span class="title">Return</span>
+      <span class="info">Register 03</span>
+      <span class="info" id="cashier"></span>
+      <span class="info" id="clock"></span>
+    </div>
+
+    <div class="main">
+      <div class="left">
+        <div class="panel">
+          <div class="row">
+            <div class="field">
+              <label for="receipt">Receipt number (scan or type)</label>
+              <input id="receipt" type="text" placeholder="e.g. S-10234" autofocus>
+            </div>
+            <div class="field" style="flex:0">
+              <button class="btn btn-primary" onclick="findSale()">Find sale</button>
+            </div>
+            <div class="field" style="flex:0">
+              <button class="btn" onclick="scanReceipt()">&#9783; Scan</button>
+            </div>
+          </div>
+          <div id="r-notfound" class="msg msg-error hidden">No sale found with this receipt number.</div>
+          <div id="r-late" class="msg msg-error hidden">
+            This sale is older than the refund period (30 days). A refund is not possible (BR-07).
+          </div>
+        </div>
+
+        <div class="panel grow hidden" id="sale-box">
+          <h2 id="sale-title"></h2>
+          <p style="color:#52606d; margin-bottom:12px">Select the items the customer brings back.</p>
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th>Item ID</th>
+                <th>Description</th>
+                <th class="num">Bought</th>
+                <th class="num">Returned</th>
+                <th class="num">Price</th>
+              </tr>
+            </thead>
+            <tbody id="lines"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="panel totals">
+          <div><span>Returned items</span><span id="r-sub"></span></div>
+          <div><span>Tax (21%)</span><span id="r-tax"></span></div>
+          <div class="total"><span>Refund</span><span id="r-total"></span></div>
+        </div>
+
+        <div class="panel">
+          <h2>Refund to</h2>
+          <div id="refund-to" style="font-size:18px">-</div>
+          <p style="font-size:13px; color:#52606d; margin-top:8px">Same tender as the original sale (BR-08).</p>
+        </div>
+
+        <div id="r-done" class="msg msg-ok hidden">Return completed. Return receipt printed.</div>
+
+        <div style="flex:1"></div>
+
+        <button id="confirm" class="btn btn-ok btn-big" onclick="confirmReturn()" disabled>Confirm refund</button>
+        <a class="btn btn-big" href="menu.html">Back to menu</a>
+      </div>
+    </div>
+
+    <div class="demo">
+      <strong>Prototype:</strong>
+      <span>Receipts: S-10234 (OK, paid by card), S-10180 (OK, paid cash), S-09001 (too old)</span>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    // past sales (fake)
+    var SALES = {
+      "S-10234": {
+        date: "3 days ago", tender: "Credit card **** 4821",
+        lines: [
+          { id: "1002", name: "Screwdriver set (6 pcs)", price: 18.50, qty: 1 },
+          { id: "1005", name: "Work gloves", price: 4.20, qty: 2 }
+        ]
+      },
+      "S-10180": {
+        date: "12 days ago", tender: "Cash",
+        lines: [
+          { id: "1004", name: "Measuring tape 5 m", price: 9.90, qty: 1 },
+          { id: "1003", name: "Wood screws 4x40 (box 200)", price: 6.75, qty: 3 }
+        ]
+      },
+      "S-09001": { date: "45 days ago", tender: "Cash", tooOld: true, lines: [] }
+    };
+    var sale = null;
+
+    function findSale() {
+      var no = document.getElementById("receipt").value.trim().toUpperCase();
+      sale = SALES[no];
+      document.getElementById("r-notfound").classList.toggle("hidden", !!sale);
+      document.getElementById("r-late").classList.toggle("hidden", !(sale && sale.tooOld));
+      document.getElementById("r-done").classList.add("hidden");
+
+      if (!sale || sale.tooOld) {
+        sale = null;
+        document.getElementById("sale-box").classList.add("hidden");
+        document.getElementById("refund-to").textContent = "-";
+        update();
+        return;
+      }
+
+      document.getElementById("sale-title").textContent = "Sale " + no + " - " + sale.date;
+      document.getElementById("refund-to").textContent = sale.tender;
+      var body = document.getElementById("lines");
+      body.innerHTML = "";
+      sale.lines.forEach(function (l, i) {
+        var tr = document.createElement("tr");
+        tr.innerHTML =
+          "<td><input type='checkbox' id='c" + i + "' style='width:22px;height:22px' onchange='update()'></td>" +
+          "<td>" + l.id + "</td>" +
+          "<td>" + l.name + "</td>" +
+          "<td class='num'>" + l.qty + "</td>" +
+          "<td class='num'><input type='number' id='q" + i + "' value='" + l.qty + "' min='1' max='" + l.qty +
+          "' style='width:80px;height:40px;font-size:16px' oninput='update()'></td>" +
+          "<td class='num'>" + money(l.price) + "</td>";
+        body.appendChild(tr);
+      });
+      document.getElementById("sale-box").classList.remove("hidden");
+      update();
+    }
+
+    function scanReceipt() {
+      var codes = Object.keys(SALES).map(function (no) {
+        return { code: no, label: SALES[no].date + ", " + SALES[no].tender };
+      });
+      codes.push({ code: "S-99999", label: "Unknown receipt" });
+      openScanner("Scan receipt", codes, function (code) {
+        document.getElementById("receipt").value = code;
+        findSale();
+      });
+    }
+
+    function update() {
+      var sub = 0;
+      if (sale) {
+        sale.lines.forEach(function (l, i) {
+          if (document.getElementById("c" + i).checked) {
+            var q = Math.min(parseInt(document.getElementById("q" + i).value, 10) || 0, l.qty);
+            sub += q * l.price;
+          }
+        });
+      }
+      var tax = Math.round(sub * TAX_RATE * 100) / 100;
+      document.getElementById("r-sub").textContent = money(sub);
+      document.getElementById("r-tax").textContent = money(tax);
+      document.getElementById("r-total").textContent = money(sub + tax);
+      document.getElementById("confirm").disabled = sub === 0;
+    }
+
+    function confirmReturn() {
+      document.getElementById("r-done").classList.remove("hidden");
+      document.getElementById("confirm").disabled = true;
+    }
+
+    document.getElementById("receipt").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") findSale();
+    });
+
+    update();
+  </script>
+</body>
+</html>
