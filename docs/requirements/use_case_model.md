@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Maintainer** | Borja Nicolás |
-| **Version** | 0.2 (draft for review; adds UC5 and the W06 team decisions) |
+| **Version** | 0.2 (draft for review; adds UC5, the W06 team decisions and the tax rule for rentals) |
 | **Last updated** | W06 |
 | **Part of** | SRS (Assignment 1), ISO/IEC/IEEE 29148 – product functions and external interfaces |
 
@@ -63,7 +63,7 @@ A customer brings back one or more items that were bought in the store. The cash
 
 **Goal:** rent equipment to a customer for a limited period. **Primary actor:** Cashier. **External systems:** Payment Service, Tax Calculator, Accounting System.
 
-A customer wants to rent an item instead of buying it. The cashier starts a rental and identifies the item. The POS checks that the item has the status *Available* (BR-11) and that the customer has no overdue rental (BR-12). The cashier sets the rental period, and the POS records a rental line item with the rental fee, the due date and the deposit that is required for every rental (BR-10). The POS gets the tax from the Tax Calculator (BR-01) and shows the total, which includes the deposit. The customer pays by cash, by credit card (authorized by the Payment Service, BR-05) or by check (*Could*). The POS then changes the item status to *Rented*, prints the rental receipt, links the rental to the cashier (BR-13) and sends it to the Accounting System (BR-14). Bringing the item back is a separate use case (UC5).
+A customer wants to rent an item instead of buying it. The cashier starts a rental and identifies the item. The POS checks that the item has the status *Available* (BR-11) and that the customer has no overdue rental (BR-12). The cashier sets the rental period, and the POS records a rental line item with the rental fee, the due date and the deposit that is required for every rental (BR-10). The POS gets from the Tax Calculator the tax of the rental fee (BR-01) and shows the total: the rental fee plus its tax plus the deposit. The deposit itself is not taxed (working assumption, to be checked against the case study; see open question 6). The customer pays by cash, by credit card (authorized by the Payment Service, BR-05) or by check (*Could*). The POS then changes the item status to *Rented*, prints the rental receipt, links the rental to the cashier (BR-13) and sends it to the Accounting System (BR-14). Bringing the item back is a separate use case (UC5).
 
 ### UC4 – Start Up
 
@@ -75,7 +75,7 @@ At the beginning of the working day, the cashier starts the register. The POS ch
 
 **Goal:** take back rented equipment and close the rental. **Primary actor:** Cashier. **External systems:** Payment Service, Tax Calculator, Accounting System.
 
-*New in W06 (see section 6).* A customer brings back equipment that was rented earlier, in a different visit from the one in which it was rented. The cashier starts a rental return and identifies the rental (normally with the rental receipt or the item), and the POS shows the rental, its due date and its deposit. The cashier checks the condition of the item. If the item is returned after its due date, the POS calculates the late fee (the amount is still an open question). If the item is returned undamaged, the deposit is refunded (BR-10), minus the late fee if there is one; when a card is involved the amount goes through the Payment Service, and the tax of any charge is obtained from the Tax Calculator (BR-01). The POS then changes the item status to *Available* again (BR-11), prints a receipt, links the return to the cashier (BR-13) and sends it to the Accounting System (BR-14).
+*New in W06 (see section 6).* A customer brings back equipment that was rented earlier, in a different visit from the one in which it was rented. The cashier starts a rental return and identifies the rental (normally with the rental receipt or the item), and the POS shows the rental, its due date and its deposit. The cashier checks the condition of the item. If the item is returned after its due date, the POS calculates the late fee (the amount is still an open question). If the item is returned undamaged, the deposit is refunded (BR-10), minus the late fee if there is one; when a card is involved the amount goes through the Payment Service. As in UC3, the deposit is not taxed; whether a late fee is taxed is still open (see open question 6). The POS then changes the item status to *Available* again (BR-11), prints a receipt, links the return to the cashier (BR-13) and sends it to the Accounting System (BR-14).
 
 ## 6. Decisions and open questions
 
@@ -98,6 +98,7 @@ These were open questions in version 0.1 of this document. The team decided them
 3. **Rental and return rules** (refund period, deposit amount, rental period, late fee) are still open in the glossary and will change the details of UC2, UC3 and UC5.
 4. **Deposit and late fee in UC5.** How the late fee is calculated and whether it is taken from the deposit or paid separately; whether the Accounting System receives the deposit (glossary, open question 7).
 5. **Order of construction of UC5** in increment 3 (it is new, with priority *Should*).
+6. **Is the deposit taxed?** Working assumption, proposed in review #16: tax applies only to the rental fee, not to the deposit, in UC3 and UC5. To be checked against the full case study; it may also need a business rule in the [glossary](glossary.md). It is also open whether a late fee is taxed.
 
 ## 7. Next steps (W07)
 
