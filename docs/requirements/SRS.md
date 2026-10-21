@@ -6,6 +6,7 @@ Structure based on ISO/IEC/IEEE 29148:2018
 | Version | Date | Author | Changes |
 |---|---|---|---|
 | 0.1 | 2026-10-21 | Alfonso Pinto | First draft: sections 1 and 2; team decisions on actors, payment methods and UC5; links to the W06 requirement documents; UC1 Process Sale fully dressed; functional requirements FR-01 to FR-17 (UC1) |
+| 0.2 | 2026-10-21 | Alfonso Pinto | Review #19 (Avni): goals in §1.2 linked to measurable requirements (NFR, FR, BR) |
 
 > **Status: draft.** Sections marked *Pending (W07)* are planned for SRS v1.0 (W07) and have an owner (see `plans/task_plan_W05-W06.md`). Terms are used as defined in the [glossary](glossary.md); business rules (BR-xx) are defined there too. Interface requirements (IR-xx) are in [external_interfaces.md](external_interfaces.md).
 
@@ -37,10 +38,15 @@ NewEra POS is the application that a cashier uses at a store register to:
 The system **does not** cover: purchasing from suppliers, full inventory management, the store's website or online shop, or payroll. Payment authorization, tax calculation, accounting and human resources are provided by external systems; NewEra POS only communicates with them.
 
 **Goals of the system**
-- Fast and accurate checkout, so that customers do not wait.
-- Correct taxes and payments, so that the store does not lose money.
-- Up-to-date stock levels and accounting records after every transaction.
-- Easy to learn for new cashiers.
+
+Each goal is refined into measurable requirements in section 3 (functional requirements in §3.2.6, NFR-xx in §3.3, §3.4 and §3.8; see [nfrs.md](nfrs.md)).
+
+| Goal | Measured by |
+|---|---|
+| Fast checkout, so that customers do not wait | NFR-01 (a sale line item is registered in less than 1 second), NFR-06 (maximum number of clicks to complete a standard sale) |
+| Correct taxes and payments, so that the store does not lose money | FR-08 to FR-11 (tax from the Tax Calculator, cash and card payment rules), BR-01, BR-05, BR-06 |
+| Up-to-date stock levels and accounting records after every transaction | FR-14, FR-15, NFR-04 (a completed sale is saved even if the connection drops) |
+| Easy to learn for new cashiers | NFR-05 (a new cashier can process a standard sale and a return after 15 minutes of training) |
 
 ### 1.3 Product overview
 
