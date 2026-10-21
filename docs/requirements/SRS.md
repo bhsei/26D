@@ -7,6 +7,7 @@ Structure based on ISO/IEC/IEEE 29148:2018
 |---|---|---|---|
 | 0.1 | 2026-10-21 | Alfonso Pinto | First draft: sections 1 and 2; team decisions on actors, payment methods and UC5; links to the W06 requirement documents; UC1 Process Sale fully dressed; functional requirements FR-01 to FR-17 (UC1) |
 | 0.2 | 2026-10-21 | Alfonso Pinto | Review #19 (Avni): goals in §1.2 linked to measurable requirements (NFR, FR, BR) |
+| 0.3 | 2026-10-21 | Alfonso Pinto | Rest of review #19 (Avni): Customer change from the proposal explained (§1.3.1); store manager added as secondary user (§1.3.1, §1.3.3); assumption on Proposed rules and open questions rephrased (§1.5); owner of UC5 (§3.2.5) |
 
 > **Status: draft.** Sections marked *Pending (W07)* are planned for SRS v1.0 (W07) and have an owner (see `plans/task_plan_W05-W06.md`). Terms are used as defined in the [glossary](glossary.md); business rules (BR-xx) are defined there too. Interface requirements (IR-xx) are in [external_interfaces.md](external_interfaces.md).
 
@@ -52,12 +53,13 @@ Each goal is refined into measurable requirements in section 3 (functional requi
 
 #### 1.3.1 Product perspective
 
-NewEra POS runs on the registers of the store. It is a new system that replaces manual checkout. It has **one primary actor**, the Cashier, and **four supporting actors**, the external systems. The Customer is a **stakeholder**, not an actor: the customer takes part in sales, returns and rentals only through the cashier and never uses the register directly.
+NewEra POS runs on the registers of the store. It is a new system that replaces manual checkout. It has **one primary actor**, the Cashier, and **four supporting actors**, the external systems. The Customer is a **stakeholder**, not an actor: the customer takes part in sales, returns and rentals only through the cashier and never uses the register directly. The W01 proposal listed the Customer as a primary actor; the team changed this in W06 for that reason (see [use_case_model.md](use_case_model.md), "Decided in W06").
 
 | External element | Type | Interaction |
 |---|---|---|
 | Cashier | Primary actor | Operates the register in all use cases |
 | Customer | Stakeholder | Buys, returns or rents items and pays, through the cashier |
+| Store manager | Secondary user | Approves price overrides (UC1 ext. 4d, BR-04) and views the reorder list (UC1 ext. 11b, BR-09) |
 | Payment Service | Supporting actor (external system) | Authorizes credit card and check payments and card refunds |
 | Tax Calculator | Supporting actor (external system) | Calculates the tax of a transaction |
 | Accounting System | Supporting actor (external system) | Receives every completed sale, return and rental |
@@ -93,6 +95,8 @@ The use case model, with a one-paragraph description of each use case, is in [us
 
 The main user is the **cashier**: basic computer skills, often new or temporary staff, works standing at the counter with customers waiting, especially at peak hours (lunch time, evenings, weekends). The system must therefore be usable with little training and few steps per task. The full stakeholder list and the cashier persona (Li Wei) are in [stakeholders.md](stakeholders.md).
 
+The **store manager** is a secondary user: an experienced employee who uses the register only for exceptions, such as approving a price override (BR-04) or checking the products flagged for reorder (BR-09). The manager identifies himself or herself at the cashier's register, so these actions must be quick and must not close the cashier session.
+
 #### 1.3.4 Limitations
 
 - Credit card and check payments depend on the Payment Service; if it is not available, only cash payments are possible (IR-02).
@@ -116,7 +120,7 @@ All domain terms (register, sale line item, tender, cashier session…) are defi
 - Each product has a unique item identifier (barcode) and a product description with its price in the product catalog.
 - Tax rules are applied by the external Tax Calculator, not by NewEra POS (BR-01).
 - The store has a network connection to the external systems during opening hours; when it fails, the fallbacks in [external_interfaces.md](external_interfaces.md) apply.
-- Business rules marked *Proposed* in the [glossary](glossary.md) (refund period, deposit amount, rental period, late fee) still have to be confirmed against the full case study.
+- Business rules marked *Proposed* and the open questions in the [glossary](glossary.md), section 4, still have to be confirmed against the full case study; in particular the refund period, the deposit amount, the rental period and the late fee.
 
 ## 2. References
 
@@ -280,7 +284,7 @@ Full detail (data sent and received, timing, open questions): [external_interfac
 *Pending (W07) – Avni. One-paragraph description in [use_case_model.md](use_case_model.md).*
 
 #### 3.2.5 UC5 Return Rental
-*Pending (W07) – to be assigned. New use case decided in W06.*
+*Pending (W07) – Alfonso. New use case decided in W06; one-paragraph description in [use_case_model.md](use_case_model.md).*
 
 #### 3.2.6 Functional requirements
 
