@@ -4,9 +4,9 @@ This document defines the rules for writing, prioritizing, and tracing requireme
 
 ## 1. Requirement ID Scheme
 - **FR-xx:** Functional Requirements (e.g., FR-01: Start a new sale).
-- **NFR-xx:** Non-Functional Requirements (e.g., NFR-01: Fast checkout).
-- **BR-xx:** Business Rules (e.g., BR-01: Tax calculation).
-- **IR-xx:** Interface Requirements (e.g., IR-01: Payment gateway API).
+- **NFR-xx:** Non-Functional Requirements (e.g., NFR-01: The system shall register a sale line in less than 1 second).
+- **BR-xx:** Business Rules (e.g., BR-01: The tax of every transaction is calculated by the Tax Calculator according to the current tax law).
+- **IR-xx:** Interface Requirements (e.g., IR-01: The system shall request authorization of a credit card payment from the Payment Service).
 
 ## 2. Priority (MoSCoW Method)
 - **Must have:** Critical for the system to work.
@@ -42,3 +42,4 @@ This matrix links the official SRS requirements (FR-01 to FR-17) to the design a
 | FR-15 | Send to Accounting System | UC1 (Process Sale) | Interface: Accounting API | TC-15: Complete sale, verify JSON payload sent |
 | FR-16 | Print receipt (masked card) | UC1 (Process Sale) | UI: Receipt Layout | TC-16: Print receipt, verify only last 4 digits shown |
 | FR-17 | Reprint last receipt | UC1 (Process Sale) | UI: Reprint button | TC-17: Click reprint and verify printer triggers |
+| BR-01 | Calculated by Tax Calculator (see glossary) | UC1 (Process Sale) | Interface: TaxCalculator | TC-08: Verify tax matches external system |
