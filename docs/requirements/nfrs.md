@@ -13,7 +13,7 @@ These requirements are derived from our Quality Goals (ISO/IEC 25010) and are ma
 
 ### Usability
 - **NFR-05 (Usability):** A new cashier must be able to process a standard sale and a return after 15 minutes of basic training.
-- **NFR-06 (Usability):** A standard sale must be completed with fewer than 3 clicks after items are entered.
+- **NFR-06 (Usability):** A standard sale must be completed with 3 clicks or fewer after items are entered.
 
 ### Security
 - **NFR-07 (Security):** The system must enforce role-based access control (e.g., only Store Managers can override prices).
