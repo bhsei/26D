@@ -563,12 +563,12 @@ Derived from UC1. Requirements for UC2–UC5 will be added with their fully dres
 - **NFR-12:** The system shall comply with data protection regulations (GDPR) by not storing unnecessary personal data.
 
 ### 3.8 Software system attributes
-- **NFR-03 (Reliability):** The system must have an uptime of 99.9% during store hours.
-- **NFR-04 (Reliability):** A completed sale must be saved locally even if the internet drops.
-- **NFR-07 (Security):** The system must enforce role-based access control (e.g., manager override).
-- **NFR-08 (Security):** All user passwords and payment data must be encrypted.
-- **NFR-09 (Maintainability):** Adding a new payment method should take less than 3 development days.
-- **NFR-10 (Compatibility):** The system must be fully compatible with standard receipt printers and scanners.
+- **NFR-03 (Reliability):** The system shall have an uptime of 99.9% during store hours.
+- **NFR-04 (Reliability):** A completed sale shall be saved locally even if the internet drops.
+- **NFR-07 (Security):** The system shall enforce role-based access control (e.g., manager override).
+- **NFR-08 (Security):** All user passwords and payment data shall be encrypted. Card data shall not be stored after the transaction.
+- **NFR-09 (Maintainability):** Adding a new payment method shall take less than 3 development days.
+- **NFR-10 (Compatibility):** The system shall be fully compatible with standard receipt printers and scanners.
 
 ### 3.9 Supporting information
 Stakeholders and cashier persona: [stakeholders.md](stakeholders.md). Elicitation techniques and interview questions: [elicitation_plan.md](elicitation_plan.md).
@@ -581,11 +581,17 @@ All requirements will be verified using one of three methods: **Inspection** (I)
 
 | Req ID | Verification Method | Description |
 |---|---|---|
-| FR-01 to FR-17 | Test / Demonstration | Functional tests using simulated external systems. |
-| NFR-01, NFR-02 | Test | Automated performance testing (response time < 1s). |
+| FR-01 to FR-17 | Test | Functional tests using simulated external systems. |
+| FR-30 to FR-49 | Test | Functional tests for rentals and start-up procedures. |
+| NFR-01, NFR-02 | Test | Automated performance testing (response time < 1s, start-up < 30s). |
 | NFR-03, NFR-04 | Demonstration | Simulate internet drop and verify local storage. |
-| NFR-07, NFR-08 | Inspection | Code review and security audit of authentication. |
+| NFR-05, NFR-06 | Demonstration / Test | User testing (15 min training) and click-counting (TC-06). |
+| NFR-07 | Test | TC-06 (Role-based access control via manager override). |
+| NFR-08 | Inspection | Code review and security audit of authentication. |
 | NFR-09, NFR-10 | Inspection | Review of documentation and hardware compatibility list. |
+| NFR-11, NFR-12 | Inspection | Review of PCI-DSS and GDPR compliance checklist. |
+| IR-01 to IR-10 | Test | Integration tests with external system simulators. |
+| BR-01 to BR-14 | Test | Verify business rules during functional tests. |
 
 ### 4.1 Acceptance criteria – UC1 Process Sale
 
@@ -654,4 +660,4 @@ The acceptance criteria below check the main scenario and the most important ext
 See [glossary.md](glossary.md).
 
 ### 5.2 Traceability matrix
-The full traceability matrix linking the requirements (FR-01 to FR-17), use cases, planned design elements, and test cases is maintained in the [Requirements Conventions document](requirements_conventions.md), section 4. 
+The full traceability matrix linking the requirements (FR-01 to FR-17 and FR-30 to FR-49), use cases, planned design elements, and test cases is maintained in the [Requirements Conventions document](requirements_conventions.md), section 4.
