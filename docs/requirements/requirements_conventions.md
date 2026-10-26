@@ -42,4 +42,8 @@ This matrix links the official SRS requirements (FR-01 to FR-17) to the design a
 | FR-15 | Send to Accounting System | UC1 (Process Sale) | Interface: Accounting API | TC-15: Complete sale, verify JSON payload sent |
 | FR-16 | Print receipt (masked card) | UC1 (Process Sale) | UI: Receipt Layout | TC-16: Print receipt, verify only last 4 digits shown |
 | FR-17 | Reprint last receipt | UC1 (Process Sale) | UI: Reprint button | TC-17: Click reprint and verify printer triggers |
+| FR-20 | Return item and refund original tender | UC2 (Handle Returns) | TBD | TBD |
+| FR-30 | Process rental with deposit | UC3 (Process Rental) | TBD | TBD |
+| FR-40 | Start up and open cashier session | UC4 (Start Up) | TBD | TBD |
+| FR-50 | Return rental, check condition | UC5 (Return Rental) | TBD | TBD |
 | BR-01 | Calculated by Tax Calculator (see glossary) | UC1 (Process Sale) | Interface: TaxCalculator | TC-08: Verify tax matches external system |
