@@ -314,7 +314,8 @@ Derived from UC1. Requirements for UC2–UC5 will be added with their fully dres
 *Pending (W07) – Yasmine (from the cashier persona and the UI prototype).*
 
 ### 3.4 Performance requirements
-*Pending (W07) – Josué (NFR-xx from [quality_goals.md](quality_goals.md)).*
+- **NFR-01:** The system shall register a sale line item in less than 1 second.
+- **NFR-02:** The system shall start up and be ready for use in less than 30 seconds.
 
 ### 3.5 Logical database requirements
 *Pending (W07) – Borja (from the domain model: product descriptions, sales, payments, returns, rentals).*
@@ -323,10 +324,16 @@ Derived from UC1. Requirements for UC2–UC5 will be added with their fully dres
 *Pending (W07) – Haifa.*
 
 ### 3.7 Standards compliance
-*Pending (W07) – Josué (payment card data, data protection).*
+- **NFR-11:** The system shall comply with standard payment card data security (PCI-DSS) by masking card numbers on receipts (showing only last 4 digits).
+- **NFR-12:** The system shall comply with data protection regulations (GDPR) by not storing unnecessary personal data.
 
 ### 3.8 Software system attributes
-*Pending (W07) – Josué: reliability, availability, security, maintainability, compatibility (NFR-xx from [quality_goals.md](quality_goals.md)).*
+- **NFR-03 (Reliability):** The system must have an uptime of 99.9% during store hours.
+- **NFR-04 (Reliability):** A completed sale must be saved locally even if the internet drops.
+- **NFR-07 (Security):** The system must enforce role-based access control (e.g., manager override).
+- **NFR-08 (Security):** All user passwords and payment data must be encrypted.
+- **NFR-09 (Maintainability):** Adding a new payment method should take less than 3 development days.
+- **NFR-10 (Compatibility):** The system must be fully compatible with standard receipt printers and scanners.
 
 ### 3.9 Supporting information
 Stakeholders and cashier persona: [stakeholders.md](stakeholders.md). Elicitation techniques and interview questions: [elicitation_plan.md](elicitation_plan.md).
@@ -335,7 +342,17 @@ Stakeholders and cashier persona: [stakeholders.md](stakeholders.md). Elicitatio
 BR-01 to BR-14 are defined in the [glossary](glossary.md), section 3. Rules marked *Proposed* are still to be confirmed.
 
 ## 4. Verification
-*Pending (W07) – Josué: verification method of each requirement (inspection, demonstration, test) and traceability matrix. Avni: acceptance criteria for UC1.*
+All requirements will be verified using one of three methods: **Inspection** (I), **Demonstration** (D), or **Test** (T). 
+
+| Req ID | Verification Method | Description |
+|---|---|---|
+| FR-01 to FR-17 | Test / Demonstration | Functional tests using simulated external systems. |
+| NFR-01, NFR-02 | Test | Automated performance testing (response time < 1s). |
+| NFR-03, NFR-04 | Demonstration | Simulate internet drop and verify local storage. |
+| NFR-07, NFR-08 | Inspection | Code review and security audit of authentication. |
+| NFR-09, NFR-10 | Inspection | Review of documentation and hardware compatibility list. |
+
+*(Acceptance criteria for UC1 – pending to be added by Avni)*
 
 ## 5. Appendices
 
@@ -343,4 +360,4 @@ BR-01 to BR-14 are defined in the [glossary](glossary.md), section 3. Rules mark
 See [glossary.md](glossary.md).
 
 ### 5.2 Traceability matrix
-*Pending (W07) – Josué.*
+The full traceability matrix linking the requirements (FR-01 to FR-17), use cases, planned design elements, and test cases is maintained in the [Requirements Conventions document](requirements_conventions.md), section 4. 
