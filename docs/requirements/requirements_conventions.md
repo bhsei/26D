@@ -42,8 +42,24 @@ This matrix links the official SRS requirements (FR-01 to FR-17) to the design a
 | FR-15 | Send to Accounting System | UC1 (Process Sale) | Interface: Accounting API | TC-15: Complete sale, verify JSON payload sent |
 | FR-16 | Print receipt (masked card) | UC1 (Process Sale) | UI: Receipt Layout | TC-16: Print receipt, verify only last 4 digits shown |
 | FR-17 | Reprint last receipt | UC1 (Process Sale) | UI: Reprint button | TC-17: Click reprint and verify printer triggers |
-| FR-20 | Return item and refund original tender | UC2 (Handle Returns) | TBD | TBD |
-| FR-30 | Process rental with deposit | UC3 (Process Rental) | TBD | TBD |
-| FR-40 | Start up and open cashier session | UC4 (Start Up) | TBD | TBD |
-| FR-50 | Return rental, check condition | UC5 (Return Rental) | TBD | TBD |
+| FR-30 | Start new rental in session | UC3 (Process Rental) | Class Diagram: Rental | TC-30: Verify rental start |
+| FR-31 | Check overdue rentals | UC3 (Process Rental) | Sequence Diagram | TC-31: Customer with overdue rental |
+| FR-32 | Identify rentable item | UC3 (Process Rental) | Item List DB | TC-32: Scan valid/invalid serial |
+| FR-33 | Only rent *Available* items | UC3 (Process Rental) | State Machine: Item | TC-33: Attempt to rent rented item |
+| FR-34 | Calculate rental fee/due date | UC3 (Process Rental) | Component: FeeCalc | TC-34: Select period, verify fee |
+| FR-35 | Obtain tax for rental | UC3 (Process Rental) | Interface: TaxCalc | TC-35: Request tax for rental fee |
+| FR-36 | Cancel rental before payment | UC3 (Process Rental) | UI: Cancel button | TC-36: Cancel rental, check status |
+| FR-37 | Accept payment for rental | UC3 (Process Rental) | Interface: Payment | TC-37: Pay cash/card/check |
+| FR-38 | Save rental and update status | UC3 (Process Rental) | DB Schema: Rentals | TC-38: Check DB and item status |
+| FR-39 | Print rental receipt | UC3 (Process Rental) | UI: Receipt Layout | TC-39: Verify rental receipt details |
+| FR-40 | Open cashier session | UC4 (Start Up) | Class Diagram: Session | TC-40: Login and open session |
+| FR-41 | Check catalog at start-up | UC4 (Start Up) | Startup script | TC-41: Simulate missing DB |
+| FR-42 | Send queued records at start | UC4 (Start Up) | Interface: Accounting | TC-42: Check queue processing |
+| FR-43 | Login with valid employee | UC4 (Start Up) | Interface: HR System | TC-43: Login active/inactive user |
+| FR-44 | Require PIN for login | UC4 (Start Up) | UI: Login screen | TC-44: Verify PIN masking |
+| FR-45 | Fallback for HR System | UC4 (Start Up) | Local Cache DB | TC-45: Simulate HR down, test local |
+| FR-46 | Save local employee copy | UC4 (Start Up) | DB Schema: Employees | TC-46: Connect to HR, check sync |
+| FR-47 | Record opening cash | UC4 (Start Up) | UI: Cash input | TC-47: Enter invalid/valid amounts |
+| FR-48 | Recover data after crash | UC4 (Start Up) | Recovery Module | TC-48: Force crash, restart |
+| FR-49 | Show main screen | UC4 (Start Up) | UI: Main Screen | TC-49: Verify user and register ID |
 | BR-01 | Calculated by Tax Calculator (see glossary) | UC1 (Process Sale) | Interface: TaxCalculator | TC-08: Verify tax matches external system |
