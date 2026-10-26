@@ -587,7 +587,66 @@ All requirements will be verified using one of three methods: **Inspection** (I)
 | NFR-07, NFR-08 | Inspection | Code review and security audit of authentication. |
 | NFR-09, NFR-10 | Inspection | Review of documentation and hardware compatibility list. |
 
-*(Acceptance criteria for UC1 – pending to be added by Avni)*
+### 4.1 Acceptance criteria – UC1 Process Sale
+
+The acceptance criteria below check the main scenario and the most important extensions of UC1 (section 3.2.1). Each criterion is written as **Given / When / Then**. They are verified by **Test**, with the Tax Calculator, the Payment Service and the Accounting System replaced by simulators. The detailed test cases (TC-xx) are in the traceability matrix of [requirements_conventions.md](requirements_conventions.md).
+
+**Test data used in the examples**
+- Cashier session open (UC4 completed); the Tax Calculator simulator returns 10 % of the subtotal.
+- Item **1001** "Notebook": price 10.00, stock 25. Item **1002** "Pen": price 5.00, stock 40. Item **9999** is not in the product catalog.
+
+| ID | Case | UC1 flow | Requirements | Test cases |
+|---|---|---|---|---|
+| AC-01 | Normal sale, credit card approved | Main scenario | FR-01, FR-02, FR-04, FR-08, FR-10, FR-13 to FR-16 | TC-01, TC-02, TC-04, TC-08, TC-10, TC-13 to TC-16 |
+| AC-02 | Invalid item identifier | Ext. 4a | FR-03 | TC-03 |
+| AC-03 | Cash payment with change | Ext. 9a | FR-09 | TC-09 |
+| AC-04 | Credit card declined | Ext. 9b2a | FR-11 | TC-11 |
+| AC-05 | Payment Service not available | Ext. 9b2b | FR-11 | TC-11 |
+
+#### AC-01 – Normal sale, credit card approved
+- **Given** a cashier session is open, the item catalog contains items 1001 and 1002, and the Tax Calculator, the Payment Service and the Accounting System are available.
+- **When** the cashier starts a new sale, enters item 1001 (quantity 1) and item 1002 (quantity 2), ends the sale and pays by credit card, and the Payment Service approves the payment.
+- **Then**
+  - after each entry, the system shows a sale line item with description, price, quantity and running subtotal (10.00, then 20.00);
+  - after the sale is ended, the system shows tax 2.00 and total 22.00 (BR-01);
+  - the sale is saved with its line items, tax, total, tender, authorization code and cashier (BR-13);
+  - the stock of item 1001 is 24 and the stock of item 1002 is 38;
+  - the receipt is printed and shows only the last 4 digits of the card;
+  - the sale is sent to the Accounting System (BR-14).
+
+#### AC-02 – Invalid item identifier
+- **Given** a sale is open and item 9999 is not in the product catalog.
+- **When** the cashier enters item identifier 9999.
+- **Then**
+  - the system shows an error message and rejects the entry;
+  - no sale line item is added and the running subtotal does not change;
+  - the cashier can enter another item and continue the sale.
+
+#### AC-03 – Cash payment with change
+- **Given** a sale with total 22.00 is ready for payment.
+- **When** the cashier chooses cash and enters an amount tendered of 20.00.
+- **Then** the system rejects the amount, asks for at least the total and does not complete the sale (BR-06).
+- **When** the cashier then enters an amount tendered of 50.00.
+- **Then**
+  - the system shows change due 28.00 and opens the cash drawer;
+  - the cash payment is recorded, the sale is completed and the receipt is printed.
+
+#### AC-04 – Credit card declined
+- **Given** a sale with total 22.00 is ready for payment and the Payment Service simulator declines the card.
+- **When** the cashier chooses credit card payment.
+- **Then**
+  - the system shows the reason for the refusal;
+  - the sale stays open: no sale is saved as completed, the stock levels do not change, no receipt is printed and nothing is sent to the Accounting System (BR-05);
+  - the cashier can ask for another tender, pay by cash as in AC-03 and complete the sale.
+
+#### AC-05 – Payment Service not available
+- **Given** a sale with total 22.00 is ready for payment and the Payment Service simulator does not answer.
+- **When** the cashier chooses credit card payment.
+- **Then**
+  - the system shows the message *"Card payment not available"*;
+  - the failed communication is logged without card data or other personal data (IR-10);
+  - the sale stays open and no card payment is completed without authorization (BR-05, IR-02);
+  - the cashier asks for cash and completes the sale as in AC-03.
 
 ## 5. Appendices
 
