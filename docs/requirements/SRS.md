@@ -278,7 +278,122 @@ Full detail (data sent and received, timing, open questions): [external_interfac
 *Pending (W07) – Yasmine. One-paragraph description in [use_case_model.md](use_case_model.md).*
 
 #### 3.2.3 UC3 Process Rental
-*Pending (W07) – Avni. One-paragraph description in [use_case_model.md](use_case_model.md).*
+
+| | |
+|---|---|
+| **Use case** | UC3 Process Rental |
+| **Goal** | Rent an available item to a customer for a limited rental period, charging the rental fee and a refundable deposit, and give the customer a receipt with the due date |
+| **Level** | User goal |
+| **Primary actor** | Cashier |
+| **Supporting actors** | Payment Service, Tax Calculator, Accounting System |
+| **Priority** | Should · build order 3 |
+| **Trigger** | A customer comes to the register and wants to rent an item instead of buying it |
+
+**Stakeholders and interests**
+- *Cashier*: finds the item and the customer quickly; gets a clear message when the item or the customer cannot be accepted; knows the exact amounts to tell the customer.
+- *Customer*: knows the rental fee, the deposit and the due date before paying; gets a correct receipt; a secure card payment; the deposit back when the item returns undamaged (BR-10).
+- *Store manager*: an item is never rented twice (BR-11); customers with an overdue rental cannot rent again (BR-12); fee and deposit are recorded correctly.
+- *Accountant*: every rental reaches the Accounting System, with fee, tax and deposit shown separately (BR-14).
+- *Owner*: equipment is not lost, and the deposit protects the store.
+
+**Preconditions**
+- The register has been started and a cashier session is open (UC4).
+- The product catalog contains the rentable products with their rental fee per day and deposit, and the item list contains each rentable item with its serial number and item status.
+
+**Success guarantees (postconditions)**
+- The rental is saved with its rental line item (item, rental period, rental fee, due date and deposit), tax, total, payment, customer and cashier (BR-13).
+- The item status is changed from *Available* to *Rented* (BR-11).
+- The rental receipt is printed, with the due date and the refundable deposit.
+- The rental is sent, or queued to be sent, to the Accounting System (BR-14).
+
+**Failure guarantees**
+- If the rental is cancelled or the payment fails, the item stays *Available*, nothing is saved as completed and no payment is taken.
+- No card payment is completed without authorization (BR-05).
+- An item is never rented to two customers at the same time (BR-11).
+
+**Main success scenario**
+
+| Actor action | System responsibility |
+|---|---|
+| 1. The Customer arrives at the register and asks to rent an item. | |
+| 2. The Cashier starts a new rental. | 3. The System creates a new rental linked to the cashier session. |
+| 4. The Cashier enters the customer ID. | 5. The System checks that the customer has no overdue rental (BR-12). |
+| 6. The Cashier identifies the item by its serial number (scan or keyboard). | 7. The System checks that the item status is *Available* (BR-11) and shows the description, the status, the rental fee per day and the deposit. |
+| 8. The Cashier selects the rental period. | 9. The System calculates the rental fee and the due date and records a rental line item with the item, the rental period, the rental fee, the due date and the deposit (BR-10). |
+| 10. The Cashier indicates that the rental is complete. | 11. The System gets the tax of the rental fee from the Tax Calculator (BR-01) and shows the total: rental fee plus tax plus deposit. |
+| 12. The Cashier tells the Customer the total and the due date, explains that the deposit is refunded when the item comes back undamaged, and asks for payment. | |
+| 13. The Customer pays and the Cashier enters the payment. | 14. The System handles the payment (see 13a–13c). |
+| | 15. The System saves the completed rental, changes the item status to *Rented* and sends the rental to the Accounting System (BR-14, IR-06). |
+| | 16. The System prints the rental receipt. |
+| 17. The Customer leaves with the item and the receipt. | |
+
+**Extensions (alternative flows)**
+
+- **\*a. At any time, the System fails (crash or power cut):**
+  1. The Cashier restarts the register (UC4).
+  2. The System recovers the open rental, or reports that it was not completed. No completed rental or payment is lost, and the item status changes only for a completed rental.
+- **5a. The customer has an overdue rental:**
+  1. The System shows the message *"This customer has an overdue rental and cannot start a new one"* (BR-12).
+  2. The Cashier asks the Customer to return the overdue item first (UC5). The use case ends and no rental is made.
+- **7a. The serial number is not in the item list:**
+  1. The System shows an error and rejects the entry.
+  2. The Cashier checks the number and enters it again, or chooses another item.
+- **7b. The item status is not *Available* (*Rented*, *Under maintenance* or *Reserved*):**
+  1. The System rejects the item and shows the status as the reason (BR-11).
+  2. The Cashier chooses another item, or ends the use case.
+- **8a. The customer changes the rental period before paying:**
+  1. The Cashier selects another rental period.
+  2. The System recalculates the rental fee and the due date.
+- **10–13a. The customer cancels the rental before paying:**
+  1. The Cashier cancels the rental.
+  2. The System discards the rental. The item status does not change.
+- **11a. The Tax Calculator is not available:**
+  1. The System applies the default tax rate to the rental fee, marks the rental *tax to be corrected* and shows a short warning (BR-02, IR-05).
+  2. The use case continues at step 12.
+- **13a. Cash payment:**
+  1. The Cashier enters the amount tendered.
+  2. If the amount is lower than the total, the System rejects it and asks for the full amount (BR-06).
+  3. The System shows the change due and opens the cash drawer.
+  4. The Cashier puts the cash in the drawer and gives the change to the Customer.
+  5. The System records the cash payment.
+- **13b. Credit card payment:**
+  1. The Customer gives the card; the card reader reads it.
+  2. The System sends an authorization request for the total to the Payment Service (BR-05, IR-01).
+  3. The System receives the approval and records the credit card payment with the authorization code.
+  - **13b2a. The payment is declined:** the System shows the reason; the Cashier asks for another tender; the use case continues at step 13.
+  - **13b2b. The Payment Service does not answer:** the System shows *"Card payment not available"*, logs the failure (IR-10) and keeps the rental open; the Cashier asks for cash (IR-02).
+- **13c. Check payment** *(Could)*:
+  1. The Cashier enters the check data.
+  2. The System asks the Payment Service to authorize the check.
+  3. If approved, the System records the check payment; if not, as in 13b2a.
+- **15a. The Accounting System is not available:**
+  1. The System completes the rental normally and puts the record in the local queue (IR-07).
+  2. The record is sent automatically when the Accounting System is available again.
+- **16a. The receipt printer has no paper or fails:**
+  1. The System warns the Cashier and keeps the receipt.
+  2. The Cashier fixes the printer and reprints the receipt.
+
+**Special requirements**
+- The rental fee is the rental fee per day multiplied by the number of days of the rental period. The due date is the day of the rental plus the rental period.
+- The deposit is not taxed (working assumption, to be confirmed; see open issues).
+- The rental receipt shows the item and its serial number, the rental fee, the tax, the deposit marked as refundable, the total, the tender, the due date, and the instruction to return the item by the due date.
+- The receipt shows only the last 4 digits of a card number (NFR-08).
+
+**Technology and data variations**
+- 6: the serial number is read with a barcode scanner, or typed or picked from the item list.
+- 13b: the card is read with the card reader (chip or contactless).
+- 16: the receipt is printed on a thermal receipt printer (NFR-10).
+
+**Frequency of occurrence:** occasional during opening hours; much less frequent than UC1.
+
+**Open issues**
+- What are the available rental periods, the rental fee per day and the deposit of each product? Is there a maximum rental period? (The prototype uses 1, 3 and 7 days as examples; glossary, open questions 2 and 3.)
+- Is the deposit taxed? The working assumption is that only the rental fee is taxed (glossary, open question 8).
+- For a card payment, is the deposit charged, or only held and released at the rental return? This changes steps 13b and UC5 ([external_interfaces.md](external_interfaces.md), open question 2).
+- How is a customer identified? Where are the customer IDs registered, and which customer data is stored (data protection)?
+- Can one rental include several items, possibly with different rental periods?
+- What happens if two registers try to rent the same item at the same time?
+- Does the Accounting System receive the deposit, or only the rental fee? (glossary, open question 7)
 
 #### 3.2.4 UC4 Start Up
 
@@ -409,6 +524,16 @@ Derived from UC1. Requirements for UC2–UC5 will be added with their fully dres
 | FR-15 | The system shall send every completed sale to the Accounting System, queueing it if the system is not available. | Must | UC1 step 11, ext. 11a, BR-14, IR-06, IR-07 |
 | FR-16 | The system shall print a receipt with the store, date, cashier, sale line items, tax, total, tender and change, showing only the last 4 digits of a card. | Must | UC1 step 12 |
 | FR-17 | The system shall allow the cashier to reprint the receipt of the last sale. | Should | UC1 ext. 12a |
+| FR-30 | The system shall allow the cashier to start a new rental only inside an open cashier session, and shall link the rental to the cashier of the session. | Must | UC3 step 2–3, BR-13 |
+| FR-31 | When the cashier enters a customer ID, the system shall check that the customer has no overdue rental, and shall refuse to start a rental for a customer who has one, with a clear message. | Must | UC3 step 4–5, ext. 5a, BR-12 |
+| FR-32 | The system shall identify a rentable item by its serial number and show its description, item status, rental fee per day and deposit, and shall reject a serial number that is not in the item list. | Must | UC3 step 6–7, ext. 7a |
+| FR-33 | The system shall allow only an item with the status *Available* to be rented, and shall show the status as the reason when an item cannot be rented. | Must | UC3 step 7, ext. 7b, BR-11 |
+| FR-34 | The system shall let the cashier select the rental period, calculate the rental fee and the due date, and record a rental line item with the item, rental period, rental fee, due date and deposit. | Must | UC3 step 8–9, ext. 8a, BR-10 |
+| FR-35 | When the rental is complete, the system shall obtain the tax of the rental fee from the Tax Calculator (the deposit is not taxed) and shall show the total: rental fee plus tax plus deposit. | Must | UC3 step 11, ext. 11a, BR-01, BR-02, IR-04, IR-05 |
+| FR-36 | The system shall allow the cashier to cancel a rental before payment, without changing the item status. | Must | UC3 ext. 10–13a |
+| FR-37 | The system shall accept payment of the total of a rental in cash (rejecting an amount lower than the total and showing the change due), by credit card only after authorization by the Payment Service, or by check *(Could)*. When a card payment is declined or the Payment Service does not answer, the system shall keep the rental open for another tender. | Must | UC3 step 13–14, ext. 13a–13c, BR-05, BR-06, IR-01, IR-02 |
+| FR-38 | The system shall save every completed rental with its rental line item, tax, total, tender, customer and cashier, and shall change the status of the item from *Available* to *Rented*. | Must | UC3 step 15, BR-11, BR-13, IR-06, IR-07 |
+| FR-39 | The system shall print a rental receipt with the item and its serial number, rental fee, tax, deposit (marked as refundable), total, tender and due date, showing only the last 4 digits of a card. | Must | UC3 step 16, ext. 16a |
 | FR-40 | The system shall open a cashier session on the register for an employee identified as a valid, active cashier, and shall link every transaction made in the session to that cashier. | Must | UC4 step 9, BR-13, IR-08 |
 | FR-41 | When the system starts, it shall check that the product catalog and the stored data are available, and if they are not, shall show an error message and not offer the login. | Must | UC4 step 2, ext. 2a |
 | FR-42 | At start-up the system shall send the records waiting from the previous session to the Accounting System in the order in which they were made, and shall remove a record from the queue only after the Accounting System has acknowledged it. | Must | UC4 step 3, ext. 3a–3b, BR-14, IR-06, IR-07 |
