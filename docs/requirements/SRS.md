@@ -409,6 +409,16 @@ Derived from UC1. Requirements for UC2–UC5 will be added with their fully dres
 | FR-15 | The system shall send every completed sale to the Accounting System, queueing it if the system is not available. | Must | UC1 step 11, ext. 11a, BR-14, IR-06, IR-07 |
 | FR-16 | The system shall print a receipt with the store, date, cashier, sale line items, tax, total, tender and change, showing only the last 4 digits of a card. | Must | UC1 step 12 |
 | FR-17 | The system shall allow the cashier to reprint the receipt of the last sale. | Should | UC1 ext. 12a |
+| FR-40 | The system shall open a cashier session on the register for an employee identified as a valid, active cashier, and shall link every transaction made in the session to that cashier. | Must | UC4 step 9, BR-13, IR-08 |
+| FR-41 | When the system starts, it shall check that the product catalog and the stored data are available, and if they are not, shall show an error message and not offer the login. | Must | UC4 step 2, ext. 2a |
+| FR-42 | At start-up the system shall send the records waiting from the previous session to the Accounting System in the order in which they were made, and shall remove a record from the queue only after the Accounting System has acknowledged it. | Must | UC4 step 3, ext. 3a–3b, BR-14, IR-06, IR-07 |
+| FR-43 | The system shall let the cashier log in with an employee ID, check with the HR System that the employee is a valid, active cashier, and reject an unknown or inactive employee with a clear message. | Must | UC4 step 5–6, ext. 6a, IR-08 |
+| FR-44 | The system shall ask for a PIN together with the employee ID and accept the login only if the PIN is correct. The PIN shall never be shown, logged or stored in plain text. | Must | UC4 step 5–6, ext. 6b, NFR-08 |
+| FR-45 | When the HR System is not available, the system shall warn the cashier, show the date and time of the last update of the local employee list and check the employee ID against that list. If no local list exists, the register shall not be started for sales. | Should | UC4 ext. 6c, IR-09, IR-10 |
+| FR-46 | After every successful connection to the HR System, the system shall save a local copy of the employee list (employee ID, name, role and active status). | Should | UC4 ext. 6c, IR-09 |
+| FR-47 | When the cashier session starts, the system shall ask for the opening cash in the drawer, reject an amount that is not valid and record the amount with the session. | Should | UC4 step 7–9, ext. 8a |
+| FR-48 | After a restart following a failure, the system shall recover the stored data, including the queue of records waiting for the Accounting System and any open sale, and shall require the cashier to log in again. | Must | UC4 ext. \*a, UC1 ext. \*a |
+| FR-49 | When a cashier session is opened, the system shall show the main screen with the name of the cashier and the register ID. | Should | UC4 step 9 |
 
 ### 3.3 Usability requirements
 *Pending (W07) – Yasmine (from the cashier persona and the UI prototype).*
@@ -447,16 +457,6 @@ All requirements will be verified using one of three methods: **Inspection** (I)
 | Req ID | Verification Method | Description |
 |---|---|---|
 | FR-01 to FR-17 | Test / Demonstration | Functional tests using simulated external systems. |
-| FR-40 | The system shall open a cashier session on the register for an employee identified as a valid, active cashier, and shall link every transaction made in the session to that cashier. | Must | UC4 step 9, BR-13, IR-08 |
-| FR-41 | When the system starts, it shall check that the product catalog and the stored data are available, and if they are not, shall show an error message and not offer the login. | Must | UC4 step 2, ext. 2a |
-| FR-42 | At start-up the system shall send the records waiting from the previous session to the Accounting System in the order in which they were made, and shall remove a record from the queue only after the Accounting System has acknowledged it. | Must | UC4 step 3, ext. 3a–3b, BR-14, IR-06, IR-07 |
-| FR-43 | The system shall let the cashier log in with an employee ID, check with the HR System that the employee is a valid, active cashier, and reject an unknown or inactive employee with a clear message. | Must | UC4 step 5–6, ext. 6a, IR-08 |
-| FR-44 | The system shall ask for a PIN together with the employee ID and accept the login only if the PIN is correct. The PIN shall never be shown, logged or stored in plain text. | Must | UC4 step 5–6, ext. 6b, NFR-08 |
-| FR-45 | When the HR System is not available, the system shall warn the cashier, show the date and time of the last update of the local employee list and check the employee ID against that list. If no local list exists, the register shall not be started for sales. | Should | UC4 ext. 6c, IR-09, IR-10 |
-| FR-46 | After every successful connection to the HR System, the system shall save a local copy of the employee list (employee ID, name, role and active status). | Should | UC4 ext. 6c, IR-09 |
-| FR-47 | When the cashier session starts, the system shall ask for the opening cash in the drawer, reject an amount that is not valid and record the amount with the session. | Should | UC4 step 7–9, ext. 8a |
-| FR-48 | After a restart following a failure, the system shall recover the stored data, including the queue of records waiting for the Accounting System and any open sale, and shall require the cashier to log in again. | Must | UC4 ext. \*a, UC1 ext. \*a |
-| FR-49 | When a cashier session is opened, the system shall show the main screen with the name of the cashier and the register ID. | Should | UC4 step 9 |
 | NFR-01, NFR-02 | Test | Automated performance testing (response time < 1s). |
 | NFR-03, NFR-04 | Demonstration | Simulate internet drop and verify local storage. |
 | NFR-07, NFR-08 | Inspection | Code review and security audit of authentication. |
