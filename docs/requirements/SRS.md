@@ -281,7 +281,107 @@ Full detail (data sent and received, timing, open questions): [external_interfac
 *Pending (W07) – Avni. One-paragraph description in [use_case_model.md](use_case_model.md).*
 
 #### 3.2.4 UC4 Start Up
-*Pending (W07) – Avni. One-paragraph description in [use_case_model.md](use_case_model.md).*
+
+| | |
+|---|---|
+| **Use case** | UC4 Start Up |
+| **Goal** | Start the register, send the records that are waiting from the previous session and open a cashier session for a valid cashier, so that the cashier can start working |
+| **Level** | User goal (UC1, UC2, UC3 and UC5 need an open cashier session) |
+| **Primary actor** | Cashier |
+| **Supporting actors** | HR System, Accounting System |
+| **Priority** | Must · build order 4 |
+| **Trigger** | A cashier switches on the register at the beginning of the working day or of a shift, or restarts it after a failure |
+
+**Stakeholders and interests**
+- *Cashier*: a register that is ready in a few seconds; a simple login; a clear message when the login is rejected.
+- *Store manager*: only valid cashiers work at the registers; the opening cash is recorded; nothing from the previous day is lost.
+- *HR*: every later transaction is linked to the right employee (BR-13).
+- *Accountant*: the records waiting from the previous session reach the Accounting System in order and without loss (BR-14).
+- *System administrator*: clear logs of failed connections to the external systems (IR-10).
+- *Customer*: the register is ready when the store opens, so there is no waiting.
+
+**Preconditions**
+- The register is switched on and has a register ID.
+- No cashier session is open on this register.
+
+**Success guarantees (postconditions)**
+- A cashier session is open on this register for a valid, active cashier.
+- The opening cash is recorded in the session.
+- Every record waiting from the previous session has been sent to the Accounting System, or is still in the local queue in its original order.
+- The main screen is shown, ready for UC1, UC2, UC3 and UC5.
+- Every transaction made in the session will be linked to this cashier (BR-13).
+
+**Failure guarantees**
+- If the start-up fails, no cashier session is opened and no transaction can be made.
+- No record in the queue is lost: a record leaves the queue only when the Accounting System has acknowledged it (IR-07).
+- The PIN is never shown, logged or stored in plain text.
+
+**Main success scenario**
+
+| Actor action | System responsibility |
+|---|---|
+| 1. The Cashier switches on the register and starts the POS program. | 2. The System checks that the product catalog and the stored data are available. |
+| | 3. The System sends the records waiting from the previous session to the Accounting System, in the order in which they were made, and removes each record from the queue when it is acknowledged (BR-14, IR-06, IR-07). |
+| | 4. The System shows the login screen with the register ID. |
+| 5. The Cashier enters his or her employee ID and PIN. | 6. The System checks with the HR System that the employee is a valid, active cashier (IR-08) and checks the PIN. |
+| | 7. The System shows the name of the cashier and asks for the opening cash in the drawer. |
+| 8. The Cashier counts the cash in the drawer and enters the amount. | 9. The System opens a cashier session for this cashier on this register (BR-13), records the opening cash and shows the main screen. |
+| 10. The Cashier is ready to serve the first customer (UC1, UC2, UC3 or UC5). | |
+
+**Extensions (alternative flows)**
+
+- **\*a. At any time, the System fails (crash or power cut):**
+  1. The Cashier restarts the register and the use case starts again at step 1.
+  2. The System recovers the stored data, including the queue of records waiting for the Accounting System and any sale that was open (see UC1, extension \*a).
+  3. No cashier session is open after the restart, so the Cashier logs in again (step 5).
+- **2a. The product catalog or the stored data is not available (missing or damaged):**
+  1. The System shows an error message and does not show the login screen.
+  2. The Cashier calls the store manager or the system administrator. The use case ends and no cashier session is opened.
+- **3a. The Accounting System is not available:**
+  1. The System keeps the records in the local queue, in their original order, and logs the failed communication (IR-07, IR-10).
+  2. The use case continues at step 4. The records are sent automatically when the Accounting System is available again.
+- **3b. The Accounting System does not acknowledge a record:**
+  1. The System keeps the record in the queue and sends it again later.
+  2. The transaction ID lets the Accounting System ignore the record if it receives it twice (IR-07).
+  3. The use case continues at step 4.
+- **6a. The employee ID is not found or the employee is not an active cashier:**
+  1. The System shows the message *"Employee ID not found or not an active cashier"* and does not open a session.
+  2. The Cashier enters the data again (step 5), or asks the store manager for help.
+- **6b. The PIN is wrong:**
+  1. The System shows an error message and does not open a session.
+  2. The Cashier enters the PIN again (step 5).
+- **6c. The HR System is not available:**
+  1. The System logs the failed communication (IR-10) and shows a short warning: *"HR System not available. Using the local employee list"* with the date and time of its last update.
+  2. The System checks the employee ID against the local copy of the employee list (IR-09).
+  3. If the employee is in the local copy, the use case continues at step 7.
+  - **6c1. The employee is not in the local copy:** the System rejects the login as in 6a. The employee cannot log in until the HR System is available again.
+  - **6c2. No local copy exists (first start-up):** the System shows the message *"HR System not available and no local employee list: the register cannot be started for sales"*. The use case ends and no cashier session is opened.
+- **8a. The amount entered as opening cash is not valid (empty, not a number or negative):**
+  1. The System rejects the amount and asks for it again.
+  2. The Cashier enters the amount again (step 8).
+
+**Special requirements**
+- The register is ready for use in less than 30 seconds after the POS program starts (NFR-02). Sending the waiting records (step 3) must not delay this.
+- The PIN is never shown on the screen, written to a log or stored in plain text (NFR-08).
+- The role received from the HR System (*cashier* or *store manager*) decides what the employee may do in the session (NFR-07, BR-04).
+- The login screen shows the register ID and, when the HR System is not available, the date and time of the last update of the local employee list.
+- Failed communications with the external systems are logged without card data or other personal data (IR-10).
+
+**Technology and data variations**
+- 5: the employee ID and the PIN are typed on the keyboard.
+- 8: the opening cash is typed on the keyboard.
+
+**Frequency of occurrence:** at least once per cashier at the beginning of each shift, and after every restart of the register; much less often than UC1.
+
+**Open issues**
+- Where is the PIN checked, in the POS or in the HR System? The interface inventory ([external_interfaces.md](external_interfaces.md), section 3.4) only sends the employee ID.
+- Is the login blocked after several wrong attempts?
+- May a store manager open a cashier session, or only an employee with the role *cashier*?
+- Is the opening cash compared with an expected amount (for example, the amount left by the previous session)?
+- How long may the POS use the local employee list, and how often is it refreshed? A dismissed employee could still log in until the next synchronization ([external_interfaces.md](external_interfaces.md), open question 5).
+- After a crash, should the previous cashier session continue, or must the cashier always log in again?
+- There is no use case for logging out or closing the register at the end of the day. Who ends the cashier session?
+- How long may the POS work without the Accounting System before a manager must be warned ([external_interfaces.md](external_interfaces.md), section 3.3)?
 
 #### 3.2.5 UC5 Return Rental
 *Pending (W07) – Alfonso. New use case decided in W06; one-paragraph description in [use_case_model.md](use_case_model.md).*
@@ -347,6 +447,16 @@ All requirements will be verified using one of three methods: **Inspection** (I)
 | Req ID | Verification Method | Description |
 |---|---|---|
 | FR-01 to FR-17 | Test / Demonstration | Functional tests using simulated external systems. |
+| FR-40 | The system shall open a cashier session on the register for an employee identified as a valid, active cashier, and shall link every transaction made in the session to that cashier. | Must | UC4 step 9, BR-13, IR-08 |
+| FR-41 | When the system starts, it shall check that the product catalog and the stored data are available, and if they are not, shall show an error message and not offer the login. | Must | UC4 step 2, ext. 2a |
+| FR-42 | At start-up the system shall send the records waiting from the previous session to the Accounting System in the order in which they were made, and shall remove a record from the queue only after the Accounting System has acknowledged it. | Must | UC4 step 3, ext. 3a–3b, BR-14, IR-06, IR-07 |
+| FR-43 | The system shall let the cashier log in with an employee ID, check with the HR System that the employee is a valid, active cashier, and reject an unknown or inactive employee with a clear message. | Must | UC4 step 5–6, ext. 6a, IR-08 |
+| FR-44 | The system shall ask for a PIN together with the employee ID and accept the login only if the PIN is correct. The PIN shall never be shown, logged or stored in plain text. | Must | UC4 step 5–6, ext. 6b, NFR-08 |
+| FR-45 | When the HR System is not available, the system shall warn the cashier, show the date and time of the last update of the local employee list and check the employee ID against that list. If no local list exists, the register shall not be started for sales. | Should | UC4 ext. 6c, IR-09, IR-10 |
+| FR-46 | After every successful connection to the HR System, the system shall save a local copy of the employee list (employee ID, name, role and active status). | Should | UC4 ext. 6c, IR-09 |
+| FR-47 | When the cashier session starts, the system shall ask for the opening cash in the drawer, reject an amount that is not valid and record the amount with the session. | Should | UC4 step 7–9, ext. 8a |
+| FR-48 | After a restart following a failure, the system shall recover the stored data, including the queue of records waiting for the Accounting System and any open sale, and shall require the cashier to log in again. | Must | UC4 ext. \*a, UC1 ext. \*a |
+| FR-49 | When a cashier session is opened, the system shall show the main screen with the name of the cashier and the register ID. | Should | UC4 step 9 |
 | NFR-01, NFR-02 | Test | Automated performance testing (response time < 1s). |
 | NFR-03, NFR-04 | Demonstration | Simulate internet drop and verify local storage. |
 | NFR-07, NFR-08 | Inspection | Code review and security audit of authentication. |
