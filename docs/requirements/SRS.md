@@ -9,8 +9,9 @@ Structure based on ISO/IEC/IEEE 29148:2018
 | 0.2     | 2026-10-21 | Alfonso Pinto | Review #19 (Avni): goals in §1.2 linked to measurable requirements (NFR, FR, BR)                                                                                                                                                 |
 | 0.3     | 2026-10-21 | Alfonso Pinto | Rest of review #19 (Avni): Customer change from the proposal explained (§1.3.1); store manager added as secondary user (§1.3.1, §1.3.3); assumption on Proposed rules and open questions rephrased (§1.5); owner of UC5 (§3.2.5) |
 | 0.4     | 2026-10-27 | Alfonso Pinto | Review #23 (Borja): retry of the card payment added to UC1 ext. 9b2b and FR-11, as in IR-02                                                                                                                                      |
+| 0.9     | 2026-10-27 | Alfonso Pinto | Integration of all sections; §1 aligned with §3; verification of IR-11–14, NFR-13–18, DR, DC; §5.3 open questions; review #23: UC1 ext. 4b1, 6a, 11c, \*b and FR-18, FR-19, priority rule (FR-30–39 Should), UC5 damaged item                                                                                                 |
 
-> **Status: draft.** Sections marked _Pending (W07)_ are planned for SRS v1.0 (W07) and have an owner (see `plans/task_plan_W05-W06.md`). Terms are used as defined in the [glossary](glossary.md); business rules (BR-xx) are defined there too. Interface requirements (IR-xx) are in [external_interfaces.md](external_interfaces.md).
+> **Status: v0.9, complete draft for the final review.** All sections are written; the review findings are fixed in v1.0 (W07). Terms are used as defined in the [glossary](glossary.md); business rules (BR-xx) are defined there too. Interface requirements (IR-xx) are in §3.1, the full interface detail in [external_interfaces.md](external_interfaces.md). Open questions that are still to be confirmed are listed in §5.3.
 
 ---
 
@@ -43,7 +44,7 @@ The system **does not** cover: purchasing from suppliers, full inventory managem
 
 **Goals of the system**
 
-Each goal is refined into measurable requirements in section 3 (functional requirements in §3.2.6, NFR-xx in §3.3, §3.4 and §3.8; see [nfrs.md](nfrs.md)).
+Each goal is refined into measurable requirements in section 3 (functional requirements in §3.2.6, NFR-xx in §3.3, §3.4, §3.7 and §3.8; see [nfrs.md](nfrs.md)).
 
 | Goal                                                                   | Measured by                                                                                                                  |
 | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
@@ -62,21 +63,21 @@ NewEra POS runs on the registers of the store. It is a new system that replaces 
 | ----------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------- |
 | Cashier           | Primary actor                      | Operates the register in all use cases                                                         |
 | Customer          | Stakeholder                        | Buys, returns or rents items and pays, through the cashier                                     |
-| Store manager     | Secondary user                     | Approves price overrides (UC1 ext. 4d, BR-04) and views the reorder list (UC1 ext. 11b, BR-09) |
+| Store manager     | Secondary user                     | Approves price overrides (UC1 ext. 4d, BR-04), views the reorder list (UC1 ext. 11b, BR-09), changes the default tax rate (IR-05) and disables employees in the local list (IR-09) |
 | Payment Service   | Supporting actor (external system) | Authorizes credit card and check payments and card refunds                                     |
 | Tax Calculator    | Supporting actor (external system) | Calculates the tax of a transaction                                                            |
-| Accounting System | Supporting actor (external system) | Receives every completed sale, return and rental                                               |
-| HR System         | Supporting actor (external system) | Confirms that an employee is a valid, active cashier                                           |
+| Accounting System | Supporting actor (external system) | Receives every completed sale, return, rental and rental return                                |
+| HR System         | Supporting actor (external system) | Checks the employee ID and PIN and confirms that the employee is a valid, active cashier or store manager |
 
 ![Use case diagram](../../assets/use_case_diagram.png)
 
 The use case model, with a one-paragraph description of each use case, is in [use_case_model.md](use_case_model.md).
 
-**System interfaces.** The four external systems are described in [external_interfaces.md](external_interfaces.md) (IR-01 to IR-10) and summarised in section 3.1.3.
+**System interfaces.** The four external systems are described in [external_interfaces.md](external_interfaces.md) and specified in section 3.1.3 (IR-01 to IR-10).
 
 **User interfaces.** The cashier works with a screen, a keyboard, a barcode scanner, a card reader, a receipt printer and a cash drawer. See section 3.1.1.
 
-**Hardware interfaces.** Barcode scanner, card reader, receipt printer and cash drawer connected to the register.
+**Hardware interfaces.** Barcode scanner, card reader, receipt printer and cash drawer connected to the register. See section 3.1.2 (IR-11 to IR-14).
 
 **Operations.** The system is used during the store's opening hours. Each register is started at the beginning of the day (UC4) and is used by one cashier at a time, inside a cashier session.
 
@@ -102,7 +103,7 @@ The **store manager** is a secondary user: an experienced employee who uses the 
 
 #### 1.3.4 Limitations
 
-- Credit card and check payments depend on the Payment Service; if it is not available, only cash payments are possible (IR-02).
+- Credit card and check payments depend on the Payment Service; if it is not available, the cashier can retry the payment or take cash (IR-02).
 - Real external systems are not available to the team; they will be simulated with stubs that follow the interface specification.
 - Developed by a team of six students within a 16-week course.
 
@@ -114,6 +115,8 @@ The **store manager** is a secondary user: an experienced employee who uses the 
 | SRS                | Software Requirements Specification                                                         |
 | UC                 | Use case                                                                                    |
 | FR / NFR / BR / IR | Functional requirement / Non-functional requirement / Business rule / Interface requirement |
+| DR / DC            | Logical database (data) requirement / Design constraint                                     |
+| AC / TC            | Acceptance criterion / Test case                                                            |
 | MoSCoW             | Priority scale: Must, Should, Could, Won't (this time)                                      |
 
 All domain terms (register, sale line item, tender, cashier session…) are defined in the [glossary](glossary.md).
@@ -314,6 +317,7 @@ Full detail (data sent and received, timing, open questions): [external_interfac
 - **4b. The customer buys several units of the same product:**
   1. The Cashier enters the item identifier and the quantity.
   2. The System records one sale line item with that quantity.
+  - **4b1. The quantity is not valid** (zero, negative or not a whole number): the System rejects it and asks for the quantity again.
 - **4c. The Cashier removes a line item before payment** (customer changes their mind):
   1. The Cashier selects the line and removes it.
   2. The System updates the running subtotal.
@@ -321,9 +325,12 @@ Full detail (data sent and received, timing, open questions): [external_interfac
   1. The Cashier asks a store manager.
   2. The store manager identifies himself or herself and enters the new price (BR-04).
   3. The System records the override and the manager who approved it.
-- **6–9a. The customer cancels the sale before paying:**
+- **\*b. At any time before the payment (steps 4 to 9), the customer cancels the sale:**
   1. The Cashier cancels the sale.
   2. The System discards the sale; stock levels do not change.
+- **6a. The Cashier indicates that the sale is complete, but the sale has no line items:**
+  1. The System does not end the sale and asks for the first item.
+  2. The use case continues at step 4.
 - **7a. The Tax Calculator is not available:**
   1. The System applies the default tax rate, marks the sale _tax to be corrected_ and shows a short warning (BR-02, IR-05).
   2. The use case continues at step 8.
@@ -348,16 +355,18 @@ Full detail (data sent and received, timing, open questions): [external_interfac
   2. The record is sent automatically when the Accounting System is back.
 - **11b. The stock level of a product falls below the reorder threshold (10 units):**
   1. The System flags the product for reorder and shows it in the store manager's reorder list (BR-09).
+- **11c. The stock level of a product would fall below zero** (the stock data is wrong):
+  1. The System completes the sale, sets the stock level to zero and flags the product for a stock check by the store manager.
 - **12a. The receipt printer has no paper or fails:**
   1. The System warns the Cashier and keeps the receipt.
   2. The Cashier fixes the printer and reprints the receipt.
 
 **Special requirements**
 
-- A sale line item is registered in less than 1 second ([quality goals](quality_goals.md), performance efficiency).
-- A standard sale is completed with fewer than 3 clicks after the items are entered ([quality goals](quality_goals.md), usability).
-- The receipt shows only the last 4 digits of a card number.
-- Large text and buttons, readable at a distance of 1 m.
+- A sale line item is registered in less than 1 second (NFR-01).
+- A standard sale is completed with 3 clicks or fewer after the items are entered (NFR-06; _standard sale_ and _click_ are defined in §3.3).
+- The receipt shows only the last 4 digits of a card number (NFR-11).
+- Large text and buttons, readable at a distance of 1 m (NFR-13).
 
 **Technology and data variations**
 
@@ -719,7 +728,7 @@ Full detail (data sent and received, timing, open questions): [external_interfac
 
 **Open issues**
 
-- Where is the PIN checked, in the POS or in the HR System? The interface inventory ([external_interfaces.md](external_interfaces.md), section 3.4) only sends the employee ID.
+- ~~Where is the PIN checked, in the POS or in the HR System?~~ Closed (review #23): the HR System checks it; the local employee list keeps it only as a salted hash (IR-08, IR-09).
 - Is the login blocked after several wrong attempts?
 - May a store manager open a cashier session, or only an employee with the role _cashier_?
 - Is the opening cash compared with an expected amount (for example, the amount left by the previous session)?
@@ -793,8 +802,8 @@ Full detail (data sent and received, timing, open questions): [external_interfac
   2. The System shows the open rentals of the customer, and the Cashier selects the one for this item.
 - **6a. The item is damaged:**
   1. The Cashier records the condition as damaged, with a short description of the damage.
-  2. The System keeps the deposit (no refund, BR-10) and will change the item status to _Under maintenance_ at step 10.
-  3. The use case continues at step 8.
+  2. The System keeps the whole deposit (no refund, BR-10; working assumption, see open issues) and will change the item status to _Under maintenance_ at step 10.
+  3. The use case continues at step 7: the System still checks the due date. If the item is also late, the late fee and its tax are recorded and covered by the deposit (7a); if they are larger than the deposit, 7b applies.
 - **7a. The item is returned after the due date:**
   1. The System calculates the days late and the late fee, gets the tax of the late fee from the Tax Calculator (BR-01, IR-04) and shows them.
   2. The System takes the late fee and its tax from the deposit and shows the refund: deposit minus late fee minus tax.
@@ -825,7 +834,7 @@ Full detail (data sent and received, timing, open questions): [external_interfac
 
 **Special requirements**
 
-- Refund = deposit − late fee − tax of the late fee − amount kept for damage, and never less than zero (BR-10). The screen shows each part of the calculation.
+- Refund = deposit − late fee − tax of the late fee, and never less than zero (BR-10). When the item is damaged, the whole deposit is kept and the refund is zero. The screen shows each part of the calculation.
 - Days late = return date − due date, counted in whole days; an item returned on or before the due date has no late fee.
 - The rental return receipt shows the item and its serial number, the rental date, the due date, the return date, the condition, the deposit, the late fee and its tax, the amount kept, the refund and the tender, showing only the last 4 digits of a card (NFR-08).
 - A standard rental return on time (identify, check, confirm) needs 3 clicks or fewer after the item is identified (NFR-06).
@@ -850,6 +859,8 @@ Full detail (data sent and received, timing, open questions): [external_interfac
 
 Derived from the fully dressed use cases. ID ranges: UC1 FR-01–FR-19, UC2 FR-20–FR-29, UC3 FR-30–FR-39, UC4 FR-40–FR-49, UC5 FR-50–FR-59.
 
+**Priority rule.** An FR has the priority of its use case (§1.3.2). It can have a lower priority when it supports an extension that the store can do without in the first version (for example, check payments are _Could_), but never a higher one.
+
 | ID    | Requirement                                                                                                                                                                                                                                                                                                                                                      | Priority | Source                                                        |
 | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------- |
 | FR-01 | The system shall allow the cashier to start a new sale only inside an open cashier session.                                                                                                                                                                                                                                                                      | Must     | UC1 step 2–3, BR-13                                           |
@@ -858,7 +869,7 @@ Derived from the fully dressed use cases. ID ranges: UC1 FR-01–FR-19, UC2 FR-2
 | FR-04 | The system shall allow the cashier to enter a quantity for an item identifier and record one sale line item with that quantity.                                                                                                                                                                                                                                  | Must     | UC1 ext. 4b                                                   |
 | FR-05 | The system shall allow the cashier to remove a sale line item before payment and update the running subtotal.                                                                                                                                                                                                                                                    | Should   | UC1 ext. 4c                                                   |
 | FR-06 | The system shall allow a store manager, and only a store manager, to override the price of a sale line item, and shall record who approved it.                                                                                                                                                                                                                   | Should   | UC1 ext. 4d, BR-04                                            |
-| FR-07 | The system shall allow the cashier to cancel a sale before payment, without changing stock levels.                                                                                                                                                                                                                                                               | Must     | UC1 ext. 6–9a                                                 |
+| FR-07 | The system shall allow the cashier to cancel a sale before payment, without changing stock levels.                                                                                                                                                                                                                                                               | Must     | UC1 ext. \*b                                                  |
 | FR-08 | When the sale is complete, the system shall obtain the tax from the Tax Calculator and show the total.                                                                                                                                                                                                                                                           | Must     | UC1 step 7, BR-01, IR-04                                      |
 | FR-09 | For a cash payment, the system shall reject an amount tendered lower than the total, show the change due and open the cash drawer.                                                                                                                                                                                                                               | Must     | UC1 ext. 9a, BR-06                                            |
 | FR-10 | For a credit card payment, the system shall complete the payment only after the Payment Service approves it, and shall record the authorization code.                                                                                                                                                                                                            | Must     | UC1 ext. 9b, BR-05, IR-01                                     |
@@ -869,6 +880,8 @@ Derived from the fully dressed use cases. ID ranges: UC1 FR-01–FR-19, UC2 FR-2
 | FR-15 | The system shall send every completed sale to the Accounting System, queueing it if the system is not available.                                                                                                                                                                                                                                                 | Must     | UC1 step 11, ext. 11a, BR-14, IR-06, IR-07                    |
 | FR-16 | The system shall print a receipt with the store, date, cashier, sale line items, tax, total, tender and change, showing only the last 4 digits of a card.                                                                                                                                                                                                        | Must     | UC1 step 12                                                   |
 | FR-17 | The system shall allow the cashier to reprint the receipt of the last sale.                                                                                                                                                                                                                                                                                      | Should   | UC1 ext. 12a                                                  |
+| FR-18 | The system shall not end a sale without sale line items and shall reject a quantity that is not a whole number greater than zero.                                                                                                                                                                                                                                | Must     | UC1 ext. 4b1, 6a                                              |
+| FR-19 | When a sale would make the stock level of a product fall below zero, the system shall set it to zero and flag the product for a stock check by the store manager.                                                                                                                                                                                                | Should   | UC1 ext. 11c                                                  |
 | FR-20 | The system shall allow the cashier to start a return only inside an open cashier session, and shall link the return to the cashier of the session.                                                                                                                                                                                                               | Must     | UC2 step 2-3, BR-13                                           |
 | FR-21 | The system shall find the original sale by its receipt number and show its sale line items with the quantity bought and the quantity already returned. The system shall refuse the return, with a clear message, when no sale has that receipt number, when there is no valid receipt, or when the sale is older than the refund period.                         | Must     | UC2 step 4-5, ext. 4a, 4b, 5a, BR-07                          |
 | FR-22 | The system shall let the cashier select the returned items and quantities from the sale line items and record one return line item for each. The system shall reject an item that is not in the original sale or a quantity larger than the quantity not yet returned, and shall allow the cashier to remove a return line item before the return is confirmed.  | Must     | UC2 step 6-7, ext. 6a, 6b                                     |
@@ -879,16 +892,16 @@ Derived from the fully dressed use cases. ID ranges: UC1 FR-01–FR-19, UC2 FR-2
 | FR-27 | The system shall save every confirmed return linked to the original sale, with its return line items, tax, refund and cashier, and shall increase the stock level of each returned product by the returned quantity.                                                                                                                                             | Must     | UC2 step 10, BR-13                                            |
 | FR-28 | The system shall send every confirmed return to the Accounting System, queueing it if the system is not available.                                                                                                                                                                                                                                               | Must     | UC2 step 10, ext. 10a, BR-14, IR-06, IR-07                    |
 | FR-29 | The system shall print a return receipt with the store, date, cashier, receipt number of the original sale, returned line items, tax, refund and tender, showing only the last 4 digits of a card, and shall let the cashier reprint it when the printer fails.                                                                                                  | Must     | UC2 step 11, ext. 11a, NFR-08, IR-13                          |
-| FR-30 | The system shall allow the cashier to start a new rental only inside an open cashier session, and shall link the rental to the cashier of the session.                                                                                                                                                                                                           | Must     | UC3 step 2–3, BR-13                                           |
-| FR-31 | When the cashier enters a customer ID, the system shall check that the customer has no overdue rental, and shall refuse to start a rental for a customer who has one, with a clear message.                                                                                                                                                                      | Must     | UC3 step 4–5, ext. 5a, BR-12                                  |
-| FR-32 | The system shall identify a rentable item by its serial number and show its description, item status, rental fee per day and deposit, and shall reject a serial number that is not in the item list.                                                                                                                                                             | Must     | UC3 step 6–7, ext. 7a                                         |
-| FR-33 | The system shall allow only an item with the status _Available_ to be rented, and shall show the status as the reason when an item cannot be rented.                                                                                                                                                                                                             | Must     | UC3 step 7, ext. 7b, BR-11                                    |
-| FR-34 | The system shall let the cashier select the rental period, calculate the rental fee and the due date, and record a rental line item with the item, rental period, rental fee, due date and deposit.                                                                                                                                                              | Must     | UC3 step 8–9, ext. 8a, BR-10                                  |
-| FR-35 | When the rental is complete, the system shall obtain the tax of the rental fee from the Tax Calculator (the deposit is not taxed) and shall show the total: rental fee plus tax plus deposit.                                                                                                                                                                    | Must     | UC3 step 11, ext. 11a, BR-01, BR-02, IR-04, IR-05             |
-| FR-36 | The system shall allow the cashier to cancel a rental before payment, without changing the item status.                                                                                                                                                                                                                                                          | Must     | UC3 ext. 10–13a                                               |
-| FR-37 | The system shall accept payment of the total of a rental in cash (rejecting an amount lower than the total and showing the change due), by credit card only after authorization by the Payment Service, or by check _(Could)_. When a card payment is declined or the Payment Service does not answer, the system shall keep the rental open for another tender. | Must     | UC3 step 13–14, ext. 13a–13c, BR-05, BR-06, IR-01, IR-02      |
-| FR-38 | The system shall save every completed rental with its rental line item, tax, total, tender, customer and cashier, and shall change the status of the item from _Available_ to _Rented_.                                                                                                                                                                          | Must     | UC3 step 15, BR-11, BR-13, IR-06, IR-07                       |
-| FR-39 | The system shall print a rental receipt with the item and its serial number, rental fee, tax, deposit (marked as refundable), total, tender and due date, showing only the last 4 digits of a card.                                                                                                                                                              | Must     | UC3 step 16, ext. 16a                                         |
+| FR-30 | The system shall allow the cashier to start a new rental only inside an open cashier session, and shall link the rental to the cashier of the session.                                                                                                                                                                                                           | Should   | UC3 step 2–3, BR-13                                           |
+| FR-31 | When the cashier enters a customer ID, the system shall check that the customer has no overdue rental, and shall refuse to start a rental for a customer who has one, with a clear message.                                                                                                                                                                      | Should   | UC3 step 4–5, ext. 5a, BR-12                                  |
+| FR-32 | The system shall identify a rentable item by its serial number and show its description, item status, rental fee per day and deposit, and shall reject a serial number that is not in the item list.                                                                                                                                                             | Should   | UC3 step 6–7, ext. 7a                                         |
+| FR-33 | The system shall allow only an item with the status _Available_ to be rented, and shall show the status as the reason when an item cannot be rented.                                                                                                                                                                                                             | Should   | UC3 step 7, ext. 7b, BR-11                                    |
+| FR-34 | The system shall let the cashier select the rental period, calculate the rental fee and the due date, and record a rental line item with the item, rental period, rental fee, due date and deposit.                                                                                                                                                              | Should   | UC3 step 8–9, ext. 8a, BR-10                                  |
+| FR-35 | When the rental is complete, the system shall obtain the tax of the rental fee from the Tax Calculator (the deposit is not taxed) and shall show the total: rental fee plus tax plus deposit.                                                                                                                                                                    | Should   | UC3 step 11, ext. 11a, BR-01, BR-02, IR-04, IR-05             |
+| FR-36 | The system shall allow the cashier to cancel a rental before payment, without changing the item status.                                                                                                                                                                                                                                                          | Should   | UC3 ext. 10–13a                                               |
+| FR-37 | The system shall accept payment of the total of a rental in cash (rejecting an amount lower than the total and showing the change due), by credit card only after authorization by the Payment Service, or by check _(Could)_. When a card payment is declined or the Payment Service does not answer, the system shall keep the rental open for another tender. | Should   | UC3 step 13–14, ext. 13a–13c, BR-05, BR-06, IR-01, IR-02      |
+| FR-38 | The system shall save every completed rental with its rental line item, tax, total, tender, customer and cashier, and shall change the status of the item from _Available_ to _Rented_.                                                                                                                                                                          | Should   | UC3 step 15, BR-11, BR-13, IR-06, IR-07                       |
+| FR-39 | The system shall print a rental receipt with the item and its serial number, rental fee, tax, deposit (marked as refundable), total, tender and due date, showing only the last 4 digits of a card.                                                                                                                                                              | Should   | UC3 step 16, ext. 16a                                         |
 | FR-40 | The system shall open a cashier session on the register for an employee identified as a valid, active cashier, and shall link every transaction made in the session to that cashier.                                                                                                                                                                             | Must     | UC4 step 9, BR-13, IR-08                                      |
 | FR-41 | When the system starts, it shall check that the product catalog and the stored data are available, and if they are not, shall show an error message and not offer the login.                                                                                                                                                                                     | Must     | UC4 step 2, ext. 2a                                           |
 | FR-42 | At start-up the system shall send the records waiting from the previous session to the Accounting System in the order in which they were made, and shall remove a record from the queue only after the Accounting System has acknowledged it.                                                                                                                    | Must     | UC4 step 3, ext. 3a–3b, BR-14, IR-06, IR-07                   |
@@ -903,7 +916,7 @@ Derived from the fully dressed use cases. ID ranges: UC1 FR-01–FR-19, UC2 FR-2
 | FR-51 | The system shall find the open rental of an item by its serial number, by the rental receipt number or by the customer ID, show the customer, item, rental date, due date, deposit and tender, and reject a number with no open rental.                                                                                                                          | Should   | UC5 step 4–5, ext. 5a–5b                                      |
 | FR-52 | The system shall require the cashier to record the condition of the returned item (undamaged or damaged, with a description of the damage) before the rental return can be confirmed.                                                                                                                                                                            | Should   | UC5 step 6, ext. 6a, BR-10                                    |
 | FR-53 | For an item returned after its due date, the system shall calculate the days late and the late fee, obtain the tax of the late fee from the Tax Calculator (or apply the default tax rate if it is not available) and show them.                                                                                                                                 | Should   | UC5 ext. 7a, 7a1, BR-01, BR-02, IR-04, IR-05                  |
-| FR-54 | The system shall calculate the refund as the deposit minus the late fee, its tax and any amount kept for damage, never below zero, and shall keep the deposit when the item is damaged. When the late fee and its tax are larger than the deposit, the system shall ask for the difference as a payment.                                                         | Should   | UC5 step 7, ext. 6a, 7b, BR-10                                |
+| FR-54 | The system shall calculate the refund as the deposit minus the late fee and its tax, never below zero, and shall keep the whole deposit when the item is damaged. When the late fee and its tax are larger than the deposit, the system shall ask for the difference as a payment.                                                                               | Should   | UC5 step 7, ext. 6a, 7b, BR-10                                |
 | FR-55 | The system shall pay the refund with the tender used for the rental: cash (opening the cash drawer) or a refund to the card through the Payment Service. When the card refund fails or the rental was paid by check, the system shall pay the refund in cash.                                                                                                    | Should   | UC5 step 9, ext. 9a–9c, IR-03, IR-10                          |
 | FR-56 | The system shall allow the cashier to cancel a rental return before it is confirmed, without changing the rental or the item status.                                                                                                                                                                                                                             | Should   | UC5 ext. 8a                                                   |
 | FR-57 | The system shall save every confirmed rental return linked to its rental, close the rental and change the item status to _Available_ (undamaged) or _Under maintenance_ (damaged).                                                                                                                                                                               | Should   | UC5 step 10, ext. 6a, BR-11, BR-12, BR-13                     |
@@ -924,6 +937,8 @@ The usability requirements come from the cashier persona ([stakeholders.md](stak
 | NFR-16 | Every screen shall have one main task, and the same action (for example confirm, cancel, back to the menu) shall have the same label and position on all screens.                                                                                  | Should   | Persona (learnability), NFR-05                                                              |
 | NFR-17 | Before a payment or a refund is completed, the screen shall show the amount and each part of its calculation (for example price, tax, deposit, late fee) and shall ask the cashier to confirm.                                                     | Should   | UC2, UC3, UC5 special requirements                                                          |
 | NFR-18 | When an operation with an external system takes longer than 1 second, the screen shall show that the system is waiting for an answer.                                                                                                              | Should   | Persona (frustrations), NFR-01, [external_interfaces.md](external_interfaces.md) (timeouts) |
+
+For NFR-06, a _standard sale_ is a sale paid with one tender, without price override, removed lines or failures of external systems; a _click_ is one press of a button on the screen. Scanning an item and typing an amount are not counted.
 
 The numbers in NFR-05, NFR-13 and NFR-18 are first values and are checked in the interviews and the questionnaire (elicitation plan, questions C-14 and Q-06).
 
@@ -1016,7 +1031,7 @@ All requirements will be verified using one of three methods: **Inspection** (I)
 
 | Req ID         | Verification Method  | Description                                                           |
 | -------------- | -------------------- | --------------------------------------------------------------------- |
-| FR-01 to FR-17 | Test                 | Functional tests using simulated external systems.                    |
+| FR-01 to FR-19 | Test                 | Functional tests using simulated external systems.                    |
 | FR-20 to FR-29 | Test                 | Functional tests for returns.                                         |
 | FR-30 to FR-59 | Test                 | Functional tests for rentals, start-up procedures and rental returns. |
 | NFR-01, NFR-02 | Test                 | Automated performance testing (response time < 1s, start-up < 30s).   |
@@ -1027,6 +1042,10 @@ All requirements will be verified using one of three methods: **Inspection** (I)
 | NFR-09, NFR-10 | Inspection           | Review of documentation and hardware compatibility list.              |
 | NFR-11, NFR-12 | Inspection           | Review of PCI-DSS and GDPR compliance checklist.                      |
 | IR-01 to IR-10 | Test                 | Integration tests with external system simulators.                    |
+| IR-11 to IR-14 | Demonstration        | Demonstration with the scanner, card reader, printer and drawer (or their simulators).|
+| NFR-13 to NFR-18| Inspection / Demonstration| Inspection of the screens against the prototype; demonstration with a cashier (sizes, messages, waiting message).|
+| DR-01 to DR-18 | Inspection / Test    | Inspection of the data design; tests of storage after a restart (DR-13) and of money amounts (DR-17).|
+| DC-01 to DC-08 | Inspection           | Inspection of the architecture description and the code.              |
 | BR-01 to BR-14 | Test                 | Verify business rules during functional tests.                        |
 
 ### 4.1 Acceptance criteria – UC1 Process Sale
@@ -1105,3 +1124,19 @@ See [glossary.md](glossary.md).
 ### 5.2 Traceability matrix
 
 The full traceability matrix linking the requirements (FR-01 to FR-59), use cases, planned design elements, and test cases is maintained in the [Requirements Conventions document](requirements_conventions.md), section 4.
+
+### 5.3 Open questions
+
+The open questions of each use case are listed at the end of the use case. The questions below affect more than one section and must be answered before the design is closed (W11). Until then, the working assumption is used.
+
+| #  | Question | Working assumption | Affects |
+| -- | -------- | ------------------ | ------- |
+| 1  | Refund period, rental periods, late fee, and whether the deposit is taxed (glossary, open questions 1, 3, 8) | 30 days; 1, 3 or 7 days; late fee per day, taxed like the rental fee; only the rental fee is taxed | UC2, UC3, UC5, BR-07, BR-10–BR-12 |
+| 2  | Is the deposit of a card rental charged or only held (pre-authorization)? | Charged and refunded | UC3 ext. 13b, UC5 ext. 9b, IR-03 |
+| 3  | Can a sale be paid with more than one tender? | One tender per transaction | UC1, UC2, DR-05 |
+| 4  | Is an offline card authorization allowed for small amounts? | No; a card payment always needs authorization (BR-05) | UC1, UC3, IR-02 |
+| 5  | How are customers identified and which customer data is stored? | Customer ID only | UC3, UC5, DR-06, DR-18, NFR-12 |
+| 6  | Two registers renting the same item at the same time | Only one rental succeeds | UC3, DR-02 |
+| 7  | Discounts and promotions | Not in this version | UC1, UC2 |
+| 8  | Retention period of transactions and accounting records; currency and tax rounding | One currency, two decimals | §3.5, DR-17 |
+| 9  | Who ends the cashier session (no use case for closing the register) | Out of scope of this version | UC4, DR-09 |
