@@ -34,7 +34,7 @@
 - **Next:** Work on the external interfaces of the POS for the SRS.
 
 ## W06
-- **What I did:** Wrote the external interfaces inventory (`docs/requirements/external_interfaces.md`). For the Payment Service, Tax Calculator, Accounting System and HR System it describes the data sent and received, the timing and the fallback when the system is down, plus a first draft of IR-01 to IR-10. Reviewed Avni's glossary and business rules against the proposal and the course domain model, and posted 6 findings in issue #17.
-- **Hours:** 4
+- **What I did:** Wrote the external interfaces inventory (`docs/requirements/external_interfaces.md`). For the Payment Service, Tax Calculator, Accounting System and HR System it describes the data sent and received, the timing and the fallback when the system is down, plus a first draft of IR-01 to IR-10. Reviewed Avni's glossary and business rules against the proposal and the course domain model, and posted 6 findings in issue #17. Added the UI prototype to the repository (`docs/design/prototype/`) and a simulated barcode scanner to it: a Scan button on the Sale, Rental, Return and Return rental screens opens a scanner window where the cashier "scans" an example item, serial number or receipt, including an unknown barcode to show the error case (BR-11 for items that cannot be rented).
+- **Hours:** 6
 - **Problems:** I have not been able to check the full case study yet, so some details of the external systems are still open questions.
 - **Next:** Follow up on Avni's answers to issue #17, answer Josué's review of my document and support the fully dressed use cases in W07.
