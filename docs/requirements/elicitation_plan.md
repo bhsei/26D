@@ -1,9 +1,21 @@
 # Elicitation Plan – NewEra POS
 
-> Team D · Software Engineering, Beihang University (BUAA) · Version v0.2 (W7)
-> Author: Yasmine Chkoundali
->
-> This document explains how the team will collect the requirements of NewEra POS: which techniques we use, why, who does each activity and when, and which questions we ask. The people we want to hear from are described in [`stakeholders.md`](stakeholders.md). Terms follow the [glossary](glossary.md).
+|                  |                                                                   |
+| ---------------- | ----------------------------------------------------------------- |
+| **Maintainer**   | Yasmine Chkoundali                                                |
+| **Version**      | 0.3                                                               |
+| **Last updated** | W07                                                               |
+| **Part of**      | SRS (Assignment 1), ISO/IEC/IEEE 29148 – requirements elicitation |
+
+### Version history
+
+| Version | Changes                                                                                                                                   |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| 0.1     | First draft: techniques and interview questions.                                                                                          |
+| 0.2     | Fixes from review #21: UC4/UC5 and open-question questions, questionnaire, schedule, tags, data protection.                               |
+| 0.3     | Fixes from review #20: header table, questions M-19 to M-21 (owner's figures, approvals, reorder), stakeholders linked to the techniques. |
+
+This document explains how the team will collect the requirements of NewEra POS: which techniques we use, why, who does each activity and when, and which questions we ask. The people we want to hear from are described in [`stakeholders.md`](stakeholders.md). Terms follow the [glossary](glossary.md).
 
 ## 1. Goals of the elicitation
 
@@ -15,12 +27,12 @@
 
 ## 2. Techniques
 
-| Technique                    | What we do                                                                                                                                                     | Why we use it                                                                                                                              | Main stakeholders                    | Limits                                                                                                   |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| **Interview**                | Talk one to one with a cashier and a store manager, using the questions in section 3.                                                                          | Gives detailed and honest answers, and allows follow-up questions. Good to understand needs, problems and business rules.                  | Cashier, store manager               | Takes time. Answers depend on the person and may not cover everything.                                   |
-| **Questionnaire** (optional) | Send the short list of closed questions in section 3.3 to cashiers and store staff.                                                                            | Reaches more people quickly and gives data we can compare, for example about the payment methods used or the peak hours.                   | Cashier, store manager               | Little detail. No chance to ask follow-up questions. Only useful if we find at least 5 people to answer. |
-| **Observation** (optional)   | Watch a real register during a normal period and a busy period, and note each step of a sale, a return and a rental.                                           | Shows what people really do, including things they forget to say. Good to find usability problems and the real speed needed at peak hours. | Cashier, customer                    | Needs the permission of the store. The behavior of people can change when they know they are observed.   |
-| **Document analysis**        | Read the case study documents and the information about the Payment Service, the Tax Calculator, the Accounting System and the HR System, and the store rules. | Fast and cheap. Gives the first list of use cases, actors and business rules before we meet any user.                                      | Accountant, HR, system administrator | Documents can be incomplete or out of date, so we must confirm them with people.                         |
+| Technique                    | What we do                                                                                                                                                     | Why we use it                                                                                                                              | Main stakeholders                                                                       | Limits                                                                                                   |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| **Interview**                | Talk one to one with a cashier and a store manager, using the questions in section 3.                                                                          | Gives detailed and honest answers, and allows follow-up questions. Good to understand needs, problems and business rules.                  | Cashier, store manager (the needs of the owner are collected through the store manager) | Takes time. Answers depend on the person and may not cover everything.                                   |
+| **Questionnaire** (optional) | Send the short list of closed questions in section 3.3 to cashiers and store staff.                                                                            | Reaches more people quickly and gives data we can compare, for example about the payment methods used or the peak hours.                   | Cashier, store manager                                                                  | Little detail. No chance to ask follow-up questions. Only useful if we find at least 5 people to answer. |
+| **Observation** (optional)   | Watch a real register during a normal period and a busy period, and note each step of a sale, a return and a rental.                                           | Shows what people really do, including things they forget to say. Good to find usability problems and the real speed needed at peak hours. | Cashier, customer                                                                       | Needs the permission of the store. The behavior of people can change when they know they are observed.   |
+| **Document analysis**        | Read the case study documents and the information about the Payment Service, the Tax Calculator, the Accounting System and the HR System, and the store rules. | Fast and cheap. Gives the first list of use cases, actors and business rules before we meet any user.                                      | Accountant, HR department, system administrator, tax authority, payment provider        | Documents can be incomplete or out of date, so we must confirm them with people.                         |
 
 ### How the techniques work together
 
@@ -67,28 +79,31 @@ The interview questions are open, so the person can explain in their own words. 
 | C-13 | What do you do when the system is slow or stops working in the middle of a sale?              | UC1        |
 | C-14 | What would make your work at the register easier?                                             | UC1–UC5    |
 
-### 3.2 Store manager (18 questions)
+### 3.2 Store manager (21 questions)
 
-| ID   | Question                                                                                                    | Related to      |
-| ---- | ----------------------------------------------------------------------------------------------------------- | --------------- |
-| M-01 | What information must the system record for every sale?                                                     | UC1, BR-13      |
-| M-02 | What information must the system record for every return?                                                   | UC2             |
-| M-03 | What information must the system record for every rental?                                                   | UC3             |
-| M-04 | Which payment methods does the store accept: cash, credit card, check, others?                              | UC1             |
-| M-05 | Which discounts or promotions does the store apply?                                                         | UC1, BR-03      |
-| M-06 | Who is allowed to change a price or approve a manual price change at the register?                          | UC1, BR-04      |
-| M-07 | What is the refund period for returned items?                                                               | UC2, BR-07      |
-| M-08 | What do you do when a customer asks for a refund to a card but does not have the card with them?            | UC2, BR-08      |
-| M-09 | How is the rental deposit set: a fixed amount or a percentage of the value of the item?                     | UC3, BR-10      |
-| M-10 | When the customer pays the deposit by card, is the deposit charged, or only held until the item comes back? | UC3, UC5, BR-10 |
-| M-11 | What is the maximum rental period?                                                                          | UC3, BR-12      |
-| M-12 | Is there a late fee for a rental, and how is it calculated?                                                 | UC5, BR-12      |
-| M-13 | Is tax charged on the deposit, or only on the rental fee?                                                   | UC3, BR-01      |
-| M-14 | Do rented items count in the stock level that triggers a reorder at 10 units?                               | UC3, BR-09      |
-| M-15 | Does the Accounting System receive the deposit, or only the rental fee?                                     | UC3, UC5, BR-14 |
-| M-16 | When the Payment Service is not available, may the store accept card payments offline for small amounts?    | UC1, BR-05      |
-| M-17 | Who corrects the transactions that were taxed with the default rate?                                        | UC1, BR-02      |
-| M-18 | What problems or risks have you had with a POS system before?                                               | UC1–UC5         |
+| ID   | Question                                                                                                      | Related to           |
+| ---- | ------------------------------------------------------------------------------------------------------------- | -------------------- |
+| M-01 | What information must the system record for every sale?                                                       | UC1, BR-13           |
+| M-02 | What information must the system record for every return?                                                     | UC2                  |
+| M-03 | What information must the system record for every rental?                                                     | UC3                  |
+| M-04 | Which payment methods does the store accept: cash, credit card, check, others?                                | UC1                  |
+| M-05 | Which discounts or promotions does the store apply?                                                           | UC1, BR-03           |
+| M-06 | Who is allowed to change a price or approve a manual price change at the register?                            | UC1, BR-04           |
+| M-07 | What is the refund period for returned items?                                                                 | UC2, BR-07           |
+| M-08 | What do you do when a customer asks for a refund to a card but does not have the card with them?              | UC2, BR-08           |
+| M-09 | How is the rental deposit set: a fixed amount or a percentage of the value of the item?                       | UC3, BR-10           |
+| M-10 | When the customer pays the deposit by card, is the deposit charged, or only held until the item comes back?   | UC3, UC5, BR-10      |
+| M-11 | What is the maximum rental period?                                                                            | UC3, BR-12           |
+| M-12 | Is there a late fee for a rental, and how is it calculated?                                                   | UC5, BR-12           |
+| M-13 | Is tax charged on the deposit, or only on the rental fee?                                                     | UC3, BR-01           |
+| M-14 | Do rented items count in the stock level that triggers a reorder at 10 units?                                 | UC3, BR-09           |
+| M-15 | Does the Accounting System receive the deposit, or only the rental fee?                                       | UC3, UC5, BR-14      |
+| M-16 | When the Payment Service is not available, may the store accept card payments offline for small amounts?      | UC1, BR-05           |
+| M-17 | Who corrects the transactions that were taxed with the default rate?                                          | UC1, BR-02           |
+| M-18 | What problems or risks have you had with a POS system before?                                                 | UC1–UC5              |
+| M-19 | Which figures about the store does the owner expect to get from the system, for example the sales of the day? | UC1–UC3              |
+| M-20 | Which operations can a cashier do alone, and which ones need your approval?                                   | UC1, UC2, UC3, BR-04 |
+| M-21 | Who is responsible for reordering a product when its stock falls below 10 units?                              | BR-09                |
 
 ### 3.3 Questionnaire (optional, 7 closed questions)
 
