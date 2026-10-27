@@ -499,11 +499,119 @@ Full detail (data sent and received, timing, open questions): [external_interfac
 - How long may the POS work without the Accounting System before a manager must be warned ([external_interfaces.md](external_interfaces.md), section 3.3)?
 
 #### 3.2.5 UC5 Return Rental
-*Pending (W07) – Alfonso. New use case decided in W06; one-paragraph description in [use_case_model.md](use_case_model.md).*
+
+| | |
+|---|---|
+| **Use case** | UC5 Return Rental |
+| **Goal** | Take back a rented item, check its condition, apply the late fee if the item comes back after the due date, refund the deposit and close the rental |
+| **Level** | User goal |
+| **Primary actor** | Cashier |
+| **Supporting actors** | Payment Service, Tax Calculator, Accounting System |
+| **Priority** | Should · build order 5 (to be confirmed) |
+| **Trigger** | A customer comes to the register to bring back an item rented in an earlier visit (UC3) |
+
+**Stakeholders and interests**
+- *Cashier*: finds the rental quickly, even without the rental receipt; sees clearly how much is refunded and why.
+- *Customer*: gets the deposit back quickly when the item is undamaged (BR-10); understands any late fee or amount kept; gets a receipt; can rent again once the overdue rental is closed (BR-12).
+- *Store manager*: damaged items do not go back to the shelf; late fees are applied consistently; the item is available again for the next rental.
+- *Accountant*: every rental return, with the deposit refunded, the late fee and its tax, reaches the Accounting System (BR-14).
+- *Owner*: the deposit protects the store against late or damaged returns.
+
+**Preconditions**
+- The register has been started and a cashier session is open (UC4).
+- The item was rented with UC3, and the rental is still open (the item status is *Rented*).
+
+**Success guarantees (postconditions)**
+- A rental return is saved, linked to the original rental and to the cashier of the session (BR-13), with the condition of the item, the days late, the late fee and its tax, the amount kept and the refund.
+- The rental is closed, so the customer no longer has an overdue rental for this item (BR-12).
+- The item status is changed from *Rented* to *Available* if the item is undamaged, or to *Under maintenance* if it is damaged (BR-11).
+- The refund is paid to the customer, and the rental return receipt is printed.
+- The rental return is sent, or queued to be sent, to the Accounting System (BR-14).
+
+**Failure guarantees**
+- If the rental return is cancelled before it is confirmed, the rental stays open, the item status does not change and no refund is paid.
+- The refund is never larger than the deposit paid for the rental (BR-10).
+- No refund to a card is made without the Payment Service (IR-03).
+
+**Main success scenario** (item returned on time and undamaged)
+
+| Actor action | System responsibility |
+|---|---|
+| 1. The Customer arrives at the register with the rented item and, if available, the rental receipt. | |
+| 2. The Cashier starts a rental return. | 3. The System creates a rental return linked to the cashier session. |
+| 4. The Cashier identifies the item by its serial number (scan or keyboard), or enters the rental receipt number. | 5. The System finds the open rental and shows the customer, the item, the rental date, the due date, the deposit and the tender used to pay the rental. |
+| 6. The Cashier checks the item and records its condition as undamaged. | 7. The System checks the due date: the item is returned on time, so there is no late fee. It shows the refund: the full deposit (BR-10). |
+| 8. The Cashier tells the Customer the refund is being processed and confirms the rental return. | 9. The System pays the refund with the same tender used for the rental (see 9a–9c). |
+| | 10. The System saves the rental return, closes the rental, changes the item status to *Available* and sends the rental return to the Accounting System (BR-11, BR-14, IR-06). |
+| | 11. The System prints the rental return receipt. |
+| 12. The Customer leaves with the receipt (and the cash refund, if any). | |
+
+**Extensions (alternative flows)**
+
+- **\*a. At any time, the System fails (crash or power cut):**
+  1. The Cashier restarts the register (UC4).
+  2. The System recovers the open rental return, or reports that it was not completed. The rental stays open and the item status changes only for a confirmed rental return.
+- **5a. There is no open rental for the serial number or the receipt number** (unknown number, or item not rented):
+  1. The System shows *"No open rental for this item"* and rejects the entry.
+  2. The Cashier checks the number and enters it again, or ends the use case.
+- **5b. The customer has neither the rental receipt nor a readable serial number:**
+  1. The Cashier enters the customer ID.
+  2. The System shows the open rentals of the customer, and the Cashier selects the one for this item.
+- **6a. The item is damaged:**
+  1. The Cashier records the condition as damaged, with a short description of the damage.
+  2. The System keeps the deposit (no refund, BR-10) and will change the item status to *Under maintenance* at step 10.
+  3. The use case continues at step 8.
+- **7a. The item is returned after the due date:**
+  1. The System calculates the days late and the late fee, gets the tax of the late fee from the Tax Calculator (BR-01, IR-04) and shows them.
+  2. The System takes the late fee and its tax from the deposit and shows the refund: deposit minus late fee minus tax.
+  3. The use case continues at step 8.
+- **7a1. The Tax Calculator is not available:**
+  1. The System applies the default tax rate, marks the rental return *tax to be corrected* and shows a short warning (BR-02, IR-05).
+- **7b. The late fee and its tax are larger than the deposit:**
+  1. The System shows the refund as zero and the amount that the Customer still has to pay.
+  2. The Customer pays the difference as in UC1 extensions 9a–9c (cash, credit card or check). No refund is paid at step 9.
+- **8a. The Cashier cancels the rental return before confirming it** (for example, the customer keeps the item):
+  1. The System discards the rental return. The rental stays open and the item status does not change.
+- **9a. The rental was paid in cash:**
+  1. The System shows the refund and opens the cash drawer.
+  2. The Cashier gives the refund to the Customer.
+  3. The System records the cash refund.
+- **9b. The rental was paid by credit card:**
+  1. The System sends a refund request for the refund amount to the Payment Service, for the card used for the rental (IR-03).
+  2. The System receives the confirmation and records the card refund with its reference.
+  - **9b2a. The Payment Service declines the refund or does not answer:** the System shows the reason and logs the failure (IR-10); the Cashier pays the refund in cash, as in 9a.
+- **9c. The rental was paid by check:**
+  1. The System pays the refund in cash, as in 9a (a refund cannot be made to a check).
+- **10a. The Accounting System is not available:**
+  1. The System completes the rental return normally and puts the record in the local queue (IR-07).
+  2. The record is sent automatically when the Accounting System is available again.
+- **11a. The receipt printer has no paper or fails:**
+  1. The System warns the Cashier and keeps the receipt.
+  2. The Cashier fixes the printer and reprints the receipt.
+
+**Special requirements**
+- Refund = deposit − late fee − tax of the late fee − amount kept for damage, and never less than zero (BR-10). The screen shows each part of the calculation.
+- Days late = return date − due date, counted in whole days; an item returned on or before the due date has no late fee.
+- The rental return receipt shows the item and its serial number, the rental date, the due date, the return date, the condition, the deposit, the late fee and its tax, the amount kept, the refund and the tender, showing only the last 4 digits of a card (NFR-08).
+- A standard rental return on time (identify, check, confirm) needs 3 clicks or fewer after the item is identified (NFR-06).
+
+**Technology and data variations**
+- 4: the serial number is read with a barcode scanner, typed, or the rental receipt number is scanned.
+- 9b: the card refund does not need the card to be present; it uses the card reference saved with the rental.
+- 11: the receipt is printed on a thermal receipt printer (NFR-10).
+
+**Frequency of occurrence:** occasional during opening hours; about as frequent as UC3.
+
+**Open issues**
+- How is the late fee calculated (amount per day, maximum) and is it taxed? The working assumption here is a late fee per day, taxed like the rental fee (glossary, open question 3; use case model, open question 6).
+- Is the whole deposit kept for any damage, or only part of it depending on the damage? Who decides: the cashier or the store manager?
+- For a card payment, was the deposit charged or only held (pre-authorization)? If it was held, step 9b releases the hold instead of making a refund ([external_interfaces.md](external_interfaces.md), open question 2).
+- Can someone other than the customer who rented the item bring it back?
+- Can a rental be extended (a new due date) instead of being returned?
 
 #### 3.2.6 Functional requirements
 
-Derived from UC1. Requirements for UC2–UC5 will be added with their fully dressed use cases.
+Derived from the fully dressed use cases. ID ranges: UC1 FR-01–FR-19, UC2 FR-20–FR-29, UC3 FR-30–FR-39, UC4 FR-40–FR-49, UC5 FR-50–FR-59. The requirements of UC2 will be added with its fully dressed use case.
 
 | ID | Requirement | Priority | Source |
 |---|---|---|---|
@@ -544,6 +652,16 @@ Derived from UC1. Requirements for UC2–UC5 will be added with their fully dres
 | FR-47 | When the cashier session starts, the system shall ask for the opening cash in the drawer, reject an amount that is not valid and record the amount with the session. | Should | UC4 step 7–9, ext. 8a |
 | FR-48 | After a restart following a failure, the system shall recover the stored data, including the queue of records waiting for the Accounting System and any open sale, and shall require the cashier to log in again. | Must | UC4 ext. \*a, UC1 ext. \*a |
 | FR-49 | When a cashier session is opened, the system shall show the main screen with the name of the cashier and the register ID. | Should | UC4 step 9 |
+| FR-50 | The system shall allow the cashier to start a rental return only inside an open cashier session, and shall link the rental return to the cashier of the session. | Should | UC5 step 2–3, BR-13 |
+| FR-51 | The system shall find the open rental of an item by its serial number, by the rental receipt number or by the customer ID, show the customer, item, rental date, due date, deposit and tender, and reject a number with no open rental. | Should | UC5 step 4–5, ext. 5a–5b |
+| FR-52 | The system shall require the cashier to record the condition of the returned item (undamaged or damaged, with a description of the damage) before the rental return can be confirmed. | Should | UC5 step 6, ext. 6a, BR-10 |
+| FR-53 | For an item returned after its due date, the system shall calculate the days late and the late fee, obtain the tax of the late fee from the Tax Calculator (or apply the default tax rate if it is not available) and show them. | Should | UC5 ext. 7a, 7a1, BR-01, BR-02, IR-04, IR-05 |
+| FR-54 | The system shall calculate the refund as the deposit minus the late fee, its tax and any amount kept for damage, never below zero, and shall keep the deposit when the item is damaged. When the late fee and its tax are larger than the deposit, the system shall ask for the difference as a payment. | Should | UC5 step 7, ext. 6a, 7b, BR-10 |
+| FR-55 | The system shall pay the refund with the tender used for the rental: cash (opening the cash drawer) or a refund to the card through the Payment Service. When the card refund fails or the rental was paid by check, the system shall pay the refund in cash. | Should | UC5 step 9, ext. 9a–9c, IR-03, IR-10 |
+| FR-56 | The system shall allow the cashier to cancel a rental return before it is confirmed, without changing the rental or the item status. | Should | UC5 ext. 8a |
+| FR-57 | The system shall save every confirmed rental return linked to its rental, close the rental and change the item status to *Available* (undamaged) or *Under maintenance* (damaged). | Should | UC5 step 10, ext. 6a, BR-11, BR-12, BR-13 |
+| FR-58 | The system shall send every confirmed rental return to the Accounting System, queueing it if the system is not available. | Should | UC5 step 10, ext. 10a, BR-14, IR-06, IR-07 |
+| FR-59 | The system shall print a rental return receipt with the item and serial number, rental, due and return dates, condition, deposit, late fee and tax, amount kept, refund and tender, showing only the last 4 digits of a card. | Should | UC5 step 11, ext. 11a, NFR-08 |
 
 ### 3.3 Usability requirements
 *Pending (W07) – Yasmine (from the cashier persona and the UI prototype).*
@@ -582,7 +700,7 @@ All requirements will be verified using one of three methods: **Inspection** (I)
 | Req ID | Verification Method | Description |
 |---|---|---|
 | FR-01 to FR-17 | Test | Functional tests using simulated external systems. |
-| FR-30 to FR-49 | Test | Functional tests for rentals and start-up procedures. |
+| FR-30 to FR-59 | Test | Functional tests for rentals, start-up procedures and rental returns. |
 | NFR-01, NFR-02 | Test | Automated performance testing (response time < 1s, start-up < 30s). |
 | NFR-03, NFR-04 | Demonstration | Simulate internet drop and verify local storage. |
 | NFR-05, NFR-06 | Demonstration / Test | User testing (15 min training) and click-counting (TC-06). |
