@@ -42,6 +42,17 @@ This matrix links the official SRS requirements (FR-01 to FR-17) to the design a
 | FR-15 | Send to Accounting System | UC1 (Process Sale) | Interface: Accounting API | TC-15: Complete sale, verify JSON payload sent |
 | FR-16 | Print receipt (masked card) | UC1 (Process Sale) | UI: Receipt Layout | TC-16: Print receipt, verify only last 4 digits shown |
 | FR-17 | Reprint last receipt | UC1 (Process Sale) | UI: Reprint button | TC-17: Click reprint and verify printer triggers |
+| FR-20 | Start return in session | UC2 (Handle Returns) | Class Diagram: Return | TC-20: Verify return start |
+| FR-21 | Find original sale by receipt | UC2 (Handle Returns) | Sequence Diagram: FindSale | TC-21: Scan valid/invalid receipt |
+| FR-22 | Select items and quantities | UC2 (Handle Returns) | UI: Return selection screen | TC-22: Select items, check quantities |
+| FR-23 | Calculate refund | UC2 (Handle Returns) | Interface: TaxCalculator | TC-23: Request tax, verify refund amount |
+| FR-24 | Cancel return | UC2 (Handle Returns) | UI: Cancel button | TC-24: Cancel return, check stock |
+| FR-25 | Pay cash refund | UC2 (Handle Returns) | UI: Payment screen, Drawer API | TC-25: Verify cash drawer opens |
+| FR-26 | Pay card refund | UC2 (Handle Returns) | Interface: Payment Service | TC-26: Mock card refund, fallback to cash |
+| FR-27 | Save return and update stock | UC2 (Handle Returns) | DB Schema: Returns table | TC-27: Complete return, verify DB/stock |
+| FR-28 | Send to Accounting System | UC2 (Handle Returns) | Interface: Accounting API | TC-28: Verify JSON payload sent |
+| FR-29 | Print return receipt | UC2 (Handle Returns) | UI: Receipt Layout | TC-29: Print receipt, verify details |
+| BR-01 | Calculated by Tax Calculator (see glossary) | UC1 (Process Sale) | Interface: TaxCalculator | TC-08: Verify tax matches external system |
 | FR-30 | Start new rental in session | UC3 (Process Rental) | Class Diagram: Rental | TC-30: Verify rental start |
 | FR-31 | Check overdue rentals | UC3 (Process Rental) | Sequence Diagram | TC-31: Customer with overdue rental |
 | FR-32 | Identify rentable item | UC3 (Process Rental) | Item List DB | TC-32: Scan valid/invalid serial |
@@ -72,4 +83,3 @@ This matrix links the official SRS requirements (FR-01 to FR-17) to the design a
 | FR-57 | Save return and close rental | UC5 (Return Rental) | DB Schema: RentalReturns | TC-57: Check DB, item status, rental closed |
 | FR-58 | Send return to Accounting | UC5 (Return Rental) | Interface: Accounting | TC-58: Verify JSON payload sent |
 | FR-59 | Print rental return receipt | UC5 (Return Rental) | UI: Receipt Layout | TC-59: Verify receipt details |
-| BR-01 | Calculated by Tax Calculator (see glossary) | UC1 (Process Sale) | Interface: TaxCalculator | TC-08: Verify tax matches external system |
