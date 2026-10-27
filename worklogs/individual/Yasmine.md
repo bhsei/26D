@@ -44,3 +44,10 @@
 - **Hours:** **[6]**
 - **Problems:** Choosing realistic details for the persona and the questions without having observed a real shop till yet.
 - **Next:** In W07, write the fully dressed use case UC2 Handle Returns and help prepare the first complete SRS draft.
+
+## W07
+
+- **What I did:** Fixed the review findings on my two W06 documents (stakeholders v0.2 and elicitation plan v0.3, reviews #20 and #21) and answered each comment. Filled in my row of the README team table (#15). Wrote UC2 Handle Returns fully dressed in the SRS (§3.2.2) with FR-20 to FR-29, the user interfaces section (§3.1.1, one subsection per prototype screen) and the usability requirements (§3.3, NFR-13 to NFR-18). Checked the screen descriptions against the prototype.
+- **Hours:** **[6]**
+- **Problems:** The SRS sections were late because I started after the deadline. Some rules for returns are still open (refund period, return without receipt, card refund when the card is not present), so I listed them as open issues. The prototype does not show everything the SRS requires yet (PIN check, quantity already returned, finding a rental by receipt number).
+- **Next:** Fix the findings of the SRS v0.9 review in my sections before SRS v1.0, and help with the design work in W08.

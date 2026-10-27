@@ -143,7 +143,65 @@ All domain terms (register, sale line item, tender, cashier session…) are defi
 
 #### 3.1.1 User interfaces
 
-_Pending (W07) – Yasmine and Haifa: link the UI prototype (`docs/design/ui_prototype.md`) and list the usability needs of each screen._
+The cashier works on the register with a screen, a barcode scanner, a card reader, a receipt printer and a cash drawer (see 3.1.2). The screens were built as a clickable HTML prototype, described in the [UI prototype guide](../design/ui_prototype.md) and opened with [`index.html`](../design/prototype/index.html). The prototype is not the final design: every external system is simulated and the values of the refund period, the late fee, the rental fees and the deposits are only examples.
+
+The usability needs that apply to all screens are in section 3.3 (NFR-05, NFR-06 and NFR-13 to NFR-18) and come from the cashier persona in [stakeholders.md](stakeholders.md). The subsections below list the needs of each screen.
+
+**Start Up / login** (`index.html`) – UC4 – FR-40, FR-43, FR-44, FR-45, FR-47
+
+- Employee ID, PIN and opening cash on one screen; the PIN is never shown (FR-44).
+- When the HR System is not available, a warning shows the date of the last update of the local employee list (FR-45) and the cashier can continue.
+- An employee ID that is not found, or that is not an active cashier, gives a message on this screen (NFR-14). The prototype does not check the PIN yet (FR-44).
+- The register is ready for use in less than 30 seconds (NFR-02).
+
+**Main menu** (`menu.html`) – end of UC4, entry to UC1, UC2, UC3 and UC5 – FR-49
+
+- Shows the name of the cashier and the register ID (FR-49).
+- One large button for each task: sale, return, rental and rental return.
+- Shows the session (cashier, opening cash, number of transactions) and the status of the four external systems (online or offline), always visible (NFR-15).
+- When the Tax Calculator is offline, its status changes to offline, and the sale and payment screens warn that the default tax rate is used (NFR-15).
+
+**Sale** (`sale.html`) – UC1 – FR-02 to FR-05, FR-08
+
+- After each item, the cursor returns to the item identifier field, so the cashier can scan item after item without touching the screen.
+- Each line shows the item ID, description, quantity, price and line total; the number of items, the subtotal, the tax and the total are shown below the lines (FR-02, FR-08). An empty sale shows _No items yet. Scan the first item to start the sale._
+- An unknown item identifier gives a message on this screen (FR-03, NFR-14).
+- A line is removed with one action, the button next to it (FR-05).
+- A sale line item is registered in less than 1 second (NFR-01).
+
+**Payment** (`payment.html`) – UC1 and UC3 – FR-09 to FR-12, FR-35, FR-37
+
+- The total and the tenders (cash, credit card, check) are visible together.
+- For cash, an amount field with an _Exact_ button and quick amounts (20, 50, 100 and 200 €); the change due is shown, and the screen says when the amount tendered is less than the total (FR-09, NFR-06).
+- The result of a card or check authorization is shown in words (approved, declined, service not available) with what the cashier can do next, for example another tender (FR-11, NFR-14).
+- A waiting message (_Authorizing... please wait_) is shown while the Payment Service answers (NFR-18). The _Complete_ button stays disabled until the cash amount is enough or the card payment is approved (FR-09, FR-10).
+
+**Receipt** (`receipt.html`) – UC1 and UC3 – FR-13, FR-16, FR-17, FR-39
+
+- Shows the store, the date, the register and cashier, the lines, the subtotal, the tax, the total, the tender, the change (cash) and the authorization code (card or check) (FR-13, FR-16).
+- The prototype shows no card number; the SRS allows only the last 4 digits (FR-16, NFR-08).
+- For a rental, the deposit is marked as refundable and the due date is shown (FR-39).
+- A _Print receipt_ button prints the receipt again (FR-17); _New sale_ and _Main menu_ lead to the next task.
+
+**Return** (`return.html`) – UC2 – FR-20 to FR-29
+
+- One field for the receipt number, scanned or typed (IR-11).
+- A message for an unknown receipt number and for a sale older than the refund period (FR-21, NFR-14).
+- A table of the items of the sale with the quantity bought and the price; the cashier ticks each returned item and enters the quantity returned (FR-22). The prototype does not show the quantity already returned yet (FR-21).
+- The returned items, the tax and the refund are shown before the cashier confirms, together with the tender of the refund; for a card, only the last 4 digits (for example _Credit card \*\*\*\* 4821_) (FR-23, NFR-17).
+- _Confirm refund_ stays disabled until at least one item is selected; _Back to menu_ leaves the screen without changing anything (FR-24). After the confirmation the screen says that the return receipt is printed.
+
+**Rental** (`rental.html`) – UC3 – FR-30 to FR-36
+
+- A customer with an overdue rental is blocked with a message that gives the reason (FR-31, NFR-14).
+- The item list shows the status of each item, with a note that only items with the status _Available_ can be rented (FR-33).
+- The rental period is chosen with one button (1, 3 or 7 days in the prototype); the rental fee, the tax, the due date, the deposit and the total are shown before the payment (FR-34, FR-35, NFR-17).
+
+**Return rental** (`return-rental.html`) – UC5 – FR-50 to FR-59
+
+- The rental is found by the serial number, scanned or typed. Finding it by the rental receipt number or the customer ID (FR-51) is not in the prototype yet.
+- The condition of the item (undamaged or damaged) must be chosen before _Confirm return_ is enabled (FR-52).
+- The calculation shows the deposit paid, the late fee, the amount kept for damage and the refund (FR-54, NFR-17). The tax of the late fee (FR-53) is not in the prototype yet.
 
 #### 3.1.2 Hardware interfaces
 
@@ -851,7 +909,20 @@ Derived from the fully dressed use cases. ID ranges: UC1 FR-01–FR-19, UC2 FR-2
 
 ### 3.3 Usability requirements
 
-_Pending (W07) – Yasmine (from the cashier persona and the UI prototype)._
+The usability requirements come from the cashier persona ([stakeholders.md](stakeholders.md), section 2) and from the [UI prototype](../design/ui_prototype.md). The cashier works under time pressure, has little IT training and often talks to the customer while using the system. NFR-05 and NFR-06 are defined in [nfrs.md](nfrs.md); the others are specific to the user interface.
+
+| ID     | Requirement                                                                                                                                                                                                                                        | Priority | Source                                                                                      |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------- |
+| NFR-05 | A new cashier shall be able to process a standard sale and a return after 15 minutes of basic training.                                                                                                                                            | Must     | [nfrs.md](nfrs.md), assumption A-2 of stakeholders.md                                       |
+| NFR-06 | A standard sale shall be completed with 3 clicks or fewer after the items are entered.                                                                                                                                                             | Must     | [nfrs.md](nfrs.md), UC1                                                                     |
+| NFR-13 | The text of every screen shall be readable at a distance of 1 m, and every button shall be at least 10 mm x 10 mm on the register screen.                                                                                                          | Should   | Persona (working environment), UC1 special requirements                                     |
+| NFR-14 | Every error message shall be shown on the screen where the error happens, in plain words, and shall state what happened and what the cashier can do next, without technical codes.                                                                 | Must     | Persona (frustrations), UC1 ext. 4a, 9b2a, UC2 ext. 4a-5a                                   |
+| NFR-15 | The main menu shall always show whether each of the four external systems (Payment Service, Tax Calculator, Accounting System, HR System) is available, and the screens of a transaction shall warn the cashier when the default tax rate is used. | Should   | Persona (reliability), [external_interfaces.md](external_interfaces.md)                     |
+| NFR-16 | Every screen shall have one main task, and the same action (for example confirm, cancel, back to the menu) shall have the same label and position on all screens.                                                                                  | Should   | Persona (learnability), NFR-05                                                              |
+| NFR-17 | Before a payment or a refund is completed, the screen shall show the amount and each part of its calculation (for example price, tax, deposit, late fee) and shall ask the cashier to confirm.                                                     | Should   | UC2, UC3, UC5 special requirements                                                          |
+| NFR-18 | When an operation with an external system takes longer than 1 second, the screen shall show that the system is waiting for an answer.                                                                                                              | Should   | Persona (frustrations), NFR-01, [external_interfaces.md](external_interfaces.md) (timeouts) |
+
+The numbers in NFR-05, NFR-13 and NFR-18 are first values and are checked in the interviews and the questionnaire (elicitation plan, questions C-14 and Q-06).
 
 ### 3.4 Performance requirements
 
