@@ -1,0 +1,88 @@
+@startuml
+' NewEra POS - System sequence diagram of UC1 Process Sale (main scenario and payment variants), W07
+' Team D - editable source of assets/ssd_uc1.png
+' Render with: java -jar plantuml.jar -tpng assets/ssd_uc1.puml
+' Operation names and parameters follow docs/design/operation_contracts.md.
+
+skinparam shadowing false
+skinparam dpi 130
+skinparam defaultFontName Arial
+skinparam ArrowColor #444444
+skinparam SequenceLifeLineBorderColor #444444
+skinparam ParticipantBorderColor #1F4E79
+skinparam ParticipantBackgroundColor #EAF1FB
+skinparam ActorBorderColor #444444
+skinparam ActorBackgroundColor #FFFFFF
+skinparam SequenceGroupBackgroundColor #F4F8FD
+skinparam SequenceGroupBorderColor #1F4E79
+skinparam SequenceDividerBackgroundColor #EAF1FB
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #B8A04A
+skinparam responseMessageBelowArrow true
+
+title NewEra POS - System sequence diagram: UC1 Process Sale
+
+actor ":Cashier" as Cashier
+participant ":NewEra POS" as POS <<system>>
+
+note over Cashier, POS
+  Precondition: a cashier session is open (UC4).
+  The Customer takes part only through the Cashier.
+end note
+
+== Start the sale (UC1 steps 2-3) ==
+Cashier -> POS : makeNewSale()
+activate POS
+POS --> Cashier : new sale opened
+deactivate POS
+
+== Enter items (steps 4-5) ==
+loop until all items are entered
+  Cashier -> POS : enterItem(itemID, quantity)
+  activate POS
+  POS --> Cashier : product description, unit price,\nline subtotal, running subtotal
+  deactivate POS
+end
+note right of POS
+  Extensions: invalid itemID (4a) is rejected;
+  quantity (4b), remove line (4c), price override (4d).
+end note
+
+== End the sale (steps 6-7) ==
+Cashier -> POS : endSale()
+activate POS
+POS --> Cashier : subtotal, tax, total
+deactivate POS
+note right of POS
+  The tax comes from the Tax Calculator;
+  if it is not available, the default tax rate is used (7a).
+end note
+
+== Pay (steps 8-12) ==
+alt cash (9a)
+  Cashier -> POS : makePayment(amount, tenderType = Cash)
+  activate POS
+  POS --> Cashier : change due, receipt
+  deactivate POS
+else credit card (9b)
+  Cashier -> POS : makePayment(amount, tenderType = CreditCard)
+  activate POS
+  note right of POS
+    The POS asks the Payment Service for authorization.
+    Declined or no answer: no payment is recorded and the
+    Cashier asks for another tender (9b2a, 9b2b).
+  end note
+  POS --> Cashier : approval, receipt
+  deactivate POS
+else check (9c, Could)
+  Cashier -> POS : makePayment(amount, tenderType = Check)
+  activate POS
+  POS --> Cashier : approval, receipt
+  deactivate POS
+end
+
+note over Cashier, POS
+  After a successful payment the POS saves the sale, reduces the stock levels,
+  queues the AccountingRecord and prints the receipt (steps 11-12).
+end note
+@enduml
