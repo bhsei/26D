@@ -143,19 +143,47 @@ All domain terms (register, sale line item, tender, cashier session…) are defi
 *Pending (W07) – Yasmine and Haifa: link the UI prototype (`docs/design/ui_prototype.md`) and list the usability needs of each screen.*
 
 #### 3.1.2 Hardware interfaces
-*Pending (W07) – Haifa: barcode scanner, card reader, receipt printer, cash drawer.*
+
+Each register has the following devices, connected to the register computer. The POS uses them through standard drivers; the device models are not fixed by this SRS (NFR-10).
+
+| Device | Use cases | The POS sends / receives | If the device fails |
+|---|---|---|---|
+| **Barcode scanner** | UC1 step 4, UC2, UC3 step 6, UC5 step 4 | Receives the item identifier, serial number or receipt number as text, the same as if it was typed | The cashier types the identifier on the keyboard |
+| **Card reader** (chip and contactless) | UC1 ext. 9b, UC3 ext. 13b | Receives the card data (or a token) and passes it to the Payment Service; sends the amount to show to the customer | Card payment not possible; the cashier offers another tender (IR-02) |
+| **Receipt printer** (thermal) | UC1 step 12, UC2, UC3 step 16, UC4, UC5 step 11 | Sends the receipt text; receives the printer status (ready, no paper, error) | The POS shows the error; the cashier fixes the printer and reprints (UC1 ext. 12a, FR-17) |
+| **Cash drawer** | UC1 ext. 9a, UC2, UC3, UC4 step 8, UC5 | Sends the *open* command | The cashier opens the drawer with the manual key; the transaction is not affected |
+
+| ID | Requirement | Device | Priority | Source |
+|---|---|---|---|---|
+| IR-11 | The POS shall accept an item identifier, serial number or receipt number from the barcode scanner and from the keyboard in the same way. | Barcode scanner | Must | UC1 step 4, NFR-10 |
+| IR-12 | The POS shall read credit cards with a chip and contactless card reader and shall not keep the card data after the Payment Service has answered. | Card reader | Must | UC1 ext. 9b, NFR-08, NFR-11 |
+| IR-13 | The POS shall print receipts on a thermal receipt printer and shall show a message to the cashier when the printer reports no paper or an error. | Receipt printer | Must | UC1 step 12, ext. 12a, NFR-10 |
+| IR-14 | The POS shall open the cash drawer only for a cash payment, a cash refund or the opening cash count of a cashier session. | Cash drawer | Must | FR-09, FR-47, BR-06 |
 
 #### 3.1.3 Software interfaces (external systems)
 
-| External system | Use cases | If not available | Interface requirements |
-|---|---|---|---|
-| Payment Service | UC1, UC2, UC3, UC5 | Card/check payment refused; cashier offers cash; transaction stays open | IR-01, IR-02, IR-03 |
-| Tax Calculator | UC1, UC2, UC3, UC5 | Default tax rate, transaction flagged for correction | IR-04, IR-05 |
-| Accounting System | UC1, UC2, UC3, UC5, UC4 | Records queued locally and sent later in order | IR-06, IR-07 |
-| HR System | UC4 | Local copy of the employee list | IR-08, IR-09 |
-| All | – | Every failed communication is logged without card or personal data | IR-10 |
+| External system | Use cases | Timeout | If not available | Interface requirements |
+|---|---|---|---|---|
+| Payment Service | UC1, UC2, UC3, UC5 | 10 s | Card/check payment refused; cashier can retry or offer cash; transaction stays open | IR-01, IR-02, IR-03 |
+| Tax Calculator | UC1, UC2, UC3, UC5 | 5 s | Default tax rate (changed only by a store manager), transaction flagged for correction | IR-04, IR-05 |
+| Accounting System | UC1, UC2, UC3, UC5, UC4 | – | Records queued locally and sent later in order | IR-06, IR-07 |
+| HR System | UC4 | 5 s | Local copy of the employee list, refreshed at every start-up | IR-08, IR-09 |
+| All | – | – | Every failed communication is logged without card or personal data | IR-10 |
 
-Full detail (data sent and received, timing, open questions): [external_interfaces.md](external_interfaces.md).
+| ID | Requirement | System | Priority | Business rule |
+|---|---|---|---|---|
+| IR-01 | The POS shall request authorization from the Payment Service for every credit card and check payment and shall complete the payment only if it is approved. | Payment Service | Must | BR-05 |
+| IR-02 | When the Payment Service does not answer within 10 seconds, returns an error or the connection drops during the request, the POS shall inform the cashier, keep the transaction open and let the cashier retry the payment or cancel it and use another tender. | Payment Service | Must | BR-05 |
+| IR-03 | The POS shall send card refunds of returns to the Payment Service, using the card of the original sale. | Payment Service | Should | BR-08 |
+| IR-04 | The POS shall obtain the tax of every sale, return, rental and rental return from the Tax Calculator. | Tax Calculator | Must | BR-01 |
+| IR-05 | When the Tax Calculator does not answer within 5 seconds, the POS shall apply the default tax rate and mark the transaction for later tax correction. Only a store manager shall be able to change the default tax rate. | Tax Calculator | Must | BR-02, BR-04 |
+| IR-06 | The POS shall send every completed sale, return, rental and rental return to the Accounting System. | Accounting System | Must | BR-14 |
+| IR-07 | When the Accounting System is not available, the POS shall keep the records in a local queue and send them, in order and without loss, when the system is available again. | Accounting System | Must | BR-14 |
+| IR-08 | The POS shall check with the HR System that an employee is a valid, active cashier before starting a cashier session. | HR System | Must | BR-13 |
+| IR-09 | The POS shall refresh the local copy of the employee list at every start-up. When the HR System does not answer within 5 seconds, the POS shall validate employees against this local copy; a store manager shall be able to disable an employee in the local copy. | HR System | Should | BR-13 |
+| IR-10 | The POS shall log every failed communication with an external system (system, time, error) without logging card data or other personal data. | All | Should | – |
+
+Full detail (data sent and received, timing, open questions): [external_interfaces.md](external_interfaces.md) v0.2.
 
 ### 3.2 Functions
 
@@ -674,7 +702,17 @@ Derived from the fully dressed use cases. ID ranges: UC1 FR-01–FR-19, UC2 FR-2
 *Pending (W07) – Borja (from the domain model: product descriptions, sales, payments, returns, rentals).*
 
 ### 3.6 Design constraints
-*Pending (W07) – Haifa.*
+
+| ID | Constraint | Type | Reason |
+|---|---|---|---|
+| DC-01 | The real external systems (Payment Service, Tax Calculator, Accounting System, HR System) are not available to the team. They shall be replaced by **stubs** that follow the interfaces in §3.1.3 and can simulate *approved*, *declined*, *timeout* and *not available*. | External systems | §1.3.4 |
+| DC-02 | The POS shall reach each external system only through its own interface component, so that a stub can be replaced by the real system without changing the rest of the POS. | External systems | DC-01, NFR-09 |
+| DC-03 | The POS shall run on a standard register computer (desktop or web application) with the devices in §3.1.2; no special hardware is developed. | Technology | Process model (low novelty of technology) |
+| DC-04 | The programming language, database and frameworks are chosen in increment 2 (Design) and recorded as architecture decisions; they shall be tools the team already knows. | Technology | Team skills (README) |
+| DC-05 | Completed transactions and the Accounting System queue shall be stored locally on the register, so that they survive a network failure or a restart. | Technology | NFR-04, IR-07, FR-48 |
+| DC-06 | Card data shall not be stored by the POS; only the last 4 digits and the authorization code are kept. | Security | NFR-08, NFR-11 |
+| DC-07 | The system is developed by a team of six students within the 16-week course, with the milestones of the [project plan](../../plans/project_plan.md): SRS (W07), architecture and detailed design (W11). | Team and schedule | §1.3.4 |
+| DC-08 | All documents and the user interface are in English. Documents are kept in the team GitHub repository and follow [CONTRIBUTING.md](../../CONTRIBUTING.md). | Team | Project plan, risk R5 |
 
 ### 3.7 Standards compliance
 - **NFR-11:** The system shall comply with standard payment card data security (PCI-DSS) by masking card numbers on receipts (showing only last 4 digits).
