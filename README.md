@@ -52,13 +52,17 @@ Roles were confirmed by the team in W05 (see the [W05 report](weekly-reports/W05
 
 | Document | Content |
 | -------- | ------- |
-| [SRS](docs/requirements/SRS.md) | Software Requirements Specification (ISO/IEC/IEEE 29148), currently version 0.3 (draft); UC1 fully dressed, FR-01 to FR-17 |
+| [SRS](docs/requirements/SRS.md) | Software Requirements Specification (ISO/IEC/IEEE 29148), draft towards v1.0 (W07); UC1, UC3, UC4 and UC5 fully dressed (UC2 pending), FR-01 to FR-59, IR-01 to IR-14, section 3.5 data requirements DR-01 to DR-18 |
 | [Use case model](docs/requirements/use_case_model.md) | Use case diagram (`assets/use_case_diagram.png`) and one-paragraph description of UC1–UC5 |
 | [Glossary and business rules](docs/requirements/glossary.md) | Domain terms and BR-01 to BR-14 |
 | [External interfaces](docs/requirements/external_interfaces.md) | The 4 external systems and IR-01 to IR-10 |
-| [Non-functional requirements](docs/requirements/nfrs.md), [quality goals](docs/requirements/quality_goals.md) | NFR-01 to NFR-10 (ISO/IEC 25010) |
+| [Non-functional requirements](docs/requirements/nfrs.md), [quality goals](docs/requirements/quality_goals.md) | NFR-01 to NFR-12 (ISO/IEC 25010) |
 | [Requirement conventions](docs/requirements/requirements_conventions.md) | ID scheme, MoSCoW priority and traceability matrix |
 | [Stakeholders](docs/requirements/stakeholders.md), [elicitation plan](docs/requirements/elicitation_plan.md) | Stakeholder list, cashier persona and interview questions |
+| [Domain model](docs/design/domain_model.md) | Concepts of the store (23 classes), attributes and multiplicities for UC1–UC5 (`assets/domain_model.png`) |
+| [System sequence diagrams](docs/design/system_sequence_diagrams.md) | System operations of UC1 Process Sale (`assets/ssd_uc1.png`) |
+| [Operation contracts](docs/design/operation_contracts.md) | Contracts of the UC1 system operations |
+| [Architecture description](docs/design/architecture.md), [UI prototype](docs/design/ui_prototype.md) | Architecture skeleton (ISO/IEC/IEEE 42010) and clickable prototype |
 | [Project plan](plans/project_plan.md), [process model](plans/process_model.md) | Iterative-incremental life cycle (3 increments + release) and schedule |
 
 ## Progress
