@@ -35,9 +35,19 @@ Team: D · Project: NewEra POS / Role: Quality and Requirements
 **What I did:** 
 - Created the Requirements Conventions document including the ID scheme, MoSCoW priorities, and rules for writing good requirements.
 - Converted my Quality Goals into formal Non-Functional Requirements (NFR-01 to NFR-09).
-- Built the Traceability Matrix for UC1, aligning it with SRS requirements (FR-01 to FR-17) and ensuring the tax calculation test points to the external Tax Calculator (BR-01).
+- Built the Traceability Matrix for UC1, aligning it with SRS requirements (FR-01 to FR-17).
 - Reviewed Haifa's external interfaces document and left feedback in a GitHub Issue.
 **Hours:** 7
 **Problems:** Ensuring the traceability matrix correctly linked the requirements to both the design and test phases, especially distinguishing between internal processes and external system calls.
-**Next:** Finalize the remaining requirements sections for the SRS and prepare for the W07 fully dressed use cases.
-**Update (Post-review):** Aligned the Traceability Matrix with official SRS (FR-01 to FR-17). Reorganized NFRs to perfectly match the structure required in SRS sections 3.4 (Performance) and 3.8 (System Attributes).
+**Next:** Finalize the remaining requirements sections for the SRS and prepare for the W07 tasks.
+
+### W07
+**What I did:**
+- Fixed Issue #22 from Yasmine's review: updated the examples in `requirements_conventions.md` to use precise terminology from the glossary (NFR-01, IR-01, BR-01) and changed NFR-06 to "3 clicks or fewer" in `nfrs.md`.
+- Updated `SRS.md`: integrated NFRs into sections 3.4 (Performance), 3.7 (Standards) and 3.8 (System Attributes), ensuring consistency with `nfrs.md` (using "shall").
+- Completed the Verification table (§4) in the SRS for FR-01 to FR-59, NFRs, IRs and BRs, and updated the traceability reference in §5.2.
+- Expanded the Traceability Matrix in `requirements_conventions.md` to cover all 5 use cases, mapping FR-20 to FR-29 (UC2), FR-30 to FR-39 (UC3), FR-40 to FR-49 (UC4) and FR-50 to FR-59 (UC5) to their respective test cases.
+- Created the `docs/design/operation_contracts.md` for UC1 (makeNewSale, enterItem, endSale, makePayment) strictly following the UPM format: postconditions only describe state changes, added the "Responsibilities" field, and aligned class names and attributes with Borja's domain model (e.g., using `TenderType`).
+**Hours:** 8
+**Problems:** Adapting the operation contracts to the strict UPM format (where postconditions only describe state changes and not UI actions) required careful rewriting. Also, keeping all NFR texts completely identical across `nfrs.md` and `SRS.md`.
+**Next:** Support the team in finalizing SRS v1.0 and start preparing for the architecture and design phase (W11).
