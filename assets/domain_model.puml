@@ -1,0 +1,191 @@
+@startuml
+' NewEra POS - Domain model (conceptual class diagram), W07
+' Team D - editable source of assets/domain_model.png
+' Render with: java -jar plantuml.jar -tpng assets/domain_model.puml
+' Class and attribute names follow docs/design/operation_contracts.md and the glossary.
+
+skinparam shadowing false
+skinparam dpi 130
+skinparam defaultFontName Arial
+skinparam classAttributeIconSize 0
+skinparam ArrowColor #444444
+skinparam ClassBorderColor #1F4E79
+skinparam ClassBackgroundColor #EAF1FB
+skinparam ClassHeaderBackgroundColor #D6E4F5
+skinparam nodesep 35
+skinparam ranksep 55
+hide empty methods
+
+title NewEra POS - Domain model
+
+abstract class Transaction {
+  receiptNumber : String
+  dateTime : DateTime
+  subtotal : Money
+  tax : Money
+  total : Money
+  isComplete : Boolean
+  taxToBeCorrected : Boolean
+}
+
+class Sale {
+  isPaid : Boolean
+}
+class SaleLineItem {
+  quantity : Integer
+  unitPrice : Money
+  /lineSubtotal : Money
+}
+class Return {
+  refundTotal : Money
+}
+class ReturnLineItem {
+  quantity : Integer
+  refundAmount : Money
+}
+class Rental {
+  rentalDate : Date
+  /depositTotal : Money
+}
+class RentalLineItem {
+  rentalPeriodDays : Integer
+  rentalFee : Money
+  dueDate : Date
+  deposit : Money
+  /isOverdue : Boolean
+}
+class RentalReturn {
+  returnDate : Date
+  condition : ItemCondition
+  damageNote : String
+  daysLate : Integer
+  lateFee : Money
+  lateFeeTax : Money
+  amountKept : Money
+  refundTotal : Money
+}
+
+class ProductCatalog
+class ProductDescription {
+  itemID : String
+  name : String
+  price : Money
+  stockLevel : Integer
+  reorderThreshold : Integer
+  /needsReorder : Boolean
+  isRentable : Boolean
+  rentalFeePerDay : Money
+  deposit : Money
+}
+class Item {
+  serialNumber : String
+  status : ItemStatus
+}
+
+class Customer {
+  customerID : String
+}
+class Store {
+  name : String
+  defaultTaxRate : Decimal
+}
+class Register {
+  registerID : String
+}
+class Employee {
+  employeeID : String
+  name : String
+  role : EmployeeRole
+  isActive : Boolean
+}
+class CashierSession {
+  startTime : DateTime
+  endTime : DateTime
+  openingCash : Money
+}
+
+abstract class Payment {
+  amount : Money
+  dateTime : DateTime
+}
+class CashPayment {
+  amountTendered : Money
+  changeDue : Money
+}
+class CreditCardPayment {
+  cardLast4 : String
+  authorizationCode : String
+}
+class CheckPayment <<Could>> {
+  checkNumber : String
+  authorizationCode : String
+}
+class Refund {
+  amount : Money
+  tender : TenderType
+  reference : String
+}
+
+class Receipt {
+  number : String
+  printedAt : DateTime
+}
+class AccountingRecord {
+  transactionID : String
+  status : RecordStatus
+  queuedAt : DateTime
+  sentAt : DateTime
+}
+
+
+' Generalizations
+Transaction <|-- Sale
+Transaction <|-- Return
+Transaction <|-- Rental
+Transaction <|-- RentalReturn
+Payment <|-- CashPayment
+Payment <|-- CreditCardPayment
+Payment <|-- CheckPayment
+
+' Store structure
+Store "1" -- "1..*" Register : houses >
+Store "1" -- "1" ProductCatalog : has >
+Store "1" -- "*" Employee : employs >
+Register "1" -- "*" CashierSession : used in >
+Employee "1" -- "*" CashierSession : opens >
+CashierSession "1" -- "*" Transaction : records >
+
+' Catalog and items
+ProductCatalog "1" o-- "*" ProductDescription : contains >
+ProductDescription "1" -- "*" Item : describes >
+
+' Sale
+Sale "1" *-- "1..*" SaleLineItem : contains >
+SaleLineItem "*" -- "1" ProductDescription : records sale of >
+SaleLineItem "*" -- "0..1" Employee : price override\napproved by >
+
+' Return of a purchased item
+Return "*" -- "1" Sale : returns items of >
+Return "1" *-- "1..*" ReturnLineItem : contains >
+ReturnLineItem "*" -- "1" SaleLineItem : returns >
+
+' Rental
+Rental "*" -- "1" Customer : made by >
+Rental "1" *-- "1..*" RentalLineItem : contains >
+RentalLineItem "*" -- "1" Item : rents >
+RentalReturn "0..1" -- "1" RentalLineItem : closes >
+
+' Money
+Transaction "1" -- "*" Payment : is paid by >
+Return "1" -- "0..1" Refund : is refunded by >
+RentalReturn "1" -- "0..1" Refund : is refunded by >
+
+' Documents and accounting
+Transaction "1" -- "*" Receipt : is documented by >
+Transaction "1" -- "0..1" AccountingRecord : is reported by >
+
+legend bottom
+  A name starting with "/" is a derived attribute. The Customer is a stakeholder (not an actor): it appears here only as data of a rental.
+  Enumeration types: ItemStatus, ItemCondition, TenderType, EmployeeRole, RecordStatus (values in domain_model.md).
+endlegend
+@enduml
