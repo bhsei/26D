@@ -699,7 +699,45 @@ Derived from the fully dressed use cases. ID ranges: UC1 FR-01–FR-19, UC2 FR-2
 - **NFR-02:** The system shall start up and be ready for use in less than 30 seconds.
 
 ### 3.5 Logical database requirements
-*Pending (W07) – Borja (from the domain model: product descriptions, sales, payments, returns, rentals).*
+Derived from the [domain model](../design/domain_model.md). The system keeps its data **locally on the register** (DC-05); this section says what must be stored, what must be unique, which values are allowed and how long the data must live. The choice of database and the table design belong to increment 2 (DC-04). Data requirements have the ID **DR-xx**.
+
+| Data | Contents | Key |
+|---|---|---|
+| Product catalog | Product descriptions with price, stock level and rental data | `itemID` |
+| Item list | Rentable items with their item status | `serialNumber` |
+| Transactions | Sales, returns, rentals and rental returns, with their lines, payments, refunds and receipts | transaction ID |
+| Cashier sessions | Employee, register, times and opening cash | session ID |
+| Employee list | Local copy of the employees of the HR System | `employeeID` |
+| Customers | Customer ID of a rental | `customerID` |
+| Accounting queue | Records waiting for the Accounting System | transaction ID |
+| Settings | Default tax rate, reorder threshold | – |
+
+| ID | Requirement | Priority | Source |
+|---|---|---|---|
+| DR-01 | The system shall store, for every product description, a unique item identifier, name, price (not negative), stock level (integer) and reorder threshold (10 units unless the store changes it), and, for a rentable product, the rental fee per day and the deposit. | Must | FR-02, FR-14, FR-32, BR-03, BR-09, BR-10 |
+| DR-02 | The system shall store every rentable item with a unique serial number, the product description it belongs to and exactly one item status (*Available*, *Rented*, *Under maintenance* or *Reserved*). | Must | FR-32, FR-33, BR-11 |
+| DR-03 | The system shall store every completed sale with its sale line items, the date and time, subtotal, tax, total, payments, receipt number and the cashier session. Each sale line item shall keep the quantity and the **unit price at the moment of the sale**; a later price change shall not change a stored sale. | Must | FR-13, BR-03, BR-13 |
+| DR-04 | The system shall not change or delete a completed transaction. A correction (for example, of a tax marked *tax to be corrected*) shall be stored as a new record linked to the original. | Must | BR-14, IR-05 |
+| DR-05 | The system shall store each payment with its amount and tender. For a cash payment it shall also store the amount tendered and the change due; for a credit card or check payment, only the **last 4 digits** and the authorization code. Full card numbers, security codes and PINs of cards shall never be stored. | Must | FR-09, FR-10, DC-06, NFR-08, NFR-11 |
+| DR-06 | The system shall store every rental with its customer ID, its rental line items (item, rental period, rental fee, due date and deposit), tax, total, payment and cashier session. The overdue status of a rental shall be calculated from the due date and the current date, not stored. | Must | FR-31, FR-34, FR-38, BR-12 |
+| DR-07 | The system shall store every rental return linked to its rental line item, with the return date, condition (*undamaged* or *damaged*) and description of the damage, days late, late fee and its tax, amount kept from the deposit, refund and tender. | Should | FR-52 to FR-57, BR-10 |
+| DR-08 | The system shall store every return of purchased items linked to the original sale, with the returned lines, the refund and the tender used. *(To be completed with the requirements of UC2.)* | Must | UC2, BR-07, BR-08 |
+| DR-09 | The system shall store every cashier session with the employee ID, the register ID, the start time, the opening cash and, when a session can be ended, the end time. Every transaction shall refer to exactly one cashier session, and a register shall have at most one open session. | Must | FR-40, FR-47, BR-13 |
+| DR-10 | When a price override is approved, the system shall store the employee ID of the store manager with the sale line item. | Should | FR-06, BR-04 |
+| DR-11 | The system shall keep a local copy of the employee list (employee ID, name, role, active status) and the date and time of its last update. PINs shall be stored only as a salted hash, or not at all if the HR System checks them. | Should | FR-44, FR-46, IR-09, NFR-08 |
+| DR-12 | The system shall store the accounting records waiting to be sent in the order in which the transactions were made, each with a unique transaction ID, and shall delete a record only after the Accounting System has acknowledged it. | Must | FR-42, IR-06, IR-07 |
+| DR-13 | The system shall store the data of DR-03 to DR-12 locally and persistently, so that nothing is lost when the register restarts or the network drops. | Must | DC-05, NFR-04, FR-48 |
+| DR-14 | The system shall store enough data of the last completed transaction to print its receipt again. | Should | FR-17 |
+| DR-15 | The system shall store the default tax rate locally; only a store manager may change it. | Must | IR-05, BR-02, BR-04 |
+| DR-16 | The system shall not delete a product description, item, employee or customer that is referred to by a stored transaction. An item or employee that is no longer used shall be marked as inactive instead. | Should | BR-13, BR-14 |
+| DR-17 | The system shall store money amounts exactly, with two decimal places and without rounding errors of binary floating-point numbers, in one currency. | Must | FR-08, FR-09 |
+| DR-18 | Of a customer, the system shall store only the customer ID and the data needed to find the open and overdue rentals; no other personal data shall be stored unless a requirement asks for it. | Must | NFR-12, UC3 open issues |
+
+**Open points**
+- How long are transactions and accounting records kept after they have been sent (retention period)? Needed to size the local storage.
+- Which currency, and how is the tax rounded (per line or per transaction)? This changes DR-03 and DR-17.
+- Which customer data is stored, and are customers registered in NewEra POS or only identified by an ID of another system? (UC3 open issues; DR-06, DR-18.)
+- Does a rental have more than one line item (DR-06)? Is a sale paid with more than one tender (DR-05)?
 
 ### 3.6 Design constraints
 
