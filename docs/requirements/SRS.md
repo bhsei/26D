@@ -943,6 +943,7 @@ All requirements will be verified using one of three methods: **Inspection** (I)
 | Req ID         | Verification Method  | Description                                                           |
 | -------------- | -------------------- | --------------------------------------------------------------------- |
 | FR-01 to FR-17 | Test                 | Functional tests using simulated external systems.                    |
+| FR-20 to FR-29 | Test                 | Functional tests for returns.                                         |
 | FR-30 to FR-59 | Test                 | Functional tests for rentals, start-up procedures and rental returns. |
 | NFR-01, NFR-02 | Test                 | Automated performance testing (response time < 1s, start-up < 30s).   |
 | NFR-03, NFR-04 | Demonstration        | Simulate internet drop and verify local storage.                      |
@@ -1029,4 +1030,4 @@ See [glossary.md](glossary.md).
 
 ### 5.2 Traceability matrix
 
-The full traceability matrix linking the requirements (FR-01 to FR-17 and FR-30 to FR-49), use cases, planned design elements, and test cases is maintained in the [Requirements Conventions document](requirements_conventions.md), section 4.
+The full traceability matrix linking the requirements (FR-01 to FR-59), use cases, planned design elements, and test cases is maintained in the [Requirements Conventions document](requirements_conventions.md), section 4.
