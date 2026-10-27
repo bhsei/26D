@@ -7,7 +7,7 @@
 | **Last updated** | W07 |
 | **Part of** | SRS (Assignment 1), ISO/IEC/IEEE 29148 – external interface requirements (software interfaces) |
 
-**Changes in v0.2 (review #14):** timeouts for the Payment Service (10 s), Tax Calculator and HR System (5 s); connection lost during a card payment (cancel or retry); default tax rate changed only by a store manager; HR local copy refreshed at every start-up and employees can be disabled locally; pre-authorization (hold) proposed for the rental deposit. Also aligned with SRS v0.9 and glossary v0.2: UC5 Return Rental added, the Payment Service also authorizes checks.
+**Changes in v0.2 (review #14):** timeouts for the Payment Service (10 s), Tax Calculator and HR System (5 s); connection lost during a card payment (cancel or retry); default tax rate changed only by a store manager; HR local copy refreshed at every start-up and employees can be disabled locally; pre-authorization (hold) proposed for the rental deposit. Also aligned with SRS v0.9 and glossary v0.2: UC5 Return Rental added, the Payment Service also authorizes checks. After review #23 (Borja): the PIN is checked by the HR System and the local copy keeps it only as a salted hash; store manager identification for manager actions.
 
 ## 1. Purpose
 
@@ -83,10 +83,11 @@ Holds employee data; the POS uses it to know who is a valid cashier and what eac
 | | |
 | --- | --- |
 | **When** | UC4 Start Up and when a cashier logs in to start a cashier session. Also when a store manager must approve an exception at the register (BR-04). |
-| **POS sends** | Employee ID entered by the cashier (and the register ID). |
-| **POS receives** | Whether the employee is valid and active, the employee's name and role (*cashier*, *store manager*). |
+| **POS sends** | Employee ID and PIN entered by the employee (and the register ID). The PIN is checked by the HR System. |
+| **POS receives** | Whether the employee is valid and active and the PIN is correct, the employee's name and role (*cashier*, *store manager*). |
 | **Timeout** | **5 seconds.** |
-| **Local copy** | The POS keeps a **local copy** of the employee list. It is **refreshed at every start-up (UC4)** when the HR System is available. |
+| **Local copy** | The POS keeps a **local copy** of the employee list (employee ID, name, role, active status and the PIN as a salted hash only). It is **refreshed at every start-up (UC4)** when the HR System is available. |
+| **Store manager actions** | To change the default tax rate (3.2) or disable an employee locally, the store manager identifies at the register with employee ID and PIN, checked like a login; the cashier session stays open. |
 | **If not available** | The POS uses the local copy from the last successful refresh, so that known cashiers can still log in and work. Employees not in the local copy cannot log in until the HR System is back. Every transaction is still linked to the cashier of the session (BR-13). If no local copy exists (first start-up), the POS cannot be started for sales. If the HR System stays down for a long time (for example, several days), a **store manager can disable an employee in the local copy**, so that a dismissed employee cannot log in. |
 | **Security notes** | The POS only needs the ID, name, role and active status; it does not receive or keep other personal data. Passwords / PINs are never stored in plain text. |
 
@@ -103,8 +104,8 @@ Interface requirements that come from this inventory. IDs follow the scheme in [
 | IR-05 | When the Tax Calculator does not answer within 5 seconds, the POS shall apply the default tax rate and mark the transaction for later tax correction. Only a store manager shall be able to change the default tax rate. | Tax Calculator | Must | BR-02, BR-04 |
 | IR-06 | The POS shall send every completed sale, return, rental and rental return to the Accounting System. | Accounting System | Must | BR-14 |
 | IR-07 | When the Accounting System is not available, the POS shall keep the records in a local queue and send them, in order and without loss, when the system is available again. | Accounting System | Must | BR-14 |
-| IR-08 | The POS shall check with the HR System that an employee is a valid, active cashier before starting a cashier session. | HR System | Must | BR-13 |
-| IR-09 | The POS shall refresh the local copy of the employee list at every start-up. When the HR System does not answer within 5 seconds, the POS shall validate employees against this local copy; a store manager shall be able to disable an employee in the local copy. | HR System | Should | BR-13 |
+| IR-08 | The POS shall send the employee ID and the PIN to the HR System, which checks the PIN and answers whether the employee is a valid, active cashier or store manager. The POS shall start a cashier session only for a valid, active cashier. | HR System | Must | BR-13, NFR-08 |
+| IR-09 | The POS shall refresh the local copy of the employee list at every start-up; the local copy keeps the PIN only as a salted hash. When the HR System does not answer within 5 seconds, the POS shall validate employees against this local copy; a store manager shall be able to disable an employee in the local copy. | HR System | Should | BR-13 |
 | IR-10 | The POS shall log every failed communication with an external system (system, time, error) without logging card data or other personal data. | All | Should | – |
 
 ## 5. Open questions
