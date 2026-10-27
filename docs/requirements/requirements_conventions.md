@@ -62,4 +62,14 @@ This matrix links the official SRS requirements (FR-01 to FR-17) to the design a
 | FR-47 | Record opening cash | UC4 (Start Up) | UI: Cash input | TC-47: Enter invalid/valid amounts |
 | FR-48 | Recover data after crash | UC4 (Start Up) | Recovery Module | TC-48: Force crash, restart |
 | FR-49 | Show main screen | UC4 (Start Up) | UI: Main Screen | TC-49: Verify user and register ID |
+| FR-50 | Start rental return in session | UC5 (Return Rental) | Class Diagram: RentalReturn | TC-50: Verify return starts in session |
+| FR-51 | Find open rental | UC5 (Return Rental) | Sequence Diagram: FindRental | TC-51: Scan valid/invalid serial/receipt |
+| FR-52 | Record item condition | UC5 (Return Rental) | UI: Condition input | TC-52: Select undamaged/damaged with note |
+| FR-53 | Calculate late fee | UC5 (Return Rental) | Interface: Tax Calculator | TC-53: Return late, verify fee calc |
+| FR-54 | Calculate refund | UC5 (Return Rental) | Component: RefundCalc | TC-54: Verify refund = deposit - fees |
+| FR-55 | Pay refund | UC5 (Return Rental) | Interface: Payment Service | TC-55: Pay cash/card refund |
+| FR-56 | Cancel rental return | UC5 (Return Rental) | UI: Cancel button | TC-56: Cancel return, check item status |
+| FR-57 | Save return and close rental | UC5 (Return Rental) | DB Schema: RentalReturns | TC-57: Check DB, item status, rental closed |
+| FR-58 | Send return to Accounting | UC5 (Return Rental) | Interface: Accounting | TC-58: Verify JSON payload sent |
+| FR-59 | Print rental return receipt | UC5 (Return Rental) | UI: Receipt Layout | TC-59: Verify receipt details |
 | BR-01 | Calculated by Tax Calculator (see glossary) | UC1 (Process Sale) | Interface: TaxCalculator | TC-08: Verify tax matches external system |
