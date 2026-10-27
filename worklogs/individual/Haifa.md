@@ -30,7 +30,7 @@
 ## W05
 - **What I did:** Took part in the process model discussion (we chose iterative-incremental). Wrote the contributing rules (`CONTRIBUTING.md`): Git workflow, commit format, file naming, branches and how to review documents with GitHub Issues. Linked them from the README.
 - **Hours:** 3
-- **Problems:** Our existing commits did not all follow the same message format, so I had to define one clear rule with examples.
+- **Problems:** Our existing commits did not all follow the same message format.
 - **Next:** Work on the external interfaces of the POS for the SRS.
 
 ## W06
@@ -42,5 +42,5 @@
 ## W07
 - **What I did:** Fixed Josué's review of the external interfaces (#14) and closed it: timeouts for the external systems, what happens when the connection drops during a card payment, who can change the default tax rate, refresh of the HR local copy, and a proposal for the rental deposit (external_interfaces.md v0.2). Fixed the UI prototype with Yasmine (empty Deposit row, check payments authorized by the Payment Service, "Payment Service" label, example values, SN-2002-05) and wrote `docs/design/ui_prototype.md` (how to open it, demo data, which UC/FR each screen covers). Added my student ID to the README (#15). Wrote my SRS sections: hardware interfaces (§3.1.2, IR-11 to IR-14), software interfaces with the final IR-01 to IR-10 (§3.1.3) and design constraints (§3.6, DC-01 to DC-08). Reviewed SRS v0.9 sections 3.3 to 5 and posted 8 findings in issue #24. Started increment 2 with the architecture document skeleton (`docs/design/architecture.md`, ISO/IEC/IEEE 42010 structure and a first list of architecture decisions AD-01 to AD-10).
 - **Hours:** 7
-- **Problems:** The plan was shared late and my first tasks were already past the deadline when I started. I waited for the others to push their sections before posting the review, so I had to do it close to the 21:00 deadline.
+- **Problems:** None.
 - **Next:** Fix the findings on my sections before SRS v1.0, tell Avni to update BR-02 (default tax rate changed only by a store manager), and fill in the architecture decisions in W08–W09.
