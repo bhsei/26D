@@ -21,6 +21,7 @@ var RENTAL_ITEMS = {
   "SN-2001-01": { product: "2001", status: "Available" },
   "SN-2001-02": { product: "2001", status: "Rented" },
   "SN-2002-01": { product: "2002", status: "Available" },
+  "SN-2002-05": { product: "2002", status: "Rented" },
   "SN-2003-01": { product: "2003", status: "Under maintenance" }
 };
 

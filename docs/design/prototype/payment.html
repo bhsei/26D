@@ -56,7 +56,7 @@
           <div id="card-declined" class="msg msg-error hidden">Card declined (insufficient funds). Ask the customer for another tender.</div>
           <div id="card-down" class="msg msg-error hidden">Card payment not available. Offer another tender (cash).</div>
           <div style="margin-top:20px">
-            <button class="btn btn-primary" id="authorize" onclick="authorize()">Authorize</button>
+            <button class="btn btn-primary" id="card-authorize" onclick="authorize('card')">Authorize</button>
           </div>
         </div>
 
@@ -73,7 +73,15 @@
               <input id="doc" type="text" oninput="updateCheck()">
             </div>
           </div>
-          <div class="msg msg-info">Check payments are optional for the first version (priority Could).</div>
+          <div id="check-wait" class="msg msg-info">Enter the check number and the customer ID document, then press Authorize.</div>
+          <div id="check-busy" class="msg msg-info hidden">Authorizing with the Payment Service… please wait.</div>
+          <div id="check-ok" class="msg msg-ok hidden">Check approved. Authorization code: <strong id="check-auth"></strong></div>
+          <div id="check-declined" class="msg msg-error hidden">Check declined. Ask the customer for another tender.</div>
+          <div id="check-down" class="msg msg-error hidden">Check payment not available. Offer another tender (cash).</div>
+          <div style="margin-top:20px">
+            <button class="btn btn-primary" id="check-authorize" onclick="authorize('check')" disabled>Authorize</button>
+          </div>
+          <p style="font-size:13px; color:#52606d; margin-top:8px">Check payments are optional for the first version (FR-12, priority Could).</p>
         </div>
       </div>
 
@@ -98,7 +106,7 @@
 
     <div class="demo">
       <strong>Prototype:</strong>
-      <span>Card result:</span>
+      <span>Payment Service result (card and check):</span>
       <label><input type="radio" name="cardres" value="ok" checked> approved</label>
       <label><input type="radio" name="cardres" value="declined"> declined</label>
       <label><input type="radio" name="cardres" value="down"> service down</label>
@@ -114,7 +122,7 @@
     }
     var totals = computeTotals(tx);
     var tender = "cash";
-    var authCode = "";
+    var authCode = { card: "", check: "" };
 
     document.getElementById("title").textContent = tx.type + " - payment";
     document.getElementById("back").href = tx.type === "Rental" ? "rental.html" : "sale.html";
@@ -134,7 +142,7 @@
         document.getElementById("p-" + x).classList.toggle("hidden", x !== t);
       });
       if (t === "cash") updateCash();
-      if (t === "card") document.getElementById("complete").disabled = authCode === "";
+      if (t === "card") document.getElementById("complete").disabled = authCode.card === "";
       if (t === "check") updateCheck();
     }
 
@@ -158,31 +166,35 @@
       document.getElementById("complete").disabled = !enough;
     }
 
+    // FR-12: the check must be authorized by the Payment Service before the sale is completed
     function updateCheck() {
-      var ok = document.getElementById("check-no").value.trim() !== "" &&
-               document.getElementById("doc").value.trim() !== "";
-      document.getElementById("complete").disabled = !ok;
+      var filled = document.getElementById("check-no").value.trim() !== "" &&
+                   document.getElementById("doc").value.trim() !== "";
+      if (!filled) authCode.check = "";
+      document.getElementById("check-authorize").disabled = !filled;
+      document.getElementById("complete").disabled = authCode.check === "";
     }
 
-    // BR-05: a card payment is completed only after authorization
-    function authorize() {
-      ["card-wait", "card-ok", "card-declined", "card-down"].forEach(function (id) {
-        document.getElementById(id).classList.add("hidden");
+    // BR-05, FR-10, FR-12: a card or check payment is completed only after authorization
+    function authorize(kind) {
+      ["wait", "ok", "declined", "down"].forEach(function (s) {
+        document.getElementById(kind + "-" + s).classList.add("hidden");
       });
-      document.getElementById("card-busy").classList.remove("hidden");
-      document.getElementById("authorize").disabled = true;
+      document.getElementById(kind + "-busy").classList.remove("hidden");
+      document.getElementById(kind + "-authorize").disabled = true;
 
       var result = document.querySelector("input[name=cardres]:checked").value;
       setTimeout(function () {
-        document.getElementById("card-busy").classList.add("hidden");
-        document.getElementById("authorize").disabled = false;
+        document.getElementById(kind + "-busy").classList.add("hidden");
+        document.getElementById(kind + "-authorize").disabled = false;
         if (result === "ok") {
-          authCode = "A" + Math.floor(100000 + Math.random() * 900000);
-          document.getElementById("auth").textContent = authCode;
-          document.getElementById("card-ok").classList.remove("hidden");
+          authCode[kind] = "A" + Math.floor(100000 + Math.random() * 900000);
+          document.getElementById(kind === "card" ? "auth" : "check-auth").textContent = authCode[kind];
+          document.getElementById(kind + "-ok").classList.remove("hidden");
           document.getElementById("complete").disabled = false;
         } else {
-          document.getElementById("card-" + result).classList.remove("hidden");
+          authCode[kind] = "";
+          document.getElementById(kind + "-" + result).classList.remove("hidden");
         }
       }, 1500);
     }
@@ -194,8 +206,11 @@
         tx.paid = parseAmount(document.getElementById("tendered").value);
         tx.change = tx.paid - totals.total;
       }
-      if (tender === "card") tx.auth = authCode;
-      if (tender === "check") tx.checkNo = document.getElementById("check-no").value;
+      if (tender === "card") tx.auth = authCode.card;
+      if (tender === "check") {
+        tx.checkNo = document.getElementById("check-no").value;
+        tx.auth = authCode.check;
+      }
       tx.number = (tx.type === "Rental" ? "L-" : "S-") + Math.floor(10000 + Math.random() * 90000);
       tx.date = new Date().toLocaleString("en-GB");
       saveTx(tx);
