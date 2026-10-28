@@ -950,6 +950,7 @@ The numbers in NFR-05, NFR-13 and NFR-18 are first values and are checked in the
 
 - **NFR-01:** The system shall register a sale line item in less than 1 second.
 - **NFR-02:** The system shall start up and be ready for use in less than 30 seconds.
+- **NFR-19:** The system shall enforce timeouts for external system calls: 10 seconds for the Payment Service, and 5 seconds for the Tax Calculator and HR System.
 
 ### 3.5 Logical database requirements
 
@@ -1017,7 +1018,7 @@ Derived from the [domain model](../design/domain_model.md). The system keeps its
 - **NFR-03 (Reliability):** The system shall have an uptime of 99.9% during store hours.
 - **NFR-04 (Reliability):** A completed sale shall be saved locally even if the internet drops.
 - **NFR-07 (Security):** The system shall enforce role-based access control (e.g., manager override).
-- **NFR-08 (Security):** All user passwords and payment data shall be encrypted. Card data shall not be stored after the transaction.
+- **NFR-08 (Security):** All user PINs shall be stored as a salted hash. Payment data shall be encrypted, and card data shall not be stored after the transaction.
 - **NFR-09 (Maintainability):** Adding a new payment method shall take less than 3 development days.
 - **NFR-10 (Compatibility):** The system shall be fully compatible with standard receipt printers and scanners.
 
