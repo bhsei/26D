@@ -46,6 +46,7 @@ end
 note right of POS
   Extensions: invalid itemID (4a) is rejected;
   quantity (4b), remove line (4c), price override (4d).
+  Cancel the sale at any time before payment (*b).
 end note
 
 == End the sale (steps 6-7) ==
@@ -65,15 +66,25 @@ alt cash (9a)
   POS --> Cashier : change due, receipt
   deactivate POS
 else credit card (9b)
-  Cashier -> POS : makePayment(amount, tenderType = CreditCard)
-  activate POS
+  loop retry after "Card payment not available" (9b2b)
+    Cashier -> POS : makePayment(amount, tenderType = CreditCard)
+    activate POS
+    note right of POS
+      The POS asks the Payment Service for authorization
+      (timeout 10 s).
+    end note
+    alt approved
+      POS --> Cashier : approval, receipt
+    else the Payment Service does not answer or returns an error (9b2b)
+      POS --> Cashier : "Card payment not available"
+    end
+    deactivate POS
+  end
   note right of POS
-    The POS asks the Payment Service for authorization.
-    Declined or no answer: no payment is recorded and the
-    Cashier asks for another tender (9b2a, 9b2b).
+    Declined (9b2a): the POS shows the reason and no payment is
+    recorded; the Cashier asks for another tender and sends a new
+    makePayment with that tender.
   end note
-  POS --> Cashier : approval, receipt
-  deactivate POS
 else check (9c, Could)
   Cashier -> POS : makePayment(amount, tenderType = Check)
   activate POS

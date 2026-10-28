@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Maintainer** | Borja Nicolás |
-| **Version** | 0.1 (draft for review) |
+| **Version** | 0.2 (draft for review; UC1 extensions \*b and 9b2b updated to SRS v1.0) |
 | **Last updated** | W07 |
 | **Part of** | Increment 2 (Design); input to the [operation contracts](operation_contracts.md) |
 
@@ -17,7 +17,7 @@ A system sequence diagram (SSD) shows, for one use case scenario, the events tha
 
 *Editable source: [`assets/ssd_uc1.puml`](../../assets/ssd_uc1.puml) (PlantUML).*
 
-The diagram shows the **main success scenario** (UC1 steps 1–13) and the three payment variants of step 9. The only actor is the Cashier: the Customer is a stakeholder who acts through the Cashier (SRS, section 1.3.1). The external systems (Payment Service, Tax Calculator, Accounting System) are not drawn, because they are inside the black box from the point of view of the Cashier; a note shows where they are used.
+The diagram shows the **main success scenario** (UC1 steps 1–13), the three payment variants of step 9 and the retry of the card payment when the Payment Service does not answer (extension 9b2b). The only actor is the Cashier: the Customer is a stakeholder who acts through the Cashier (SRS, section 1.3.1). The external systems (Payment Service, Tax Calculator, Accounting System) are not drawn, because they are inside the black box from the point of view of the Cashier; a note shows where they are used.
 
 ### 2.1 System operations
 
@@ -37,12 +37,13 @@ The extensions of UC1 that are not part of the main scenario are mentioned in th
 | Extension | Possible operation |
 | --- | --- |
 | 4c Remove a line item | `removeItem(lineNumber)` |
+| 6a Complete a sale with no line items | none (the System refuses `endSale()`; see the precondition of Contract 3) |
 | 4d Price override by the store manager | `overridePrice(lineNumber, newPrice, managerID)` |
-| 6–9a Cancel the sale | `cancelSale()` |
+| \*b Cancel the sale at any time before payment | `cancelSale()` |
 | 12a Reprint the receipt (FR-17) | `reprintReceipt()` |
 
 ### 2.3 Open points
 
-1. **Payment declined or no answer (9b2a, 9b2b).** Today the Cashier "asks for another tender" and enters a new `makePayment`. If the team allows a retry of the same payment (IR-02 says so, UC1 does not), the diagram needs a loop inside the card variant.
-2. **Several tenders for one sale** (UC1 open issue): if allowed, `makePayment` can be called more than once and the diagram needs a loop around the payment section.
+1. **Payment declined (9b2a).** The Cashier asks for another tender and sends a new `makePayment` with it (note in the diagram). The retry of the same card payment after "Card payment not available" (9b2b) is the loop in the card variant.
+2. **Several tenders for one sale.** The SRS working assumption is one tender per transaction (SRS section 5.3, question 3), so `makePayment` is called once per successful payment. If the team changes this, the diagram needs a loop around the payment section.
 3. **Tax Calculator failure (7a).** The contract of `endSale()` assumes the tax is the value returned by the Tax Calculator; the default tax rate and the flag *tax to be corrected* are not in the contract.
