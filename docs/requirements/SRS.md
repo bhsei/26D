@@ -948,9 +948,11 @@ The numbers in NFR-05, NFR-13 and NFR-18 are first values and are checked in the
 
 ### 3.4 Performance requirements
 
-- **NFR-01:** The system shall register a sale line item in less than 1 second.
-- **NFR-02:** The system shall start up and be ready for use in less than 30 seconds.
-- **NFR-19:** The system shall enforce timeouts for external system calls: 10 seconds for the Payment Service, and 5 seconds for the Tax Calculator and HR System.
+| ID     | Requirement                                                                                                                                | Priority | Source |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ------ |
+| NFR-01 | The system shall register a sale line item in less than 1 second.                                                                          | Must     | §3.8   |
+| NFR-02 | The system shall start up and be ready for use in less than 30 seconds.                                                                    | Must     | §3.8   |
+| NFR-19 | The system shall enforce timeouts for external system calls: 10 seconds for the Payment Service, and 5 seconds for the Tax Calculator and HR System. | Must     | §3.1.3 |
 
 ### 3.5 Logical database requirements
 
@@ -1010,17 +1012,21 @@ Derived from the [domain model](../design/domain_model.md). The system keeps its
 
 ### 3.7 Standards compliance
 
-- **NFR-11:** The system shall comply with standard payment card data security (PCI-DSS) by masking card numbers on receipts (showing only last 4 digits).
-- **NFR-12:** The system shall comply with data protection regulations (GDPR) by not storing unnecessary personal data.
+| ID     | Requirement                                                                                                                                                        | Priority | Source   |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | -------- |
+| NFR-11 | The system shall comply with standard payment card data security (PCI-DSS) by masking card numbers on receipts (showing only last 4 digits). | Must     | DC-06    |
+| NFR-12 | The system shall comply with data protection regulations (GDPR) by not storing unnecessary personal data.                                                         | Must     | DR-18    |
 
 ### 3.8 Software system attributes
 
-- **NFR-03 (Reliability):** The system shall have an uptime of 99.9% during store hours.
-- **NFR-04 (Reliability):** A completed sale shall be saved locally even if the internet drops.
-- **NFR-07 (Security):** The system shall enforce role-based access control (e.g., manager override).
-- **NFR-08 (Security):** All user PINs shall be stored as a salted hash. Payment data shall be encrypted, and card data shall not be stored after the transaction.
-- **NFR-09 (Maintainability):** Adding a new payment method shall take less than 3 development days.
-- **NFR-10 (Compatibility):** The system shall be fully compatible with standard receipt printers and scanners.
+| ID     | Requirement                                                                                                                                                       | Priority | Source   |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- |
+| NFR-03 | The system shall have an uptime of 99.9% during store hours.                                                                                                      | Must     | §1.3.4   |
+| NFR-04 | A completed sale shall be saved locally even if the internet drops.                                                                                               | Must     | IR-07    |
+| NFR-07 | The system shall enforce role-based access control (e.g., manager override).                                                                                      | Must     | BR-04    |
+| NFR-08 | All user PINs shall be stored as a salted hash. Payment data shall be encrypted, and card data shall not be stored after the transaction.                         | Must     | DR-11    |
+| NFR-09 | Adding a new payment method shall take less than 3 development days.                                                                                              | Must     | DC-02    |
+| NFR-10 | The system shall be fully compatible with standard receipt printers and scanners.                                                                                 | Must     | §3.1.2   |
 
 ### 3.9 Supporting information
 
