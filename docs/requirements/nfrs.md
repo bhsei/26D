@@ -4,16 +4,17 @@ These requirements are derived from our Quality Goals (ISO/IEC 25010) and are ma
 1. Performance Requirements (SRS 3.4)
 NFR-01 (Performance Efficiency): The system shall register a sale line item in less than 1 second.
 NFR-02 (Performance Efficiency): The system shall start up and be ready for use in less than 30 seconds.
-NFR-19 (Performance Efficiency): The system shall enforce timeouts for external system calls: 10 seconds for the Payment Service, and 5 seconds for the Tax Calculator and HR System.
 
 2. Usability Requirements (SRS 3.3)
 NFR-05 (Usability): A new cashier shall be able to process a standard sale and a return after 15 minutes of basic training.
-NFR-06 (Usability): A standard sale shall be completed with 3 clicks or fewer after items are entered.
-NFR-13 (Usability): The system shall display clear, actionable error messages when an invalid operation is attempted.
-NFR-14 (Usability): The system shall provide visual and/or auditory feedback within 0.5 seconds when a barcode is successfully scanned.
-NFR-16 (Usability): The system shall allow the cashier to easily navigate back or cancel the current operation at any step before finalizing.
-NFR-17 (Usability): The system interface shall maintain high contrast and readable font sizes suitable for a retail environment.
-NFR-18 (Usability): The system shall support keyboard shortcuts for frequent actions (e.g., completing a sale, opening the cash drawer).
+NFR-06 (Usability): A standard sale shall be completed with 3 clicks or fewer after the items are entered.
+NFR-13 (Usability): The text of every screen shall be readable at a distance of 1 m, and every button shall be at least 10 mm x 10 mm on the register screen.
+NFR-14 (Usability): Every error message shall be shown on the screen where the error happens, in plain words, and shall state what happened and what the cashier can do next, without technical codes.
+NFR-15 (Usability): The main menu shall always show whether each of the four external systems (Payment Service, Tax Calculator, Accounting System, HR System) is available, and the screens of a transaction shall warn the cashier when the default tax rate is used.
+NFR-16 (Usability): Every screen shall have one main task, and the same action (for example confirm, cancel, back to the menu) shall have the same label and position on all screens.
+NFR-17 (Usability): Before a payment or a refund is completed, the screen shall show the amount and each part of its calculation (for example price, tax, deposit, late fee) and shall ask the cashier to confirm.
+NFR-18 (Usability): When an operation with an external system takes longer than 1 second, the screen shall show that the system is waiting for an answer.
+NFR-19 (Performance Efficiency): The system shall enforce timeouts for external system calls: 10 seconds for the Payment Service, and 5 seconds for the Tax Calculator and HR System.
 
 3. Software System Attributes (SRS 3.8)
 Reliability & Availability
