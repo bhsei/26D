@@ -89,13 +89,4 @@ This matrix links the official SRS requirements (FR-01 to FR-59) to the design a
 | NFR-07 | Security: Role-based access control | UC1 (Process Sale) | UI: Manager authentication modal | TC-06: Attempt override as cashier (fail) and manager (pass) |
 
 5. Verification Methods
-| Req ID Range | Requirement Type | Verification Method |
-| --- | --- | --- |
-| FR-01 to FR-59 | Functional Requirements | Test |
-| NFR-01 to NFR-12 | Non-Functional Requirements | Test / Demonstration |
-| NFR-13 to NFR-18 | Non-Functional Requirements | Demonstration |
-| BR-01 to BR-14 | Business Rules | Inspection / Test |
-| IR-01 to IR-10 | Interface Requirements | Test / Demonstration |
-| IR-11 to IR-14 | Interface Requirements | Demonstration |
-| DR-01 to DR-18 | Data Requirements | Inspection |
-| DC-01 to DC-08 | Design Constraints | Inspection |
+Verification methods are defined in SRS §4.
