@@ -45,3 +45,18 @@
   - The project proposal does not contain the store's business rules, so most rules are marked *Proposed* until the team checks them against the full case study.
   - GitHub no longer accepts account passwords for Git, so I had to set up a personal access token to push.
 - **Next:** In W07, fix the findings of the glossary review (#17) and update the glossary to match the SRS; write the fully dressed use cases UC3 Process Rental and UC4 Start Up and the acceptance criteria for UC1 in the SRS; and fix the review findings on my sections.
+
+## W07
+- **What I did:**
+  - Fixed the 5 findings of Haifa's review of the glossary (#17) and published glossary v0.2, updated to match SRS v0.1 (the Payment Service also authorizes checks and card refunds, the Customer is a stakeholder, and UC5 Return Rental was added).
+  - Closed the open W06 items: completed my W06 individual log, updated the W06 team log and started the W07 team log.
+  - Wrote UC4 Start Up as a fully dressed use case (SRS section 3.2.4) with the functional requirements FR-40 to FR-49.
+  - Wrote UC3 Process Rental as a fully dressed use case (SRS section 3.2.3) with the functional requirements FR-30 to FR-39.
+  - Wrote the acceptance criteria for UC1 (SRS section 4.1): five Given / When / Then cases, AC-01 to AC-05, linked to the requirements and to the test cases.
+  - Fixed the review findings on my sections (#23 and #24): the retry of the card payment in UC3 extension 13b2b, FR-37 and AC-05; the 10 second timeout in AC-05; UC3 extension 4a and FR-31 for an invalid or new customer ID; and glossary v0.3 with 19 new terms. I answered the findings in the review issues.
+- **Hours:** 5 h
+- **Problems:**
+  - UC3 and UC4 depend on details that the case does not give (rental periods, rental fee and deposit amounts, where customers are registered), so I listed them as open issues in each use case.
+  - My first insertion of the UC4 requirements went into the verification table instead of the requirements table. I found it when I checked the SRS and moved the rows to section 3.2.6.
+  - The SRS changed several times on the last day, so I pulled before every edit to avoid conflicts.
+- **Next:** Present SRS v1.0 (Wed 28 Oct) and start Increment 2 (Design) with the tasks of the W08 plan.
