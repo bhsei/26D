@@ -1107,7 +1107,7 @@ The acceptance criteria below check the main scenario and the most important ext
 
 #### AC-05 – Payment Service not available
 
-- **Given** a sale with total 22.00 is ready for payment and the Payment Service simulator does not answer.
+- **Given** a sale with total 22.00 is ready for payment and the Payment Service simulator does not answer within 10 seconds.
 - **When** the cashier chooses credit card payment.
 - **Then**
   - the system shows the message _"Card payment not available"_;
