@@ -38,3 +38,9 @@
 - **Hours:** 4.5
 - **Problems:** The teacher asked for more depth after W05, so the team added extra tasks focused on UC1 end to end.
 - **Next:** Prepare the W06 report slides; W07 fully dressed use cases and SRS v1.0.
+
+## W07
+- **What I did:** Planned W07 (`plans/task_plan_W07.md`): close W06, SRS v1.0 tasks for each member and the start of increment 2 (design). Wrote UC5 Return Rental as a fully dressed use case with FR-50 to FR-59. Integrated SRS v0.9: §1 aligned with the rest of the document, verification of IR-11 to IR-14, NFR-13 to NFR-18, DR and DC in §4, and the cross-cutting open questions in §5.3. Fixed review #23 (UC1 ext. 4b1, 6a, 11c and \*b, FR-18 and FR-19, priority rule, UC5 damaged item, card payment retry) and the SRS findings of review #24 (DR-08, DR-11, NFR-08, NFR-19), and released SRS v1.0. Reviewed the work of the team and coordinated the fixes. Started increment 2 with the architecture drivers (`docs/design/architecture_drivers.md`: functional drivers, utility tree, trade-offs and constraints). Prepared the W07 report slides.
+- **Hours:** 5.5
+- **Problems:** The SRS v0.9 integration was late, so the reviews were done on the draft. Some fixes arrived after the 12:00 deadline for v1.0, and there were merge commits in `main` again.
+- **Next:** Close issues #23 and #24. In W08, plan increment 2: architecture decisions AD-01 to AD-10 from the priority drivers, and the system interfaces (step 2 of the architecture process).
