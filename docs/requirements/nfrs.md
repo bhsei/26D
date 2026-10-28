@@ -4,7 +4,7 @@ These requirements are derived from our Quality Goals (ISO/IEC 25010) and are ma
 1. Performance Requirements (SRS 3.4)
 NFR-01 (Performance Efficiency): The system shall register a sale line item in less than 1 second.
 NFR-02 (Performance Efficiency): The system shall start up and be ready for use in less than 30 seconds.
-NFR-15 (Performance Efficiency): The system shall enforce timeouts for external system calls: 10 seconds for the Payment Service, and 5 seconds for the Tax Calculator and HR System.
+NFR-19 (Performance Efficiency): The system shall enforce timeouts for external system calls: 10 seconds for the Payment Service, and 5 seconds for the Tax Calculator and HR System.
 
 2. Usability Requirements (SRS 3.3)
 NFR-05 (Usability): A new cashier shall be able to process a standard sale and a return after 15 minutes of basic training.
