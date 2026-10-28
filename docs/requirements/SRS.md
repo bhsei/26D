@@ -590,7 +590,7 @@ Full detail (data sent and received, timing, open questions): [external_interfac
   2. The System sends an authorization request for the total to the Payment Service (BR-05, IR-01).
   3. The System receives the approval and records the credit card payment with the authorization code.
   - **13b2a. The payment is declined:** the System shows the reason; the Cashier asks for another tender; the use case continues at step 13.
-  - **13b2b. The Payment Service does not answer:** the System shows _"Card payment not available"_, logs the failure (IR-10) and keeps the rental open; the Cashier asks for cash (IR-02).
+  - **13b2b. The Payment Service does not answer or returns an error:** the System shows _"Card payment not available"_, logs the failure (IR-10) and keeps the rental open (IR-02). The Cashier either retries the card payment (the use case continues at step 13b.2) or cancels it and asks for another tender (the use case continues at step 13).
 - **13c. Check payment** _(Could)_:
   1. The Cashier enters the check data.
   2. The System asks the Payment Service to authorize the check.
@@ -899,7 +899,7 @@ Derived from the fully dressed use cases. ID ranges: UC1 FR-01–FR-19, UC2 FR-2
 | FR-34 | The system shall let the cashier select the rental period, calculate the rental fee and the due date, and record a rental line item with the item, rental period, rental fee, due date and deposit.                                                                                                                                                              | Should   | UC3 step 8–9, ext. 8a, BR-10                                  |
 | FR-35 | When the rental is complete, the system shall obtain the tax of the rental fee from the Tax Calculator (the deposit is not taxed) and shall show the total: rental fee plus tax plus deposit.                                                                                                                                                                    | Should   | UC3 step 11, ext. 11a, BR-01, BR-02, IR-04, IR-05             |
 | FR-36 | The system shall allow the cashier to cancel a rental before payment, without changing the item status.                                                                                                                                                                                                                                                          | Should   | UC3 ext. 10–13a                                               |
-| FR-37 | The system shall accept payment of the total of a rental in cash (rejecting an amount lower than the total and showing the change due), by credit card only after authorization by the Payment Service, or by check _(Could)_. When a card payment is declined or the Payment Service does not answer, the system shall keep the rental open for another tender. | Should   | UC3 step 13–14, ext. 13a–13c, BR-05, BR-06, IR-01, IR-02      |
+| FR-37 | The system shall accept payment of the total of a rental in cash (rejecting an amount lower than the total and showing the change due), by credit card only after authorization by the Payment Service, or by check _(Could)_. When a card payment is declined, the system shall keep the rental open for another tender. When the Payment Service does not answer or returns an error, the system shall also let the cashier retry the card payment. | Should   | UC3 step 13–14, ext. 13a–13c, BR-05, BR-06, IR-01, IR-02      |
 | FR-38 | The system shall save every completed rental with its rental line item, tax, total, tender, customer and cashier, and shall change the status of the item from _Available_ to _Rented_.                                                                                                                                                                          | Should   | UC3 step 15, BR-11, BR-13, IR-06, IR-07                       |
 | FR-39 | The system shall print a rental receipt with the item and its serial number, rental fee, tax, deposit (marked as refundable), total, tender and due date, showing only the last 4 digits of a card.                                                                                                                                                              | Should   | UC3 step 16, ext. 16a                                         |
 | FR-40 | The system shall open a cashier session on the register for an employee identified as a valid, active cashier, and shall link every transaction made in the session to that cashier.                                                                                                                                                                             | Must     | UC4 step 9, BR-13, IR-08                                      |
@@ -1113,7 +1113,7 @@ The acceptance criteria below check the main scenario and the most important ext
   - the system shows the message _"Card payment not available"_;
   - the failed communication is logged without card data or other personal data (IR-10);
   - the sale stays open and no card payment is completed without authorization (BR-05, IR-02);
-  - the cashier asks for cash and completes the sale as in AC-03.
+  - the cashier can retry the card payment, or cancel it, ask for cash and complete the sale as in AC-03.
 
 ## 5. Appendices
 
