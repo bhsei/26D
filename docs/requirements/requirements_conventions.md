@@ -1,30 +1,30 @@
 # Requirements Conventions
-
 This document defines the rules for writing, prioritizing, and tracing requirements for the NewEra POS system.
 
-## 1. Requirement ID Scheme
-- **FR-xx:** Functional Requirements (e.g., FR-01: Start a new sale).
-- **NFR-xx:** Non-Functional Requirements (e.g., NFR-01: The system shall register a sale line in less than 1 second).
-- **BR-xx:** Business Rules (e.g., BR-01: The tax of every transaction is calculated by the Tax Calculator according to the current tax law).
-- **IR-xx:** Interface Requirements (e.g., IR-01: The system shall request authorization of a credit card payment from the Payment Service).
+1. Requirement ID Scheme
+FR-xx: Functional Requirements (e.g., FR-01: Start a new sale).
+NFR-xx: Non-Functional Requirements (e.g., NFR-01: The system shall register a sale line in less than 1 second).
+BR-xx: Business Rules (e.g., BR-01: The tax of every transaction is calculated by the Tax Calculator according to the current tax law).
+IR-xx: Interface Requirements (e.g., IR-01: The system shall request authorization of a credit card payment from the Payment Service).
+DR-xx: Data Requirements (e.g., DR-08: The system shall store Return transaction data, including returned lines, refund total, tender, and link to the original sale).
+DC-xx: Design Constraints (e.g., DC-01: The system shall be developed using an object-oriented programming language).
 
-## 2. Priority (MoSCoW Method)
-- **Must have:** Critical for the system to work.
-- **Should have:** Important but not critical.
-- **Could have:** Nice to have.
-- **Won't have:** Out of scope for this release.
+2. Priority (MoSCoW Method)
+Must have: Critical for the system to work.
+Should have: Important but not critical.
+Could have: Nice to have.
+Won't have: Out of scope for this release.
 
-## 3. Rules for Writing Good Requirements
-- **Unambiguous:** Only one interpretation. Avoid vague words.
-- **Verifiable:** Can be tested.
-- **Consistent:** No contradictions.
-- **Complete:** Contains all necessary information.
+3. Rules for Writing Good Requirements
+Unambiguous: Only one interpretation. Avoid vague words.
+Verifiable: Can be tested.
+Consistent: No contradictions.
+Complete: Contains all necessary information.
 
-## 4. Traceability Matrix for UC1 (Process Sale)
-This matrix links the official SRS requirements (FR-01 to FR-17) to the design and test phases for UC1.
-
+4. Traceability Matrix for Use Cases (UC1 to UC5)
+This matrix links the official SRS requirements (FR-01 to FR-59) to the design and test phases for UC1 to UC5.
 | Req ID | Requirement Summary (from SRS) | Use Case | Design (UML/UI) | Test Case |
-| :--- | :--- | :--- | :--- | :--- |
+| --- | --- | --- | --- | --- |
 | FR-01 | Start a new sale in a session | UC1 (Process Sale) | Class Diagram: CashierSession, Sale | TC-01: Verify sale cannot start without session |
 | FR-02 | Record a sale line item | UC1 (Process Sale) | Sequence Diagram: AddItem | TC-02: Scan barcode and check subtotal |
 | FR-03 | Reject invalid item identifier | UC1 (Process Sale) | UI: Error prompt | TC-03: Scan unknown barcode and verify error |
@@ -42,6 +42,8 @@ This matrix links the official SRS requirements (FR-01 to FR-17) to the design a
 | FR-15 | Send to Accounting System | UC1 (Process Sale) | Interface: Accounting API | TC-15: Complete sale, verify JSON payload sent |
 | FR-16 | Print receipt (masked card) | UC1 (Process Sale) | UI: Receipt Layout | TC-16: Print receipt, verify only last 4 digits shown |
 | FR-17 | Reprint last receipt | UC1 (Process Sale) | UI: Reprint button | TC-17: Click reprint and verify printer triggers |
+| FR-18 | Apply discount to sale or line item | UC1 (Process Sale) | UI: Discount screen | TC-18: Apply valid/invalid discount |
+| FR-19 | Suspend and resume an active sale | UC1 (Process Sale) | UI: Suspend/Resume | TC-19: Suspend sale, verify it can be resumed |
 | FR-20 | Start return in session | UC2 (Handle Returns) | Class Diagram: Return | TC-20: Verify return start |
 | FR-21 | Find original sale by receipt | UC2 (Handle Returns) | Sequence Diagram: FindSale | TC-21: Scan valid/invalid receipt |
 | FR-22 | Select items and quantities | UC2 (Handle Returns) | UI: Return selection screen | TC-22: Select items, check quantities |
@@ -52,11 +54,10 @@ This matrix links the official SRS requirements (FR-01 to FR-17) to the design a
 | FR-27 | Save return and update stock | UC2 (Handle Returns) | DB Schema: Returns table | TC-27: Complete return, verify DB/stock |
 | FR-28 | Send to Accounting System | UC2 (Handle Returns) | Interface: Accounting API | TC-28: Verify JSON payload sent |
 | FR-29 | Print return receipt | UC2 (Handle Returns) | UI: Receipt Layout | TC-29: Print receipt, verify details |
-| BR-01 | Calculated by Tax Calculator (see glossary) | UC1 (Process Sale) | Interface: TaxCalculator | TC-08: Verify tax matches external system |
 | FR-30 | Start new rental in session | UC3 (Process Rental) | Class Diagram: Rental | TC-30: Verify rental start |
 | FR-31 | Check overdue rentals | UC3 (Process Rental) | Sequence Diagram | TC-31: Customer with overdue rental |
 | FR-32 | Identify rentable item | UC3 (Process Rental) | Item List DB | TC-32: Scan valid/invalid serial |
-| FR-33 | Only rent *Available* items | UC3 (Process Rental) | State Machine: Item | TC-33: Attempt to rent rented item |
+| FR-33 | Only rent Available items | UC3 (Process Rental) | State Machine: Item | TC-33: Attempt to rent rented item |
 | FR-34 | Calculate rental fee/due date | UC3 (Process Rental) | Component: FeeCalc | TC-34: Select period, verify fee |
 | FR-35 | Obtain tax for rental | UC3 (Process Rental) | Interface: TaxCalc | TC-35: Request tax for rental fee |
 | FR-36 | Cancel rental before payment | UC3 (Process Rental) | UI: Cancel button | TC-36: Cancel rental, check status |
@@ -83,3 +84,18 @@ This matrix links the official SRS requirements (FR-01 to FR-17) to the design a
 | FR-57 | Save return and close rental | UC5 (Return Rental) | DB Schema: RentalReturns | TC-57: Check DB, item status, rental closed |
 | FR-58 | Send return to Accounting | UC5 (Return Rental) | Interface: Accounting | TC-58: Verify JSON payload sent |
 | FR-59 | Print rental return receipt | UC5 (Return Rental) | UI: Receipt Layout | TC-59: Verify receipt details |
+| BR-01 | Calculated by Tax Calculator (see glossary) | UC1 (Process Sale) | Interface: TaxCalculator | TC-08: Verify tax matches external system |
+| NFR-06 | Usability: <= 3 clicks for standard sale | UC1 (Process Sale) | UI: Checkout flow | TC-NFR-06: Measure clicks from item entry to sale completion (<= 3) |
+| NFR-07 | Security: Role-based access control | UC1 (Process Sale) | UI: Manager authentication modal | TC-06: Attempt override as cashier (fail) and manager (pass) |
+
+5. Verification Methods
+| Req ID Range | Requirement Type | Verification Method |
+| --- | --- | --- |
+| FR-01 to FR-59 | Functional Requirements | Test |
+| NFR-01 to NFR-12 | Non-Functional Requirements | Test / Demonstration |
+| NFR-13 to NFR-18 | Non-Functional Requirements | Demonstration |
+| BR-01 to BR-14 | Business Rules | Inspection / Test |
+| IR-01 to IR-10 | Interface Requirements | Test / Demonstration |
+| IR-11 to IR-14 | Interface Requirements | Demonstration |
+| DR-01 to DR-18 | Data Requirements | Inspection |
+| DC-01 to DC-08 | Design Constraints | Inspection |
