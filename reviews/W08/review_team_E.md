@@ -33,3 +33,15 @@ Criteria (ISO/IEC/IEEE 29148): unambiguous, verifiable, singular, consistent, co
 | General | 2 |
 | Moderate | 3 |
 | **Total** | 6 |
+
+## Findings – Alfonso (ch. 5, ch. 7–12)
+
+| # | Location | Type | Severity | Finding | Recommendation | Reviewer |
+|---|---|---|---|---|---|---|
+| A1 | §3.3 and ch. 5, UC-11 to UC-24 | Inconsistency | General | §3.3 says every use case has a diagram, but only UC-01 to UC-10 have a flow diagram. UC-11 to UC-24 also use a different template ("Main success flow", "Alternate and failure flows") from UC-01 to UC-10. | Use one template for all 24 use cases, or change §3.3 so it says which use cases have a diagram. | Alfonso |
+| A2 | §3.3 and ch. 5, UC-10 | Inconsistency | Minor | UC-10 has two names and two actors: "Install, update and validate a product build" by "Release engineer / tester" in §3.3, and "Build, install and validate a product release" by "Developer / tester" in ch. 5. | Use the same title and primary actor in both places (and in the table of contents). | Alfonso |
+| A3 | Ch. 5, UC-11 to UC-24, preconditions | Not verifiable | General | The 14 use cases have the same precondition: "The application is available; configuration and permissions required for the selected path are satisfied." It does not say which configuration or permission, so it cannot be checked. | Write a specific precondition for each use case (for example UC-12: identity provider configured; UC-21: administrator signed in with the admin role). | Alfonso |
+| A4 | Ch. 5, all use cases | Ambiguity | General | The steps of the main flow are not numbered, and the alternative flows do not say at which step they start or where the flow continues (e.g. UC-01 A1 "Permission denied"). | Number the steps and link each alternative flow to a step, e.g. "4a. Permission denied … the use case continues at step 2". | Alfonso |
+| A5 | Ch. 5, UC-03 step 4, UC-07 step 5, UC-09, UC-18 | Not verifiable | General | Some steps depend on wording such as "if those controls are implemented", "when required by the UI design", "where feasible" or "where supported". A tester cannot know what the expected behaviour is. | Decide the behaviour, or move the optional part to its own requirement with a priority (e.g. Could). | Alfonso |
+| A6 | Ch. 7–8 (architecture, API routes, Firebase vs PostgreSQL, ERD) | Scope | General | These chapters contain design decisions (components, API routes, database choice), and some are still open ("a Firebase-only MVP may be selected", "the v1.2 design recommends PostgreSQL"). Design content and open design choices make the requirements baseline harder to verify. | Move the architecture and data design to a design document, and keep in the SRS only the constraints and interface requirements that are really decided. | Alfonso |
+| A7 | Ch. 11–12 (delivery lifecycle, infrastructure and cost baseline) | Scope | Minor | Historical spend, server cost scenarios and the delivery lifecycle are project management and business information, not software requirements. | Move them to the project plan or a business case and reference them from the SRS. | Alfonso |
