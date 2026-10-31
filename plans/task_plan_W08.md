@@ -4,7 +4,7 @@ Last update: 2026-10-29 (review groups changed in the updated online form) · Ow
 
 **Goals of the week**
 1. Cross-team review of the SRS (W8 panel review): Team D reviews **Team E** and **Team F**, and is reviewed by **Team B** and **Team C**.
-2. Answer every finding we receive and prepare the revision plan for SRS v1.1 (summary in the W09 presentation).
+2. Answer every finding we receive and prepare the revision plan for SRS v1.1 (summary in the W08 report presentation, Wed 4 Nov).
 3. Continue increment 2 – Design at a lower pace.
 
 **Who reviews whom** (W8 statistics form)
@@ -26,8 +26,9 @@ Last update: 2026-10-29 (review groups changed in the updated online form) · Ow
 | **Mon 2 Nov, 18:00** | Findings received from B and C assigned to their owners | Alfonso |
 | **Tue 3 Nov, 10:00** | One reply per finding received, in our Issues | Section owners |
 | **Tue 3 Nov, 12:00** | Replies checked; statistics form filled in (row D) (**course deadline**) | Alfonso |
-| **Tue 3 Nov, 23:59** | Part C design drafts pushed | See part C |
-| **W09 class** | Presentation: feedback received and revision plan | Alfonso (slides) |
+| **Tue 3 Nov, 23:59** | Accepted changes applied in the SRS · Part C design drafts pushed | Section owners · see part C |
+| **Wed 4 Nov, 10:00** | SRS v1.1 integrated (version history, consistency) | Alfonso |
+| **Wed 4 Nov, class** | W08 report: feedback received and revision plan | Alfonso (slides) |
 
 **Rules (unchanged).** `git pull --rebase` before editing · one document per commit · `W8 - <summary>; <description>` · documents go directly to `main` · **no merge commits**.
 
@@ -85,7 +86,7 @@ Teams B and C open their Issues in `bhsei/26D` by Mon 2 Nov, 12:00.
    - Decision: **Accepted**, **Partially accepted** or **Rejected**.
    - Reason (always for partially accepted and rejected).
    - Planned change: section and what will change in SRS v1.1.
-3. Do **not** change the SRS yet: the changes go into SRS v1.1 in W09, following the revision plan.
+3. **Apply the accepted changes** (accepted and partially accepted findings) in your own section of the SRS by **Tue 3 Nov, 23:59**, one commit per finding group, with the Issue number in the commit message. Do not change the SRS before you have replied to the finding.
 4. **Alfonso** (Tue 12:00): checks that every finding has a reply and fills in row D of the statistics form (issues received, severity count with our scale High/Medium/Low, accepted, partially accepted, rejected; for B and for C).
 
 ## Part C – Increment 2: Design (drafts Tue 3 Nov, 23:59)
@@ -99,11 +100,11 @@ Lower load this week because of the reviews.
 | C3 | Josué | Operation contracts of the new system operations of UC2 and UC3 (after C2) | `docs/design/operation_contracts.md` |
 | C4 | Haifa | Options and first proposal for AD-01 (style), AD-02 (desktop/web) and AD-03 (language) | `docs/design/architecture.md` |
 
-## Statistics form and W09 presentation
+## Statistics form and W08 report presentation
 
 - **Row D** (reviews received): Alfonso, Tue 3 Nov 12:00.
 - **Yellow cells** for E (column O, we are reviewer 2) and F (column H, we are reviewer 1): "Reviewer checks whether revisions are complete". Josué (E) and Haifa (F) check it **after** E and F publish their revised SRS (W09).
-- **W09 presentation** (Alfonso): only the findings on our documents and our revision plan: number of findings by severity, accepted/partially/rejected, the main changes for SRS v1.1.
+- **W08 report presentation, Wed 4 Nov** (Alfonso): only the findings on our documents and our revision plan: number of findings by severity, accepted/partially/rejected, the main changes for SRS v1.1.
 
 ---
 
