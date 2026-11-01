@@ -1,0 +1,118 @@
+@startuml
+' NewEra POS - System sequence diagram of UC3 Process Rental (main scenario and payment variants), W08
+' Team D - editable source of assets/ssd_uc3.png
+' Render with: java -jar plantuml.jar -tpng assets/ssd_uc3.puml
+' Step numbers refer to UC3 in docs/requirements/SRS.md (v1.0).
+
+skinparam shadowing false
+skinparam dpi 130
+skinparam defaultFontName Arial
+skinparam ArrowColor #444444
+skinparam SequenceLifeLineBorderColor #444444
+skinparam ParticipantBorderColor #1F4E79
+skinparam ParticipantBackgroundColor #EAF1FB
+skinparam ActorBorderColor #444444
+skinparam ActorBackgroundColor #FFFFFF
+skinparam SequenceGroupBackgroundColor #F4F8FD
+skinparam SequenceGroupBorderColor #1F4E79
+skinparam SequenceDividerBackgroundColor #EAF1FB
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #B8A04A
+skinparam responseMessageBelowArrow true
+
+title NewEra POS - System sequence diagram: UC3 Process Rental
+
+actor ":Cashier" as Cashier
+participant ":NewEra POS" as POS <<system>>
+
+note over Cashier, POS
+  Precondition: a cashier session is open (UC4).
+  The Customer takes part only through the Cashier.
+end note
+
+== Start the rental (UC3 steps 2-3) ==
+Cashier -> POS : makeNewRental()
+activate POS
+POS --> Cashier : new rental opened
+deactivate POS
+
+== Identify the customer (steps 4-5) ==
+Cashier -> POS : enterCustomerID(customerID)
+activate POS
+alt customer found, no overdue rental
+  POS --> Cashier : customer accepted
+else customer is new or not found (4a)
+  POS --> Cashier : "Customer ID not found"
+  Cashier -> POS : registerCustomer()
+  POS --> Cashier : new customerID
+else customer has an overdue rental (5a, BR-12)
+  POS --> Cashier : "This customer has an overdue rental..."; no rental is started
+end
+deactivate POS
+
+== Choose the item and the period (steps 6-9) ==
+Cashier -> POS : enterRentalItem(serialNumber)
+activate POS
+POS --> Cashier : description, item status, rental fee per day, deposit
+deactivate POS
+note right of POS
+  Serial number not in the item list (7a) or item not Available (7b)
+  is rejected with the status as the reason (BR-11).
+end note
+Cashier -> POS : selectRentalPeriod(days)
+activate POS
+POS --> Cashier : rental line item: rental fee, due date, deposit
+deactivate POS
+note right of POS
+  The Cashier can select another period before paying (8a).
+end note
+
+== End the rental (steps 10-11) ==
+Cashier -> POS : endRental()
+activate POS
+POS --> Cashier : rental fee, tax, deposit, total, due date
+deactivate POS
+note right of POS
+  The tax of the rental fee comes from the Tax Calculator
+  (default rate if it is not available, 11a). The deposit is not taxed.
+  Cancel the rental before paying (10-13a).
+end note
+
+== Pay (steps 12-16) ==
+alt cash (13a)
+  Cashier -> POS : makePayment(amount, tenderType = Cash)
+  activate POS
+  POS --> Cashier : change due, rental receipt
+  deactivate POS
+else credit card (13b)
+  loop retry after "Card payment not available" (13b2b)
+    Cashier -> POS : makePayment(amount, tenderType = CreditCard)
+    activate POS
+    note right of POS
+      The POS asks the Payment Service for authorization
+      (timeout 10 s).
+    end note
+    alt approved
+      POS --> Cashier : approval, rental receipt
+    else the Payment Service does not answer or returns an error (13b2b)
+      POS --> Cashier : "Card payment not available"
+    end
+    deactivate POS
+  end
+  note right of POS
+    Declined (13b2a): the POS shows the reason and no payment is
+    recorded; the Cashier asks for another tender and sends a new
+    makePayment with that tender.
+  end note
+else check (13c, Could)
+  Cashier -> POS : makePayment(amount, tenderType = Check)
+  activate POS
+  POS --> Cashier : approval, rental receipt
+  deactivate POS
+end
+
+note over Cashier, POS
+  After a successful payment the POS saves the rental, changes the item status to Rented,
+  queues the AccountingRecord and prints the rental receipt (steps 15-16).
+end note
+@enduml
