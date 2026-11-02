@@ -115,6 +115,7 @@ class CashPayment {
 class CreditCardPayment {
   cardLast4 : String
   authorizationCode : String
+  paymentReference : String
 }
 class CheckPayment <<Could>> {
   checkNumber : String

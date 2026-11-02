@@ -3,8 +3,8 @@
 | | |
 | --- | --- |
 | **Maintainer** | Borja Nicolás |
-| **Version** | 0.1 (draft for review) |
-| **Last updated** | W07 |
+| **Version** | 0.2 (draft for review; aligned with the W08 review changes of the SRS) |
+| **Last updated** | W08 |
 | **Part of** | Increment 2 (Design), input to the SRS section 3.5, the [system sequence diagram](system_sequence_diagrams.md) and the [operation contracts](operation_contracts.md) |
 
 ## 1. Purpose
@@ -39,12 +39,12 @@ Names follow the glossary. The names used in the [operation contracts](operation
 | **Rental** | The customer takes one or more items for a period (UC3). | `rentalDate`, `/depositTotal` | UC3, BR-10 |
 | **RentalLineItem** | One rented item with its period, fee, due date and deposit. | `rentalPeriodDays`, `rentalFee`, `dueDate`, `deposit`, `/isOverdue` | UC3, BR-12 |
 | **RentalReturn** | The item of one rental line comes back (UC5), with its condition, the late fee and the amount kept from the deposit. | `returnDate`, `condition`, `damageNote`, `daysLate`, `lateFee`, `lateFeeTax`, `amountKept`, `refundTotal` | UC5, BR-10, BR-11 |
-| **Payment** (abstract) | Money received in one tender: **CashPayment** (`amountTendered`, `changeDue`, BR-06), **CreditCardPayment** (last 4 digits and authorization code, BR-05) and **CheckPayment** (*Could*, authorized by the Payment Service). | `amount`, `dateTime` | UC1, UC3, BR-05, BR-06 |
+| **Payment** (abstract) | Money received in one tender: **CashPayment** (`amountTendered`, `changeDue`, BR-06), **CreditCardPayment** (last 4 digits, authorization code and payment reference, BR-05, DR-19) and **CheckPayment** (*Could*, authorized by the Payment Service). | `amount`, `dateTime` | UC1, UC3, BR-05, BR-06 |
 | **Refund** | Money paid back for a return or a rental return, in the tender of the original payment. | `amount`, `tender`, `reference` | BR-08, UC5 |
 | **Receipt** | Printed record of a transaction; it can be printed again. | `number`, `printedAt` | FR-16, FR-17 |
 | **AccountingRecord** | The record of a completed transaction sent, or queued to be sent, to the Accounting System. The transaction ID lets the Accounting System ignore a record that arrives twice. | `transactionID`, `status`, `queuedAt`, `sentAt` | BR-14, IR-06, IR-07 |
 
-**Enumeration types** (not drawn): `ItemStatus` = Available, Rented, UnderMaintenance, Reserved; `ItemCondition` = Undamaged, Damaged; `TenderType` = Cash, CreditCard, Check; `EmployeeRole` = Cashier, StoreManager; `RecordStatus` = Queued, Sent.
+**Enumeration types** (not drawn): `ItemStatus` = Available, Rented, UnderMaintenance (*Reserved* was removed in W08, review #50, B-D03: no use case reserves an item); `ItemCondition` = Undamaged, Damaged; `TenderType` = Cash, CreditCard, Check; `EmployeeRole` = Cashier, StoreManager; `RecordStatus` = Queued, Sent.
 
 The four external systems (Payment Service, Tax Calculator, Accounting System, HR System) are actors and are **not** part of the domain model. Their data appears here only as attributes (`authorizationCode`, `tax`, `AccountingRecord`, `Employee`).
 
@@ -79,6 +79,8 @@ The four external systems (Payment Service, Tax Calculator, Accounting System, H
 - **SRS**: the glossary terms *customer ID*, *item list*, *rental receipt* and *item condition* are missing (see review of the SRS); here they are `Customer.customerID`, the set of `Item`, `Receipt` of a rental and `RentalReturn.condition`. The SRS section 3.5 is derived from this model.
 
 ## 6. Decisions and open questions
+
+**Changes in version 0.2 (W08, review #50).** `ItemStatus` no longer has *Reserved*, and an item that is under maintenance becomes *Available* again when a store manager confirms it (SRS DR-02; B-D03). `CreditCardPayment` has the new attribute `paymentReference` (the transaction ID and reference number that the Payment Service returns), which a card refund needs (SRS DR-19; B-D05). The data of the store is kept in one store database shared by all registers, with a local copy and queue in each register (SRS DC-09; B-D01); this is a design decision and does not change the concepts. The state diagram of the item status is planned for increment 2 (B-D03).
 
 1. **Transaction as a generalization.** Sale, Return, Rental and RentalReturn share the same attributes (date, totals, session, payments, receipt, accounting record), so they are subclasses of the abstract `Transaction`, the term the glossary already uses.
 2. **Items are modelled only when they are rented.** A sold product is only a stock level; a rentable unit needs an identity because it has a status (BR-11). Whether rented items count in the stock level for BR-09 is still open (glossary, open question 5).
