@@ -128,6 +128,7 @@ All domain terms (register, sale line item, tender, cashier session…) are defi
 - Each product has a unique item identifier (barcode) and a product description with its price in the product catalog.
 - Tax rules are applied by the external Tax Calculator, not by NewEra POS (BR-01).
 - The store has a network connection to the external systems during opening hours; when it fails, the fallbacks in [external_interfaces.md](external_interfaces.md) apply.
+- The store has **one store database** shared by all its registers (product catalog, prices, stock levels, item status, customers and transactions). Each register keeps a local copy of the data that it needs and its own queue of records, so that it can keep working when the connection is lost (DC-09). How the registers are synchronised is decided in the design (architecture decision AD-05).
 - Business rules marked _Proposed_ and the open questions in the [glossary](glossary.md), section 4, still have to be confirmed against the full case study; in particular the refund period, the deposit amount, the rental period and the late fee.
 
 ## 2. References
@@ -1019,7 +1020,7 @@ The numbers in NFR-05, NFR-13 and NFR-18 are first values and are checked in the
 
 ### 3.5 Logical database requirements
 
-Derived from the [domain model](../design/domain_model.md). The system keeps its data **locally on the register** (DC-05); this section says what must be stored, what must be unique, which values are allowed and how long the data must live. The choice of database and the table design belong to increment 2 (DC-04). Data requirements have the ID **DR-xx**.
+Derived from the [domain model](../design/domain_model.md). The store keeps its data in one store database shared by all registers, and each register keeps a **local copy** of the data that it needs (DC-05, DC-09); this section says what must be stored, what must be unique, which values are allowed and how long the data must live. The choice of database and the table design belong to increment 2 (DC-04). Data requirements have the ID **DR-xx**.
 
 | Data             | Contents                                                                                     | Key            |
 | ---------------- | -------------------------------------------------------------------------------------------- | -------------- |
@@ -1072,6 +1073,7 @@ Derived from the [domain model](../design/domain_model.md). The system keeps its
 | DC-06 | Card data shall not be stored by the POS; only the last 4 digits and the authorization code are kept.                                                                                                                                                                     | Security          | NFR-08, NFR-11                            |
 | DC-07 | The system is developed by a team of six students within the 16-week course, with the milestones of the [project plan](../../plans/project_plan.md): SRS (W07), architecture and detailed design (W11).                                                                   | Team and schedule | §1.3.4                                    |
 | DC-08 | All documents and the user interface are in English. Documents are kept in the team GitHub repository and follow [CONTRIBUTING.md](../../CONTRIBUTING.md).                                                                                                                | Team              | Project plan, risk R5                     |
+| DC-09 | The data of the store (product catalog, prices, stock levels, item status, customers and transactions) shall be kept in one store database shared by all registers. Each register shall keep a local copy of the data that it needs and its own queue of records, so that it can keep selling, returning and renting when the connection to the store database is lost. Receipt numbers and customer IDs shall be unique in the whole store, and an item shall not be rented at two registers at the same time (BR-11); how a conflict between registers that are offline is solved is decided in AD-05. | Technology | §1.5, DC-05, NFR-04 |
 
 ### 3.7 Standards compliance
 
@@ -1155,7 +1157,7 @@ All requirements will be verified using one of three methods: **Inspection** (I)
 | IR-11 to IR-14   | Demonstration              | Demonstration with the scanner, card reader, printer and drawer (or their simulators).                            |
 | NFR-13 to NFR-18 | Inspection / Demonstration | Inspection of the screens against the prototype; demonstration with a cashier (sizes, messages, waiting message). |
 | DR-01 to DR-18   | Inspection / Test          | Inspection of the data design; tests of storage after a restart (DR-13) and of money amounts (DR-17).             |
-| DC-01 to DC-08   | Inspection                 | Inspection of the architecture description and the code.                                                          |
+| DC-01 to DC-09   | Inspection                 | Inspection of the architecture description and the code.                                                          |
 | BR-01 to BR-14   | Test                       | Verify business rules during functional tests.                                                                    |
 
 ### 4.1 Acceptance criteria – UC1 Process Sale
