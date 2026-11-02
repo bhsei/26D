@@ -12,7 +12,7 @@ Structure based on ISO/IEC/IEEE 29148:2018
 | 0.9     | 2026-10-27 | Alfonso Pinto | Integration of all sections; §1 aligned with §3; verification of IR-11–14, NFR-13–18, DR, DC; §5.3 open questions; review #23: UC1 ext. 4b1, 6a, 11c, \*b and FR-18, FR-19, priority rule (FR-30–39 Should), UC5 damaged item    |
 | 1.0     | 2026-10-28 | Alfonso Pinto | SRS milestone (W07). Reviews #23 and #24: retry in UC3 13b2b, FR-37, AC-05, UC3 ext. 4a (Avni); DR-08, DR-11 (Alfonso); NFR-08 PINs, NFR-19 timeouts (Josué)                                                                     |
 
-> **Status: v1.0, baseline for the SRS milestone (W07).** Changes after this version are made through review Issues and recorded in the version history. Terms are used as defined in the [glossary](glossary.md); business rules (BR-xx) are defined there too. Interface requirements (IR-xx) are in §3.1, the full interface detail in [external_interfaces.md](external_interfaces.md). Open questions that are still to be confirmed are listed in §5.3.
+> **Status: v1.0, baseline for the SRS milestone (W07).** Changes after this version are made through review Issues and recorded in the version history. Terms are used as defined in the [glossary](glossary.md). Business rules (BR-xx) are defined in section 3.10. The companion files (glossary.md, nfrs.md, external_interfaces.md, stakeholders.md, requirements_conventions.md) are informative: if one of them differs from this SRS, the SRS prevails. Interface requirements (IR-xx) are in §3.1, the full interface detail in [external_interfaces.md](external_interfaces.md). Open questions that are still to be confirmed are listed in §5.3.
 
 ---
 
@@ -1097,7 +1097,42 @@ Stakeholders and cashier persona: [stakeholders.md](stakeholders.md). Elicitatio
 
 ### 3.10 Business rules
 
-BR-01 to BR-14 are defined in the [glossary](glossary.md), section 3. Rules marked _Proposed_ are still to be confirmed.
+The business rules of the store are defined here (#36, B-D17). The glossary repeats them for its readers; if the two differ, this section prevails. _Given_ means that the rule comes from the case or the task; _Proposed_ means that the team still has to confirm it with the full case study.
+
+| ID | Category | Rule | Status |
+| --- | --- | --- | --- |
+| BR-01 | Tax | The tax of every transaction is calculated by the Tax Calculator according to the current tax law. | Given |
+| BR-02 | Tax | When the exact tax cannot be determined at the time of a transaction, the store charges tax at the default tax rate and corrects the difference afterwards. | Proposed |
+| BR-03 | Price | The price of an item is the price in its product description at the moment it is entered. Later price changes do not affect completed transactions. | Proposed |
+| BR-04 | Price | Only a store manager may change a product's price or approve a manual price override at the register. | Proposed |
+| BR-05 | Payment | A credit card payment must be authorized by the Payment Service before the transaction is completed. | Proposed |
+| BR-06 | Payment | For cash payments, the amount tendered must be at least the total; the change due is the amount tendered minus the total. | Proposed |
+| BR-07 | Return | A refund is given only for a purchased item with a valid receipt, returned within the refund period. | Given (period: see open questions) |
+| BR-08 | Return | A refund is paid with the same tender used in the original sale. | Proposed |
+| BR-09 | Inventory | When the stock level of a product falls below 10 units, the product must be reordered. | Given |
+| BR-10 | Rental | Every rental requires a deposit. The deposit is refunded at the rental return if the item is undamaged. | Given (amount and tax: see open questions) |
+| BR-11 | Rental | Only an item with status *Available* can be rented. A *Rented* item cannot be sold or rented again until it is returned. | Proposed |
+| BR-12 | Rental | A customer with an overdue rental cannot start a new rental. The store accepts that a customer can avoid this rule by registering again under a new customer ID, and relies on the deposit (BR-10) for this case. | Proposed |
+| BR-13 | Staff | Every transaction is the responsibility of the cashier who carries it out. A cashier may work at a register only under their own identity, never under another employee's. | Proposed |
+| BR-14 | Accounting | Every completed sale, return, rental and rental return must be recorded in the store's accounts. | Proposed |
+
+#### 3.10.1 Requirements that depend on a Proposed rule
+
+10 of the 14 business rules are still _Proposed_. In this version, 27 of the 67 functional requirements (13 of the 32 _Must_ requirements) cite at least one of them. If a Proposed rule changes, these requirements change with it.
+
+| Proposed rule | Requirements that cite it |
+| --- | --- |
+| BR-02 | FR-35, FR-53 |
+| BR-03 | FR-02, FR-23 |
+| BR-04 | FR-06 |
+| BR-05 | FR-10, FR-64, FR-65 |
+| BR-06 | FR-09, FR-37 |
+| BR-08 | FR-23, FR-25, FR-26 |
+| BR-11 | FR-33, FR-38, FR-57 |
+| BR-12 | FR-31, FR-57 |
+| BR-13 | FR-01, FR-13, FR-20, FR-27, FR-30, FR-38, FR-40, FR-50, FR-57 |
+| BR-14 | FR-15, FR-28, FR-42, FR-58 |
+
 
 ## 4. Verification
 
