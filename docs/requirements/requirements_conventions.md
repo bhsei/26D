@@ -1,4 +1,6 @@
 # Requirements Conventions
+
+> **Informative.** This file explains the SRS (SRS.md). If it differs from the SRS, the SRS prevails.
 This document defines the rules for writing, prioritizing, and tracing requirements for the NewEra POS system.
 
 1. Requirement ID Scheme
