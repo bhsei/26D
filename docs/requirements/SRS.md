@@ -580,7 +580,7 @@ Full detail (data sent and received, timing, open questions): [external_interfac
 - **4a. The customer ID is not valid, or the customer is new:**
   1. The System shows the message _"Customer ID not found"_ and does not start a rental.
   2. The Cashier checks the ID and enters it again (step 4).
-  3. If the customer is new, the Cashier registers the customer: the System creates a new customer ID and stores it with no other personal data (DR-18). The use case continues at step 6, because a new customer has no overdue rental.
+  3. If the customer is new, the Cashier registers the customer: the System creates a new customer ID and stores it with no other personal data (DR-18). The use case continues at step 6, because a new customer has no rental history. The System cannot know whether this customer has an overdue rental under another ID; the store accepts this risk and relies on the deposit (BR-10, BR-12, section 5.3 Q5).
 - **5a. The customer has an overdue rental:**
   1. The System shows the message _"This customer has an overdue rental and cannot start a new one"_ (BR-12).
   2. The Cashier asks the Customer to return the overdue item first (UC5). The use case ends and no rental is made.
@@ -1205,7 +1205,7 @@ The open questions of each use case are listed at the end of the use case. The q
 | 2   | Is the deposit of a card rental charged or only held (pre-authorization)?                                    | Charged and refunded                                                                               | UC3 ext. 13b, UC5 ext. 9b, IR-03  |
 | 3   | Can a sale be paid with more than one tender?                                                                | One tender per transaction                                                                         | UC1, UC2, DR-05                   |
 | 4   | Is an offline card authorization allowed for small amounts?                                                  | No; a card payment always needs authorization (BR-05)                                              | UC1, UC3, IR-02                   |
-| 5   | How are customers identified and which customer data is stored?                                              | Customer ID only                                                                                   | UC3, UC5, DR-06, DR-18, NFR-12    |
+| 5 | How are customers identified and which customer data is stored? Owner: Avni. To be answered before the design is closed (W11). | Customer ID only; the store accepts that a new customer ID avoids BR-12 and relies on the deposit (BR-10, BR-12) | UC3, UC5, DR-06, DR-18, NFR-12 |
 | 6   | Two registers renting the same item at the same time                                                         | Only one rental succeeds                                                                           | UC3, DR-02                        |
 | 7   | Discounts and promotions                                                                                     | Not in this version                                                                                | UC1, UC2                          |
 | 8   | Retention period of transactions and accounting records; currency and tax rounding                           | One currency, two decimals                                                                         | §3.5, DR-17                       |
