@@ -2,7 +2,7 @@
 ' NewEra POS - System sequence diagram of UC2 Handle Returns (main scenario and refund variants), W08
 ' Team D - editable source of assets/ssd_uc2.png
 ' Render with: java -jar plantuml.jar -tpng assets/ssd_uc2.puml
-' Step numbers refer to UC2 in docs/requirements/SRS.md (v1.0).
+' Step numbers refer to UC2 in docs/requirements/SRS.md (W08 review changes, #28, #37, #50).
 
 skinparam shadowing false
 skinparam dpi 130
@@ -49,16 +49,17 @@ end note
 
 == Select the returned items (steps 6-7) ==
 loop until all returned items are entered
-  Cashier -> POS : enterReturnItem(itemID, quantity)
+  Cashier -> POS : enterReturnItem(itemID, quantity, condition)
   activate POS
-  POS --> Cashier : return line item, refund total (price + tax),\ntender of the original sale
+  POS --> Cashier : return line item, refund total (price paid + tax\nof the original sale), tender of the original sale
   deactivate POS
 end
 note right of POS
-  The tax comes from the Tax Calculator;
-  if it is not available, the default tax rate is used (7a).
-  Item not in the sale or quantity too large (6a) is rejected.
-  Remove a line (6b) or cancel the return (8a) before confirming.
+  The refund uses the price and the tax of the original sale:
+  no call to the Tax Calculator. The condition is resellable
+  or not resellable. Item not in the sale or quantity too large (6a)
+  is rejected. Remove a line (6b) or cancel the return (8a)
+  before confirming.
 end note
 
 == Confirm and refund (steps 8-11) ==
@@ -66,22 +67,37 @@ Cashier -> POS : confirmReturn()
 activate POS
 alt original sale paid in cash (9a)
   POS --> Cashier : refund due in cash (drawer opens), return receipt
+  deactivate POS
 else original sale paid by credit card (9b)
   note right of POS
-    The POS asks the Payment Service for the card refund.
+    The POS sends the refund request, with a transaction ID,
+    to the Payment Service.
   end note
   alt refund approved
     POS --> Cashier : card refund done, return receipt
-  else declined or no answer (9b2a)
-    POS --> Cashier : reason; the refund is paid in cash, return receipt
+    deactivate POS
+  else declined (9b2a)
+    POS --> Cashier : reason; no cash is paid, a store manager must approve a cash refund
+    deactivate POS
+    Cashier -> POS : approveCashRefund(managerID, reason)
+    activate POS
+    POS --> Cashier : refund due in cash (drawer opens), return receipt
+    deactivate POS
+  else no answer (9b2b)
+    POS --> Cashier : no cash is paid; the POS asks for the refund status\n(confirmed, failed as 9b2a, or pending: confirmed later)
+    deactivate POS
   end
 else original sale paid by check (9c, Could)
-  POS --> Cashier : refund due in cash (a check cannot be refunded), return receipt
+  POS --> Cashier : a check cannot be refunded in cash without approval
+  deactivate POS
+  Cashier -> POS : approveCashRefund(managerID, reason)
+  activate POS
+  POS --> Cashier : refund due in cash (drawer opens), return receipt
+  deactivate POS
 end
-deactivate POS
 
 note over Cashier, POS
-  After the refund the POS saves the return, increases the stock levels,
+  After the refund the POS saves the return, increases the stock of the resellable items,
   queues the AccountingRecord and prints the return receipt (steps 10-11).
 end note
 @enduml

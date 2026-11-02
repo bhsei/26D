@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Maintainer** | Borja Nicolás |
-| **Version** | 0.3 (draft for review; adds UC2 and UC3) |
+| **Version** | 0.4 (draft for review; UC2 updated to the SRS after the W08 review) |
 | **Last updated** | W08 |
 | **Part of** | Increment 2 (Design); input to the [operation contracts](operation_contracts.md) |
 
@@ -54,7 +54,7 @@ The extensions of UC1 that are not part of the main scenario are mentioned in th
 
 *Editable source: [`assets/ssd_uc2.puml`](../../assets/ssd_uc2.puml) (PlantUML).*
 
-The diagram shows the **main success scenario** (UC2 steps 1–12) and the three refund variants of step 9, which depend on the tender of the original sale (BR-08). As in UC1, the Cashier is the only actor and the external systems are inside the black box.
+The diagram shows the **main success scenario** (UC2 steps 1–12) and the refund variants of step 9, which depend on the tender of the original sale (BR-08). As in UC1, the Cashier is the only actor and the external systems are inside the black box. Version 0.4 follows the UC2 of the SRS after the review changes: the refund is the price paid plus the tax charged in the original sale, so the **Tax Calculator is not used** (#37); the Cashier records the **condition** of each returned item (#28); and a cash refund that replaces a declined card refund or a check refund needs the approval of a **store manager** (#50).
 
 ### 3.1 System operations
 
@@ -62,10 +62,11 @@ The diagram shows the **main success scenario** (UC2 steps 1–12) and the three
 | --- | --- | --- | --- |
 | `makeNewReturn()` | 2–3 | Confirmation that a new return is open | to be written (C3) |
 | `findSale(receiptNumber)` | 4–5 | The sale line items with the quantity bought and the quantity already returned; refused if the sale is outside the refund period (BR-07) | to be written (C3) |
-| `enterReturnItem(itemID, quantity)` | 6–7 (repeated) | The return line item, the refund total (price plus tax from the Tax Calculator) and the tender of the original sale | to be written (C3) |
-| `confirmReturn()` | 8–11 | Cash: refund due and receipt. Credit card: card refund through the Payment Service, or, if it is declined or does not answer (9b2a), the refund in cash. Check: refund in cash. In all cases the return receipt | to be written (C3) |
+| `enterReturnItem(itemID, quantity, condition)` | 6–7 (repeated) | The return line item, the refund total (price paid plus tax charged in the original sale) and the tender of the original sale | to be written (C3) |
+| `confirmReturn()` | 8–11 | Cash: refund due and receipt. Credit card: card refund through the Payment Service; if it is declined (9b2a) no cash is paid until a store manager approves it; if there is no answer (9b2b) no cash is paid and the POS asks for the refund status. Check (*Could*): cash only with manager approval. In all cases the return receipt | to be written (C3) |
+| `approveCashRefund(managerID, reason)` | 9b2a, 9c | The refund due in cash and the return receipt. The approval and the reason are recorded | to be written (C3) |
 
-The tender is not a parameter of `confirmReturn()`: the System takes it from the original sale (BR-08).
+The tender is not a parameter of `confirmReturn()`: the System takes it from the original sale (BR-08). The store manager identifies himself or herself at the cashier's register, so `approveCashRefund` is sent by the Cashier with the manager's ID.
 
 ### 3.2 What is not in the diagram
 
@@ -73,12 +74,13 @@ The tender is not a parameter of `confirmReturn()`: the System takes it from the
 | --- | --- |
 | 6b Remove a returned line item before confirming | `removeReturnItem(lineNumber)` |
 | 8a Cancel the return before confirming | `cancelReturn()` |
+| 9b2b Ask for the status of a card refund that did not answer | `checkRefundStatus()` (shown as a message of the System in the diagram) |
 
 ### 3.3 Open points
 
-1. **`enterReturnItem` and the tax.** In the SRS (step 7) the System gets the tax and shows the refund total after each selection. If the team decides that the tax is calculated once, when the Cashier finishes selecting, a separate operation `endReturn()` is needed, as `endSale()` in UC1.
+1. **`enterReturnItem` and the tax.** The tax is no longer calculated in the return, so no separate `endReturn()` operation is needed.
 2. **No receipt (4b).** The SRS has no operation for a return without receipt; if the store manager may approve exceptions (UC2 open issue), a new operation or a parameter is needed.
-3. **Card refund when the card is not present** (UC2 open issue) changes the card variant of `confirmReturn()`.
+3. **Card refund when the card is not present** (UC2 open issue) uses the payment reference stored with the sale (DR-19); the card variant of `confirmReturn()` does not change.
 
 ## 4. UC3 Process Rental
 
@@ -119,5 +121,5 @@ The diagram shows the **main success scenario** (UC3 steps 1–17), the identifi
 | Use case | Operations |
 | --- | --- |
 | UC1 Process Sale | `makeNewSale`, `enterItem`, `endSale`, `makePayment` (contracts written) |
-| UC2 Handle Returns | `makeNewReturn`, `findSale`, `enterReturnItem`, `confirmReturn` |
+| UC2 Handle Returns | `makeNewReturn`, `findSale`, `enterReturnItem`, `confirmReturn`, `approveCashRefund` |
 | UC3 Process Rental | `makeNewRental`, `enterCustomerID`, `registerCustomer`, `enterRentalItem`, `selectRentalPeriod`, `endRental`, `makePayment` (shared with UC1) |
