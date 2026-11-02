@@ -143,6 +143,7 @@ All domain terms (register, sale line item, tender, cashier session…) are defi
 | [6] | Team D, Process model, [`plans/process_model.md`](../../plans/process_model.md)                                                                                                                                                                                                |
 | [7] | Team D, Project plan, [`plans/project_plan.md`](../../plans/project_plan.md)                                                                                                                                                                                                   |
 | [8] | Team D, W06 requirement documents: [stakeholders](stakeholders.md), [elicitation plan](elicitation_plan.md), [use case model](use_case_model.md), [external interfaces](external_interfaces.md), [glossary and business rules](glossary.md), [quality goals](quality_goals.md) |
+| [9] | Team D, Design models (increment 2): [domain model](../design/domain_model.md), [system sequence diagrams](../design/system_sequence_diagrams.md) and [operation contracts](../design/operation_contracts.md) |
 
 ## 3. Specific requirements
 
@@ -258,6 +259,8 @@ The store manager actions in IR-05 (change the default tax rate) and IR-09 (disa
 Full detail (data sent and received, timing, open questions): [external_interfaces.md](external_interfaces.md) v0.2.
 
 ### 3.2 Functions
+
+The use cases below are the source of the analysis models in [reference 9]: the system operations of each use case are drawn in the [system sequence diagrams](../design/system_sequence_diagrams.md) (UC1 to UC3 so far; UC4, UC5 and the state diagram of the item status follow in increment 2) and the data of the use cases is in the [domain model](../design/domain_model.md) (see §3.5).
 
 #### 3.2.1 UC1 Process Sale (fully dressed)
 
