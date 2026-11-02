@@ -51,3 +51,12 @@ Team: D · Project: NewEra POS / Role: Quality and Requirements
 **Hours:** 8
 **Problems:** Adapting the operation contracts to the strict UPM format (where postconditions only describe state changes and not UI actions) required careful rewriting. Also, keeping all NFR texts completely identical across `nfrs.md` and `SRS.md`.
 **Next:** Support the team in finalizing SRS v1.0 and start preparing for the architecture and design phase (W11).
+
+### W08
+**What I did:** 
+- Consolidated the Team D review for Team E (merged findings from 4 reviewers into 26 unique issues) and published them in the bhsei/26E repository.
+- Responded to 7 review findings from Teams B and C, applying changes to the SRS (new NFR-20, §1.6 Writing rules, §4 Verification updates) and aligning `nfrs.md`, `quality_goals.md`, and `requirements_conventions.md`.
+- Wrote the operation contracts for UC2 (Handle Returns) and UC3 (Process Rental), and updated the UC1 `makePayment` contract to support rentals.
+**Hours:** 7
+**Problems:** Ensuring the NFR texts were consistent across all documents without breaking the numbering used by other team members.
+**Next:** Prepare for the W09 presentation and start the architectural design phase.
