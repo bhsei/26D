@@ -1,5 +1,7 @@
 # External Interfaces Inventory – NewEra POS
 
+> **Informative.** This file explains the SRS (SRS.md). If it differs from the SRS, the SRS prevails.
+
 | | |
 | --- | --- |
 | **Maintainer** | Haifa Chkoundali |
