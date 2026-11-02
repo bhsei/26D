@@ -1,4 +1,6 @@
 Non-Functional Requirements (NFRs)
+
+> **Informative.** This file explains the SRS (SRS.md). If it differs from the SRS, the SRS prevails.
 These requirements are derived from our Quality Goals (ISO/IEC 25010) and are mapped to sections 3.3, 3.4, 3.7 and 3.8 of the SRS.
 
 1. Performance Requirements (SRS 3.4)
