@@ -1,9 +1,10 @@
 @startuml
-' NewEra POS - Use case diagram (overview), W06 update: UC5 Return Rental added
+' NewEra POS - Use case diagram (overview), W08 update: Store manager added as secondary actor (review #50, B-D11)
 ' Team D - editable source of assets/use_case_diagram.png
 ' Render with: java -jar plantuml.jar -tpng assets/use_case_diagram.puml
-' Note: the declaration order of the use cases is deliberate; it makes the
-' automatic layout show the transaction use cases first and Start Up (UC4) last.
+' Note: the position of the use cases is decided by the automatic layout; the
+' Store manager is connected to UC1 (price override) and UC2 (cash refund approval), where exceptions are approved.
+' W08: UC2 no longer uses the Tax Calculator (review #37): the refund is the price paid plus the tax charged in the sale.
 
 left to right direction
 skinparam shadowing false
@@ -23,6 +24,7 @@ skinparam ranksep 120
 title NewEra POS - Use case diagram
 
 actor "Cashier" as Cashier
+actor "Store manager\n<<secondary user>>" as Manager
 
 rectangle "NewEra POS" {
   usecase "UC1\nProcess Sale" as UC1
@@ -44,6 +46,11 @@ Cashier -- UC3
 Cashier -- UC5
 Cashier -- UC4
 
+' Secondary user: approves exceptions (price override and reorder list in UC1,
+' refund exceptions in UC2, damage of a rented item in UC5)
+Manager -- UC1
+Manager -- UC2
+
 ' Supporting actors (external systems)
 UC1 -- Payment
 UC2 -- Payment
@@ -51,7 +58,6 @@ UC3 -- Payment
 UC5 -- Payment
 
 UC1 -- Tax
-UC2 -- Tax
 UC3 -- Tax
 UC5 -- Tax
 
@@ -64,7 +70,8 @@ UC4 -- Accounting
 UC4 -- HR
 
 legend bottom
-  Primary actor (left): Cashier.  Supporting actors (right): the 4 external systems.
+  Primary actor (left): Cashier.  Secondary user (left): Store manager, who approves price overrides (UC1) and cash refunds (UC2).
+  Supporting actors (right): the 4 external systems.
   The Customer is a stakeholder, not an actor: he/she acts only through the Cashier.
 endlegend
 @enduml
