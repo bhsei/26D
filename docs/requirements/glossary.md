@@ -1,10 +1,12 @@
 # Glossary and Business Rules – NewEra POS
 
+> **Informative.** This file explains the terms of the SRS. The business rules are defined in section 3.10 of the SRS; the table below repeats them. If this file differs from the SRS, the SRS prevails.
+
 | | |
 | --- | --- |
 | **Maintainer** | Avni Oflaz |
-| **Version** | 0.3 |
-| **Last updated** | W07 |
+| **Version** | 0.4 |
+| **Last updated** | W08 |
 | **Part of** | SRS (Assignment 1), ISO/IEC/IEEE 29148 |
 
 ### Version history
@@ -14,6 +16,7 @@
 | 0.1 | First draft: glossary, BR-01 to BR-14, open questions. |
 | 0.2 | Fixes from review #17: added *Serial number*, *Rental return*, *Amount tendered*, *Refund period*, *Payment*; BR-02, BR-13 and BR-14 rewritten as store policies; open question on deposit tax. Aligned with SRS v0.1: Payment Service also authorizes checks and card refunds; Customer is a stakeholder; Cashier is the primary actor of all use cases. |
 | 0.3 | Review #23: added the terms that the SRS uses but the glossary did not define: *Authorization code*, *Customer ID*, *Employee ID*, *Item list*, *Local employee list*, *Local queue*, *Login*, *Main screen*, *PIN*, *Price override*, *Register ID*, *Rental receipt*, *Reorder list*, *Salted hash*, *Simulator*, *System administrator*, *Tax to be corrected*, *Timeout*, *Transaction ID*. |
+| 0.4 | Reviews #36 and #50 (B-D04, B-D17): BR-12 states the accepted risk of a new customer ID. The business rules are defined in SRS section 3.10; this file is informative. |
 
 ## 1. Purpose
 
@@ -111,7 +114,7 @@ Terms are sorted alphabetically. Where two words mean the same thing, the prefer
 | BR-09 | Inventory | When the stock level of a product falls below 10 units, the product must be reordered. | Given |
 | BR-10 | Rental | Every rental requires a deposit. The deposit is refunded at the rental return if the item is undamaged. | Given (amount and tax: see open questions) |
 | BR-11 | Rental | Only an item with status *Available* can be rented. A *Rented* item cannot be sold or rented again until it is returned. | Proposed |
-| BR-12 | Rental | A customer with an overdue rental cannot start a new rental. | Proposed |
+| BR-12 | Rental | A customer with an overdue rental cannot start a new rental. The store accepts that a customer can avoid this rule by registering again under a new customer ID, and relies on the deposit (BR-10) for this case. | Proposed |
 | BR-13 | Staff | Every transaction is the responsibility of the cashier who carries it out. A cashier may work at a register only under their own identity, never under another employee's. | Proposed |
 | BR-14 | Accounting | Every completed sale, return, rental and rental return must be recorded in the store's accounts. | Proposed |
 
