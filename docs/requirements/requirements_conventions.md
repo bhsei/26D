@@ -5,10 +5,10 @@ This document defines the rules for writing, prioritizing, and tracing requireme
 
 1. Requirement ID Scheme
 - **FR-xx:** Functional Requirements (e.g., FR-01: Start a new sale).
-- **NFR-xx:** Non-Functional Requirements (e.g., NFR-01: The system shall register a sale line in less than 1 second).
+- **NFR-xx:** Non-Functional Requirements (e.g., NFR-01: On the reference setup, 95% of sale line registrations take less than 1 second).
 - **BR-xx:** Business Rules (e.g., BR-01: The tax of every transaction is calculated by the Tax Calculator according to the current tax law).
 - **IR-xx:** Interface Requirements (e.g., IR-01: The system shall request authorization of a credit card payment from the Payment Service).
-+ **DR-xx:** Data Requirements (e.g., DR-08: The system shall store Return transaction data, including returned lines, refund total, tender, and link to the original sale).
+- **DR-xx:** Data Requirements (e.g., DR-08: The system shall store Return transaction data, including returned lines, refund total, tender, and link to the original sale).
 - **DC-xx:** Design Constraints (e.g., DC-01: Real external systems shall be replaced by stubs).
 
 2. Priority (MoSCoW Method)
@@ -18,13 +18,14 @@ Could have: Nice to have.
 Won't have: Out of scope for this release.
 
 3. Rules for Writing Good Requirements
-Unambiguous: Only one interpretation. Avoid vague words.
-Verifiable: Can be tested.
-Consistent: No contradictions.
-Complete: Contains all necessary information.
+- **Unambiguous:** Only one interpretation. Avoid vague words.
+- **Verifiable:** Can be tested.
+- **Consistent:** No contradictions.
+- **Complete:** Contains all necessary information.
+- **Singular:** One requirement states one thing, so it can pass or fail on its own.
 
 4. Traceability Matrix for Use Cases (UC1 to UC5)
-This matrix links the official SRS requirements (FR-01 to FR-59) to the design and test phases for UC1 to UC5.
+This matrix links the official SRS requirements (FR-01 to FR-67) to the design and test phases for UC1 to UC5.
 | Req ID | Requirement Summary (from SRS) | Use Case | Design (UML/UI) | Test Case |
 | --- | --- | --- | --- | --- |
 | FR-01 | Start a new sale in a session | UC1 (Process Sale) | Class Diagram: CashierSession, Sale | TC-01: Verify sale cannot start without session |
@@ -89,6 +90,10 @@ This matrix links the official SRS requirements (FR-01 to FR-59) to the design a
 | BR-01 | Calculated by Tax Calculator (see glossary) | UC1 (Process Sale) | Interface: TaxCalculator | TC-08: Verify tax matches external system |
 | NFR-06 | Usability: <= 3 clicks for standard sale | UC1 (Process Sale) | UI: Checkout flow | TC-NFR-06: Measure clicks from item entry to sale completion (<= 3) |
 | NFR-07 | Security: Role-based access control | UC1 (Process Sale) | UI: Manager authentication modal | TC-06: Attempt override as cashier (fail) and manager (pass) |
+| FR-11 / IR-02 | Handle failed card payment | UC1 (Process Sale) | UI: Error state | TC-11b: Payment Service does not answer for 10s, sale stays open |
+| FR-26 | Pay card refund | UC2 (Handle Returns) | Interface: Payment Service | TC-26b: Card refund declined, cash fallback approved |
+| FR-45 / FR-44 | Fallback for HR System | UC4 (Start Up) | Local Cache DB | TC-45b: HR System down, wrong offline PIN, login refused |
+| FR-48 | Recover data after crash | UC4 (Start Up) | Recovery Module | TC-48b: Crash in the middle of a payment, recovery |
 
 5. Verification Methods
-Verification methods are defined in SRS §4.
+Verification methods and the compliance checklist are defined in SRS §4.
