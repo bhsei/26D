@@ -131,6 +131,9 @@ All domain terms (register, sale line item, tender, cashier session…) are defi
 - The store has **one store database** shared by all its registers (product catalog, prices, stock levels, item status, customers and transactions). Each register keeps a local copy of the data that it needs and its own queue of records, so that it can keep working when the connection is lost (DC-09). How the registers are synchronised is decided in the design (architecture decision AD-05).
 - Business rules marked _Proposed_ and the open questions in the [glossary](glossary.md), section 4, still have to be confirmed against the full case study; in particular the refund period, the deposit amount, the rental period and the late fee.
 
+### 1.6 Writing rules
+Every requirement is: *unambiguous* (one interpretation, no vague words), *verifiable* (it has a test or a checkable criterion), *consistent* (no contradiction with another requirement), *complete* (all information needed to implement and test it) and *singular* (one requirement states one thing, so that it can pass or fail on its own).
+
 ## 2. References
 
 | ID  | Reference                                                                                                                                                                                                                                                                      |
@@ -1000,7 +1003,7 @@ The usability requirements come from the cashier persona ([stakeholders.md](stak
 
 | ID     | Requirement                                                                                                                                                                                                                                        | Priority | Source                                                                                      |
 | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------- |
-| NFR-05 | A new cashier shall be able to process a standard sale and a return after 15 minutes of basic training.                                                                                                                                            | Must     | [nfrs.md](nfrs.md), assumption A-2 of stakeholders.md                                       |
+| NFR-05 | After 15 minutes of basic training, at least 4 of 5 new cashiers (no previous use of the system) shall complete a standard sale and a standard return without help from the observer, each in less than 3 minutes. | Must | [nfrs.md](nfrs.md) |                                    |
 | NFR-06 | A standard sale shall be completed with 3 clicks or fewer after the items are entered.                                                                                                                                                             | Must     | [nfrs.md](nfrs.md), UC1                                                                     |
 | NFR-13 | The text of every screen shall be readable at a distance of 1 m, and every button shall be at least 10 mm x 10 mm on the register screen.                                                                                                          | Should   | Persona (working environment), UC1 special requirements                                     |
 | NFR-14 | Every error message shall be shown on the screen where the error happens, in plain words, and shall state what happened and what the cashier can do next, without technical codes.                                                                 | Must     | Persona (frustrations), UC1 ext. 4a, 9b2a, UC2 ext. 4a-5a                                   |
@@ -1015,11 +1018,13 @@ The numbers in NFR-05, NFR-13 and NFR-18 are first values and are checked in the
 
 ### 3.4 Performance requirements
 
+**Reference setup.** One register computer (4 cores, 8 GB RAM), the local product catalog with 10,000 products, and the external systems replaced by stubs (DC-01) that answer within 200 ms. Times are measured from the input event (scan or key press) to the result on the screen.
+
 | ID     | Requirement                                                                                                                                          | Priority | Source        |
 | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------- |
-| NFR-01 | The system shall register a sale line item in less than 1 second.                                                                                    | Must     | Quality goals |
-| NFR-02 | The system shall start up and be ready for use in less than 30 seconds.                                                                              | Must     | Quality goals |
-| NFR-19 | The system shall enforce timeouts for external system calls: 10 seconds for the Payment Service, and 5 seconds for the Tax Calculator and HR System. | Must     | §3.1.3        |
+| NFR-01 | On the reference setup, registering a sale line item shall take less than 1 second in at least 95 % of 200 consecutive registrations, and less than 2 seconds in all of them. | Must | §3.8 |
+| NFR-02 | On the reference setup, with up to 50 records waiting in the Accounting System queue and all external systems unavailable, the register shall be ready for use less than 30 seconds after the POS program starts in each of 10 consecutive starts. | Must | §3.8 |
+| NFR-19 | The system shall enforce timeouts for external system calls: 10 seconds for the Payment Service, and 5 seconds for the Tax Calculator and HR System. | Must | §3.1.3 |
 
 ### 3.5 Logical database requirements
 
@@ -1081,23 +1086,26 @@ Derived from the [domain model](../design/domain_model.md). The store keeps its 
 | DC-08 | All documents and the user interface are in English. Documents are kept in the team GitHub repository and follow [CONTRIBUTING.md](../../CONTRIBUTING.md).                                                                                                                | Team              | Project plan, risk R5                     |
 | DC-09 | The data of the store (product catalog, prices, stock levels, item status, customers and transactions) shall be kept in one store database shared by all registers. Each register shall keep a local copy of the data that it needs and its own queue of records, so that it can keep selling, returning and renting when the connection to the store database is lost. Receipt numbers and customer IDs shall be unique in the whole store, and an item shall not be rented at two registers at the same time (BR-11); how a conflict between registers that are offline is solved is decided in AD-05. | Technology | §1.5, DC-05, NFR-04 |
 
-### 3.7 Standards compliance
+### 3.7 Compliance obligations
+
+PCI-DSS and GDPR certification is out of scope. This section lists the concrete obligations that the system takes from them. They are verified with the checklist in §4.
 
 | ID     | Requirement                                                                                                                                  | Priority | Source |
 | ------ | -------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------ |
-| NFR-11 | The system shall comply with standard payment card data security (PCI-DSS) by masking card numbers on receipts (showing only last 4 digits). | Must     | DC-06  |
-| NFR-12 | The system shall comply with data protection regulations (GDPR) by not storing unnecessary personal data.                                    | Must     | DR-18  |
+| NFR-11 | The system shall show or print at most the last 4 digits of a card number on every screen, receipt, log and message sent to the Accounting System. | Must | DC-06, DR-05 |
+| NFR-12 | The system shall store only the personal data listed in DR-11 (employees) and DR-18 (customer ID and the data to find rentals). The receipt shall show no personal data of the customer. | Must | DR-18 |
 
 ### 3.8 Software system attributes
 
 | ID     | Requirement                                                                                                                               | Priority | Source        |
 | ------ | ----------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------- |
-| NFR-03 | The system shall have an uptime of 99.9% during store hours.                                                                              | Must     | Quality goals |
+| NFR-03 | The register application shall be available for at least 99.9 % of the store hours of each calendar month. Availability = (store hours − downtime) / store hours. Downtime is any time in which the cashier cannot start or complete a sale, return or rental because the register application is not running (crash, freeze, restart). Failures of external systems, the network, planned maintenance outside store hours and hardware failures are not downtime. The POS keeps working offline under NFR-04.                                                                                                                                        | Must     | Quality goals |
 | NFR-04 | A completed sale shall be saved locally even if the internet drops.                                                                       | Must     | IR-07         |
 | NFR-07 | The system shall enforce role-based access control (e.g., manager override).                                                              | Must     | BR-04         |
-| NFR-08 | All user PINs shall be stored as a salted hash. Payment data shall be encrypted, and card data shall not be stored after the transaction. | Must     | DR-11         |
+| NFR-08 | All user PINs shall be stored only as a salted hash and shall never be shown, logged or stored in plain text.                             | Must     | DR-11         |
 | NFR-09 | Adding a new payment method shall take less than 3 development days.                                                                      | Must     | DC-02         |
-| NFR-10 | The system shall be fully compatible with standard receipt printers and scanners.                                                         | Must     | §3.1.2        |
+| NFR-10 | The system shall be fully compatible with standard receipt printers and scanners.                                                         | Must     | §3.1.2             |
+| NFR-20      | Payment data shall be encrypted when it is stored or sent, and card data shall not be kept after the Payment Service has answered.   | Must     | DC-06         |
 
 ### 3.9 Supporting information
 
@@ -1144,27 +1152,35 @@ The business rules of the store are defined here (#36, B-D17). The glossary repe
 
 ## 4. Verification
 
-All requirements will be verified using one of three methods: **Inspection** (I), **Demonstration** (D), or **Test** (T).
+All requirements will be verified using one of four methods: **Inspection** (I), **Demonstration** (D), **Test** (T), or **Analysis** (A).
 
 | Req ID           | Verification Method        | Description                                                                                                       |
 | ---------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | FR-01 to FR-19   | Test                       | Functional tests using simulated external systems.                                                                |
 | FR-20 to FR-29   | Test                       | Functional tests for returns.                                                                                     |
 | FR-30 to FR-59   | Test                       | Functional tests for rentals, start-up procedures and rental returns.                                             |
-| NFR-01, NFR-02   | Test                       | Automated performance testing (response time < 1s, start-up < 30s).                                               |
-| NFR-19           | Test                       | Stubs that answer late or never; check the fallback after 10 s / 5 s.                                             |
-| NFR-03, NFR-04   | Demonstration              | Simulate internet drop and verify local storage.                                                                  |
-| NFR-05, NFR-06   | Demonstration / Test       | User testing (15 min training) and click-counting (TC-NFR-06).                                                    |
+| NFR-01, NFR-02   | Test                       | On the reference setup: 200 registrations (95th percentile < 1s) and 10 starts (< 30s).                           |
+| NFR-03           | Analysis                   | Availability computed from the application log over one calendar month; plus a crash test.                        |
+| NFR-04           | Demonstration              | Simulate internet drop and verify local storage.                                                                  |
+| NFR-05, NFR-06   | Demonstration / Test       | User testing (4 of 5 new cashiers) and click-counting (TC-NFR-06).                                                |
 | NFR-07           | Test                       | TC-06 (Role-based access control via manager override).                                                           |
-| NFR-08           | Inspection                 | Code review and security audit of authentication.                                                                 |
+| NFR-08, NFR-20   | Inspection                 | Code review (PIN hash, data encryption) and check that no card data remains after the transaction.                |
 | NFR-09, NFR-10   | Inspection                 | Review of documentation and hardware compatibility list.                                                          |
-| NFR-11, NFR-12   | Inspection                 | Review of PCI-DSS and GDPR compliance checklist.                                                                  |
+| NFR-11, NFR-12   | Inspection                 | Review of PCI-DSS and GDPR compliance checklist (see below).                                                      |
+| NFR-19           | Test                       | Stubs that answer late or never; check the fallback after 10 s / 5 s.                                             |
 | IR-01 to IR-10   | Test                       | Integration tests with external system simulators.                                                                |
 | IR-11 to IR-14   | Demonstration              | Demonstration with the scanner, card reader, printer and drawer (or their simulators).                            |
 | NFR-13 to NFR-18 | Inspection / Demonstration | Inspection of the screens against the prototype; demonstration with a cashier (sizes, messages, waiting message). |
 | DR-01 to DR-20   | Inspection / Test          | Inspection of the data design; tests of storage after a restart (DR-13) and of money amounts (DR-17).             |
 | DC-01 to DC-09   | Inspection                 | Inspection of the architecture description and the code.                                                          |
 | BR-01 to BR-14   | Test                       | Verify business rules during functional tests.                                                                    |
+
+#### Compliance Checklist for NFR-11 and NFR-12
+1. Screens, receipt and message to the Accounting System show at most 4 digits of the card number.
+2. A search of the log for 13–19 digit numbers finds none.
+3. The database schema has no field for full card number, security code or card PIN.
+4. The employee and customer tables contain only the fields of DR-11 and DR-18.
+5. The receipt contains no personal data of the customer.
 
 ### 4.1 Acceptance criteria – UC1 Process Sale
 
