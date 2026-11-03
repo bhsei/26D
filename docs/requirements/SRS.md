@@ -598,7 +598,7 @@ The use cases below are the source of the analysis models in [reference 9]: the 
 - **7a. The serial number is not in the item list:**
   1. The System shows an error and rejects the entry.
   2. The Cashier checks the number and enters it again, or chooses another item.
-- **7b. The item status is not _Available_ (_Rented_, _Under maintenance_ or _Reserved_):**
+- **7b. The item status is not _Available_ (_Rented_ or _Under maintenance_):**
   1. The System rejects the item and shows the status as the reason (BR-11).
   2. The Cashier chooses another item, or ends the use case.
 - **8a. The customer changes the rental period before paying:**
