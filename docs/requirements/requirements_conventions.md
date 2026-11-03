@@ -25,7 +25,7 @@ Won't have: Out of scope for this release.
 - **Singular:** One requirement states one thing, so it can pass or fail on its own.
 
 4. Traceability Matrix for Use Cases (UC1 to UC5)
-This matrix links the official SRS requirements (FR-01 to FR-67) to the design and test phases for UC1 to UC5.
+This matrix links the official SRS requirements (FR-01 to FR-73) to the design and test phases for UC1 to UC5.
 | Req ID | Requirement Summary (from SRS) | Use Case | Design (UML/UI) | Test Case |
 | --- | --- | --- | --- | --- |
 | FR-01 | Start a new sale in a session | UC1 (Process Sale) | Class Diagram: CashierSession, Sale | TC-01: Verify sale cannot start without session |
@@ -64,7 +64,7 @@ This matrix links the official SRS requirements (FR-01 to FR-67) to the design a
 | FR-34 | Calculate rental fee/due date | UC3 (Process Rental) | Component: FeeCalc | TC-34: Select period, verify fee |
 | FR-35 | Obtain tax for rental | UC3 (Process Rental) | Interface: TaxCalc | TC-35: Request tax for rental fee |
 | FR-36 | Cancel rental before payment | UC3 (Process Rental) | UI: Cancel button | TC-36: Cancel rental, check status |
-| FR-37 | Accept payment for rental | UC3 (Process Rental) | Interface: Payment | TC-37: Pay cash/card/check |
+| FR-37 | Accept cash payment for rental | UC3 (Process Rental) | UI: Payment screen, Drawer API | TC-37: Pay cash, lower amount rejected, change shown, drawer opens |
 | FR-38 | Save rental and update status | UC3 (Process Rental) | DB Schema: Rentals | TC-38: Check DB and item status |
 | FR-39 | Print rental receipt | UC3 (Process Rental) | UI: Receipt Layout | TC-39: Verify rental receipt details |
 | FR-40 | Open cashier session | UC4 (Start Up) | Class Diagram: Session | TC-40: Login and open session |
@@ -81,12 +81,26 @@ This matrix links the official SRS requirements (FR-01 to FR-67) to the design a
 | FR-51 | Find open rental | UC5 (Return Rental) | Sequence Diagram: FindRental | TC-51: Scan valid/invalid serial/receipt |
 | FR-52 | Record item condition | UC5 (Return Rental) | UI: Condition input | TC-52: Select undamaged/damaged with note |
 | FR-53 | Calculate late fee | UC5 (Return Rental) | Interface: Tax Calculator | TC-53: Return late, verify fee calc |
-| FR-54 | Calculate refund | UC5 (Return Rental) | Component: RefundCalc | TC-54: Verify refund = deposit - fees |
+| FR-54 | Calculate refund (undamaged item) | UC5 (Return Rental) | Component: RefundCalc | TC-54: Verify refund = deposit − late fee − tax, never below zero |
 | FR-55 | Pay refund | UC5 (Return Rental) | Interface: Payment Service | TC-55: Pay cash/card refund |
 | FR-56 | Cancel rental return | UC5 (Return Rental) | UI: Cancel button | TC-56: Cancel return, check item status |
 | FR-57 | Save return and close rental | UC5 (Return Rental) | DB Schema: RentalReturns | TC-57: Check DB, item status, rental closed |
 | FR-58 | Send return to Accounting | UC5 (Return Rental) | Interface: Accounting | TC-58: Verify JSON payload sent |
 | FR-59 | Print rental return receipt | UC5 (Return Rental) | UI: Receipt Layout | TC-59: Verify receipt details |
+| FR-60 | Close cashier session (no open transaction) | UC4 (Start Up) | UI: Close session screen | TC-60: Try to close with an open sale (refused), close without open transaction |
+| FR-61 | Open drawer, record closing cash | UC4 (Start Up) | UI: Cash input, Drawer API | TC-61: Enter invalid/valid closing cash |
+| FR-62 | Calculate cash difference | UC4 (Start Up) | Component: SessionCashCalc | TC-62: Opening 100, cash payments 50, cash refunds 20, closing 125: expected 130, 5 short |
+| FR-63 | Record session end time, interrupted session | UC4 (Start Up) | Recovery Module, DB Schema: Sessions | TC-63: Close normally; crash and restart (end time = next start-up, interrupted) |
+| FR-64 | Complete rental card payment after approval | UC3 (Process Rental) | Interface: Payment Service | TC-64: Mock approval, verify auth code saved |
+| FR-65 | Accept rental check payment (Could) | UC3 (Process Rental) | Interface: Payment Service | TC-65: Mock check authorization |
+| FR-66 | Declined or failed rental card payment | UC3 (Process Rental) | UI: Error state | TC-66: Mock decline (rental stays open), no answer (retry) |
+| FR-67 | Card reader failure in rental payment | UC3 (Process Rental) | UI: Error state | TC-67: Reader error, read card again or other tender |
+| FR-68 | Reorder list for store manager | UC1 (Process Sale) | UI: Reorder list | TC-68: Sell below threshold, check list as manager |
+| FR-69 | Change default tax rate (manager only) | UC1 (Process Sale) | UI: Manager authentication modal | TC-69: Cashier refused; manager changes, who and when recorded |
+| FR-70 | Disable employee in local list | UC4 (Start Up) | UI: Manager authentication modal, Local Cache DB | TC-70: Manager disables employee, offline login refused |
+| FR-71 | Common receipt contents | UC1, UC2, UC3, UC5 | UI: Receipt Layout | TC-71: Print one receipt of each type, check common fields and last 4 digits |
+| FR-72 | Damaged rental item: deposit kept, refund zero | UC5 (Return Rental) | Component: RefundCalc | TC-72: Return damaged and late, refund 0, late fee recorded not charged |
+| FR-73 | Late fee larger than deposit: amount still due | UC5 (Return Rental) | Component: RefundCalc | TC-73: Late fee and tax above deposit, amount due shown |
 | BR-01 | Calculated by Tax Calculator (see glossary) | UC1 (Process Sale) | Interface: TaxCalculator | TC-08: Verify tax matches external system |
 | NFR-06 | Usability: <= 3 clicks for standard sale | UC1 (Process Sale) | UI: Checkout flow | TC-NFR-06: Measure clicks from item entry to sale completion (<= 3) |
 | NFR-07 | Security: Role-based access control | UC1 (Process Sale) | UI: Manager authentication modal | TC-06: Attempt override as cashier (fail) and manager (pass) |
