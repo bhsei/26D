@@ -49,7 +49,7 @@ Terms are sorted alphabetically. Where two words mean the same thing, the prefer
 | **Item** | A single physical unit of a product that can be sold or rented. A rentable item is identified by its serial number. |
 | **Item identifier** | Unique code (for example, a barcode) that identifies a product description, that is, a product type, and is scanned or typed by the cashier. It does not identify one single item (see *Serial number*). |
 | **Item list** | List of all rentable items, each with its serial number, description and item status. |
-| **Item status** | State of one rentable item, identified by its serial number: *Available*, *Rented*, *Under maintenance* or *Reserved*. Only *Available* items can be rented. |
+| **Item status** | State of one rentable item, identified by its serial number: *Available*, *Rented* or *Under maintenance*. Only *Available* items can be rented. |
 | **Late fee** | Charge applied when a rented item is returned after its due date (see open questions). |
 | **Line item** | General term for one line of a transaction: see *Sale line item* and *Rental line item*. |
 | **Local employee list** | Copy of the employee list kept on the register (employee ID, name, role, active status and PIN as a salted hash). It is refreshed at every start-up and is used when the HR System is not available (IR-09). |
