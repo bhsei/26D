@@ -60,3 +60,19 @@
   - My first insertion of the UC4 requirements went into the verification table instead of the requirements table. I found it when I checked the SRS and moved the rows to section 3.2.6.
   - The SRS changed several times on the last day, so I pulled before every edit to avoid conflicts.
 - **Next:** Present SRS v1.0 (Wed 28 Oct) and start Increment 2 (Design) with the tasks of the W08 plan.
+
+## W08
+- **What I did:**
+  - Reviewed Team E's SRS v1.4 (sections 4.1–4.2 and 4.6–4.10) and wrote 6 findings: unmeasurable words, platforms that are not defined, the Lite Mode specification, the Network Boost measurement, requirements that bundle several behaviours, and the missing locale matrix. Josué consolidated them as findings 14 to 19 of the 26 findings in our review of Team E.
+  - Answered the 7 findings from Teams B and C on my sections (Issue #50: B-D04, B-D15, B-D16, B-D17; Issues #26, #27 and #36). I accepted 5 and partially accepted 2, and I gave the same decision to the findings that both teams reported.
+  - Applied the changes in the SRS in 10 commits:
+    - UC4: the offline login checks the PIN against the local salted hash, also for store manager approvals (ext. 6c, FR-45, FR-46).
+    - A new close-session function (section 3.2.4.1, FR-60 to FR-63) with end time, closing cash and difference, so that a shift can end.
+    - UC3: the accepted risk of a new customer ID (ext. 4a, BR-12, open question 5 with an owner and a date), the card reader error (13b1a), the retry that reads the card again (13b2b), and FR-37 split into FR-37 and FR-64 to FR-67.
+    - Section 3.10 now holds the business rules with their status and lists the requirements that depend on a Proposed rule. The glossary is v0.4 and the companion files are marked as informative.
+- **Hours:** 6 h
+- **Problems:**
+  - All FR numbers from FR-01 to FR-59 were already used, so I took the next free numbers (FR-60 to FR-67) and checked that no FR number is used twice.
+  - Several people edited SRS.md at the same time, so I pulled before every change and made separate commits, without merge commits.
+  - Teams B and C reported some of the same problems (offline PIN, ending the session), so both answers had to be consistent.
+- **Next:** In W09, check the answers of Team E to our review and the SRS v1.1; start Increment 2 (Design) with the tasks of the W09 plan; and answer open question 5 (how customers are identified) before the design is closed (W11).
