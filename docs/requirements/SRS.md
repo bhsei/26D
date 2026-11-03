@@ -1016,7 +1016,7 @@ The usability requirements come from the cashier persona ([stakeholders.md](stak
 
 | ID     | Requirement                                                                                                                                                                                                                                        | Priority | Source                                                                                      |
 | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------- |
-| NFR-05 | After 15 minutes of basic training, at least 4 of 5 new cashiers (no previous use of the system) shall complete a standard sale and a standard return without help from the observer, each in less than 3 minutes. | Must | [nfrs.md](nfrs.md) |                                    |
+| NFR-05 | After 15 minutes of basic training, at least 4 of 5 new cashiers (no previous use of the system) shall complete a standard sale and a standard return without help from the observer, each in less than 3 minutes. | Must | [nfrs.md](nfrs.md) |   
 | NFR-06 | A standard sale shall be completed with 3 clicks or fewer after the items are entered.                                                                                                                                                             | Must     | [nfrs.md](nfrs.md), UC1                                                                     |
 | NFR-13 | The text of every screen shall be readable at a distance of 1 m, and every button shall be at least 10 mm x 10 mm on the register screen.                                                                                                          | Should   | Persona (working environment), UC1 special requirements                                     |
 | NFR-14 | Every error message shall be shown on the screen where the error happens, in plain words, and shall state what happened and what the cashier can do next, without technical codes.                                                                 | Must     | Persona (frustrations), UC1 ext. 4a, 9b2a, UC2 ext. 4a-5a                                   |
@@ -1035,8 +1035,8 @@ The numbers in NFR-05, NFR-13 and NFR-18 are first values and are checked in the
 
 | ID     | Requirement                                                                                                                                          | Priority | Source        |
 | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------- |
-| NFR-01 | On the reference setup, registering a sale line item shall take less than 1 second in at least 95 % of 200 consecutive registrations, and less than 2 seconds in all of them. | Must | §3.8 |
-| NFR-02 | On the reference setup, with up to 50 records waiting in the Accounting System queue and all external systems unavailable, the register shall be ready for use less than 30 seconds after the POS program starts in each of 10 consecutive starts. | Must | §3.8 |
+| NFR-01 | On the reference setup, registering a sale line item shall take less than 1 second in at least 95 % of 200 consecutive registrations, and less than 2 seconds in all of them. | Must | Quality goals |
+| NFR-02 | On the reference setup, with up to 50 records waiting in the Accounting System queue and all external systems unavailable, the register shall be ready for use less than 30 seconds after the POS program starts in each of 10 consecutive starts. | Must | Quality goals |
 | NFR-19 | The system shall enforce timeouts for external system calls: 10 seconds for the Payment Service, and 5 seconds for the Tax Calculator and HR System. | Must | §3.1.3 |
 
 ### 3.5 Logical database requirements
@@ -1116,7 +1116,7 @@ PCI-DSS and GDPR certification is out of scope. This section lists the concrete 
 | NFR-04 | A completed sale shall be saved locally even if the internet drops.                                                                       | Must     | IR-07         |
 | NFR-07 | The system shall enforce role-based access control (e.g., manager override).                                                              | Must     | BR-04         |
 | NFR-08 | All user PINs shall be stored only as a salted hash and shall never be shown, logged or stored in plain text.                             | Must     | DR-11         |
-| NFR-09 | Adding a new payment method shall take less than 3 development days.                                                                      | Must     | DC-02         |
+| NFR-09 | A developer who knows the code shall be able to add a new payment method in less than 3 working days (8 h each), counted from the start of the work until the new component passes its tests against a stub. The change shall be limited to the payment interface component (DC-02); the sale, return and rental logic shall not change. | Must | DC-02 |
 | NFR-10 | The system shall be fully compatible with standard receipt printers and scanners.                                                         | Must     | §3.1.2             |
 | NFR-20      | Payment data shall be encrypted when it is stored or sent, and card data shall not be kept after the Payment Service has answered.   | Must     | DC-06         |
 
@@ -1171,17 +1171,23 @@ All requirements will be verified using one of four methods: **Inspection** (I),
 | ---------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | FR-01 to FR-19   | Test                       | Functional tests using simulated external systems.                                                                |
 | FR-20 to FR-29   | Test                       | Functional tests for returns.                                                                                     |
-| FR-30 to FR-59   | Test                       | Functional tests for rentals, start-up procedures and rental returns.                                             |
+| FR-30 to FR-59   | Test                       | Functional tests for rentals, start-up procedures and rental returns.                   
+| FR-60 to FR-63   | Test                       | Functional tests for closing the cashier session (closing cash, difference, interrupted session).                 |
+| FR-64 to FR-67   | Test                       | Functional tests for rental payment by card and check (approved, declined, no answer, reader failure).            |
+| FR-68 to FR-70   | Test                       | Functional tests of the store manager functions (reorder list, tax rate, disable employee).                       |
+| FR-71            | Test / Inspection          | Print one receipt of each type; check common contents and masked card.                                            |
+| FR-72 to FR-73   | Test                       | Functional tests for a damaged item and for a late fee larger than the deposit.                                   |
 | NFR-01, NFR-02   | Test                       | On the reference setup: 200 registrations (95th percentile < 1s) and 10 starts (< 30s).                           |
 | NFR-03           | Analysis                   | Availability computed from the application log over one calendar month; plus a crash test.                        |
 | NFR-04           | Demonstration              | Simulate internet drop and verify local storage.                                                                  |
 | NFR-05, NFR-06   | Demonstration / Test       | User testing (4 of 5 new cashiers) and click-counting (TC-NFR-06).                                                |
 | NFR-07           | Test                       | TC-06 (Role-based access control via manager override).                                                           |
 | NFR-08, NFR-20   | Inspection                 | Code review (PIN hash, data encryption) and check that no card data remains after the transaction.                |
-| NFR-09, NFR-10   | Inspection                 | Review of documentation and hardware compatibility list.                                                          |
+| NFR-09           | Demonstration / Inspection | Add a dummy payment method (e.g., gift card stub), measure effort (< 3 working days), check no sale/return/rental code changed.                                                                                                                                                       |
+| NFR-10           | Inspection                 | Review of documentation and hardware compatibility list.                                                          |
 | NFR-11, NFR-12   | Inspection                 | Review of PCI-DSS and GDPR compliance checklist (see below).                                                      |
 | NFR-19           | Test                       | Stubs that answer late or never; check the fallback after 10 s / 5 s.                                             |
-| IR-01 to IR-10   | Test                       | Integration tests with external system simulators.                                                                |
+| IR-01 to IR-10, IR-15 to IR-17 | Test         | Integration tests with external system simulators.                                                                |
 | IR-11 to IR-14   | Demonstration              | Demonstration with the scanner, card reader, printer and drawer (or their simulators).                            |
 | NFR-13 to NFR-18 | Inspection / Demonstration | Inspection of the screens against the prototype; demonstration with a cashier (sizes, messages, waiting message). |
 | DR-01 to DR-20   | Inspection / Test          | Inspection of the data design; tests of storage after a restart (DR-13) and of money amounts (DR-17).             |
@@ -1270,7 +1276,7 @@ See [glossary.md](glossary.md).
 
 ### 5.2 Traceability matrix
 
-The full traceability matrix linking the requirements (FR-01 to FR-59), use cases, planned design elements, and test cases is maintained in the [Requirements Conventions document](requirements_conventions.md), section 4.
+The full traceability matrix linking the requirements (FR-01 to FR-73), use cases, planned design elements, and test cases is maintained in the [Requirements Conventions document](requirements_conventions.md), section 4.
 
 ### 5.3 Open questions
 
