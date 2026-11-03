@@ -44,3 +44,9 @@
 - **Hours:** 7
 - **Problems:** None.
 - **Next:** Fix the findings on my sections before SRS v1.0, tell Avni to update BR-02 (default tax rate changed only by a store manager), and fill in the architecture decisions in W08–W09.
+
+## W08
+- **What I did:** Reviewed sections 3.2 to 3.5, chapters 5–6 and appendix A of Team F's SRS v0.3 and wrote 6 findings. As consolidator for Team F, merged them with Yasmine's 8 findings, dropped my H2 (same problem as her Y2) and posted the 13 findings in bhsei/26F issue #6 on Monday before 12:00. Answered the 6 findings from Teams B and C on my sections (B-D08 in #50, #25, #29, #35, #38, #43): 4 accepted, 2 partially accepted. Then changed my SRS sections (§3.1.2–3.1.3) in 5 commits, one per finding: the cash drawer also opens for the opening and closing count (IR-14), a payment retry keeps the same transaction ID (IR-02), a new IR-15 voids an authorization left open after a crash, and the "tax to be corrected" flag goes to the Accounting System, where the tax is corrected (IR-05, IR-06). Records for the Accounting System are now sent in the background, so the receipt never waits for it. The IR priorities follow the §3.2.6 rule (IR-01 split, new IR-16 for checks). Added a limitations note to `ui_prototype.md`: the login does not check the PIN (#25). Started the architecture decisions in `architecture.md` with options and a first proposal for AD-01 to AD-03: a layered architecture with one adapter per external system, a local web application on each register, and Java with HTML/JS screens (Python as fallback).
+- **Hours:** 7
+- **Problems:** Several of us edited SRS.md on the same day, and Alfonso added IR-17 to the table I was changing. I pulled before every commit, so there was no conflict.
+- **Next:** Confirm AD-01 to AD-03 with the team in W09, check Team F's revised SRS (column H of the statistics form), then AD-04 to AD-10 and the views.
