@@ -51,3 +51,10 @@
 - **Hours:** **[6]**
 - **Problems:** The SRS sections were late because I started after the deadline. Some rules for returns are still open (refund period, return without receipt, card refund when the card is not present), so I listed them as open issues. The prototype does not show everything the SRS requires yet (PIN check, quantity already returned, finding a rental by receipt number).
 - **Next:** Fix the findings of the SRS v0.9 review in my sections before SRS v1.0, and help with the design work in W08.
+
+## W08
+
+- **What I did:** Reviewed Team F's SRS v0.3 (ch. 1–2, §3.1 and ch. 4) and wrote 8 findings (Y1–Y8) for the consolidated review. Answered my 6 findings from Teams B and C (B-D06, B-D13, B-D21 in #50, and #28, #37, #48). Changed UC2 and FR-22 to FR-27 in the SRS (manager approval for cash refunds, refund status check, condition of returned items and stock, refund of the tax charged in the sale) and the usability section. Updated the elicitation plan to v0.4 (Q-06 scale, new questions for NFR-06 and NFR-13, observation checklist).
+- **Hours:** **[10]**
+- **Problems:** A merge conflict in the review file and a broken FR table in SRS.md, both caused by editing the same files as other teammates; I fixed them by redoing the edits from the latest version. Some answers depend on decisions that are still open (days before a check can be refunded in cash, what to do with items that are not resellable).
+- **Next:** Check my sections in SRS v1.1, and take the next tasks of the W09 plan.
