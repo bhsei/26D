@@ -3,8 +3,8 @@
 | | |
 | --- | --- |
 | **Maintainers** | Haifa Chkoundali, Yasmine Chkoundali |
-| **Version** | 0.1 |
-| **Last updated** | W07 |
+| **Version** | 0.2 |
+| **Last updated** | W08 (review #25, C1: limitations) |
 | **Location** | [`docs/design/prototype/`](prototype/) |
 | **Used by** | SRS §3.1.1 User interfaces, §3.3 Usability requirements |
 
@@ -15,7 +15,7 @@ A clickable HTML prototype of the cashier screens of NewEra POS. It is used to c
 ## 2. How to open it
 
 1. Open [`prototype/index.html`](prototype/index.html) in a web browser (double click the file). No server or installation is needed.
-2. Log in with employee ID `E-1042` (Li Wei) or `E-1055` (Marta Ruiz), any PIN and an opening cash amount, then press **Start session**.
+2. Log in with employee ID `E-1042` (Li Wei) or `E-1055` (Marta Ruiz), any PIN and an opening cash amount, then press **Start session**. The PIN is not checked (see §6).
 3. Choose a task in the main menu.
 
 Each screen has a grey **Prototype** bar at the bottom. It is not part of the real POS: it lists the demo data and lets you simulate failures of the external systems.
@@ -49,7 +49,7 @@ All data is fake (`prototype/app.js`).
 
 | Screen | File | Use case | Requirements | What to try |
 | --- | --- | --- | --- | --- |
-| Start Up / login | `index.html` | UC4 Start Up | FR-40, FR-43, FR-44, FR-45, FR-47, IR-08, IR-09 | Login with `E-1042`; `E-0000`; *HR System offline* |
+| Start Up / login | `index.html` | UC4 Start Up | FR-40, FR-43, FR-44 (PIN field only, see §6), FR-45, FR-47, IR-08, IR-09 | Login with `E-1042`; `E-0000`; *HR System offline* |
 | Main menu | `menu.html` | UC4 (end), entry to UC1–UC3, UC5 | FR-49 | Status of the 4 external systems; *Tax Calculator offline* |
 | Sale | `sale.html` | UC1 Process Sale | FR-02, FR-03, FR-04, FR-05, FR-08 | Scan or type `1001`–`1005`, quantity, remove a line, `9999` |
 | Payment | `payment.html` | UC1, UC3 | FR-09, FR-10, FR-11, FR-12, FR-35, FR-37, BR-05, BR-06 | Cash with change; card approved / declined / service down; check authorized by the Payment Service |
@@ -66,3 +66,10 @@ The FRs of UC2 (FR-20…) and UC5 (FR-50…) will be added to this table when th
 - Large buttons and fields for a touch screen; one main task per screen.
 - Errors and warnings are shown on the screen where they happen, in plain words, with what the cashier can do next.
 - The status of the external systems is always visible in the main menu.
+
+## 6. Limitations
+
+The prototype is a throw-away prototype (process model): it is only used to check the screens and the flow, and its code will not be reused in increment 3. So some rules of the SRS are not built in it:
+
+- **PIN.** The login screen asks for a PIN but accepts any value. In the real POS the PIN is checked by the HR System (FR-44, IR-08), or against the salted hash of the local employee list when the HR System does not answer (IR-09, DR-11). This is tested in increment 3, not in the prototype.
+- **External systems.** The Payment Service, Tax Calculator, Accounting System and HR System are simulated in the browser, so their timeouts and the queue of the Accounting System are not shown.
