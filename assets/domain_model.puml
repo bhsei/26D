@@ -177,7 +177,7 @@ RentalLineItem "*" -- "1" Item : rents >
 RentalReturn "0..1" -- "1" RentalLineItem : closes >
 
 ' Money
-Transaction "1" -- "*" Payment : is paid by >
+Transaction "1" -- "0..1" Payment : is paid by >
 Return "1" -- "0..1" Refund : is refunded by >
 RentalReturn "1" -- "0..1" Refund : is refunded by >
 

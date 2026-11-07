@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Maintainer** | Borja Nicolás |
-| **Version** | 0.3 (draft for review; adds the state diagrams of the item and of the rental) |
+| **Version** | 0.4 (draft for review; one tender for each sale or rental, BR-18) |
 | **Last updated** | W09 |
 | **Part of** | Increment 2 (Design), input to the SRS section 3.5, the [system sequence diagram](system_sequence_diagrams.md) and the [operation contracts](operation_contracts.md) |
 
@@ -68,7 +68,7 @@ The four external systems (Payment Service, Tax Calculator, Accounting System, H
 | Rental – RentalLineItem | 1 – 1..* | See open question 3. |
 | RentalLineItem – Item | * – 1 | An item can be rented many times, one after the other (BR-11). |
 | RentalReturn – RentalLineItem | 0..1 – 1 | A rented line is closed by at most one return. |
-| Transaction – Payment | 1 – * | Normally one payment; more than one if split tenders are allowed (SRS, UC1 open issue). A return has none. |
+| Transaction – Payment | 1 – 0..1 | One tender for each sale or rental (BR-18, decided in W09); until it is paid, the transaction has no payment. A return has no payment but a refund. A rental return has one only when the customer pays the amount still due (UC5 ext. 7b). |
 | Return / RentalReturn – Refund | 1 – 0..1 | Not every rental return has a refund (damaged item). |
 | Transaction – Receipt | 1 – * | One receipt, reprints possible (FR-17). |
 | Transaction – AccountingRecord | 1 – 0..1 | Created when the transaction is completed (BR-14). |
@@ -87,7 +87,7 @@ The four external systems (Payment Service, Tax Calculator, Accounting System, H
 3. **Several items per rental?** I use 1..* rental line items (as the NextGen case does). The SRS lists it as open; if the answer is "one item", the multiplicity changes to 1.
 4. **Customer data.** Only `customerID` is shown. How customers are registered and which personal data is stored (NFR-12, data protection) is open (UC3 open issue).
 5. **Late fee and deposit.** The attributes `lateFee`, `lateFeeTax` and `amountKept` of `RentalReturn` follow the working assumptions of UC5 (late fee taxed, deposit not taxed); they change if the team decides otherwise.
-6. **Split tenders.** If a sale cannot be paid with more than one tender, the multiplicity Sale–Payment becomes 1 – 1.
+6. **One tender (decided in W09).** BR-18: a sale or a rental is paid with one tender, so the multiplicity Transaction–Payment is 1 – 0..1 and not 1 – *. A customer who cannot pay the whole total with one tender pays it with another one.
 7. **Opening cash and logout.** `endTime` of the session is filled only if the team adds a way to end the session (see the review of the SRS: no function ends a cashier session).
 
 ## 7. State diagrams (W09)
