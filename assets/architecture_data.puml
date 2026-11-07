@@ -1,0 +1,77 @@
+@startuml
+' NewEra POS - Data view: where the data is stored, W09
+' Team D - editable source of assets/architecture_data.png
+' Render with: java -jar plantuml.jar -tpng assets/architecture_data.puml
+' Sources: SRS section 3.5 (DR-01 to DR-20), DC-05, DC-06, DC-09, IR-06, IR-07, IR-09, IR-17.
+
+skinparam shadowing false
+skinparam dpi 130
+skinparam defaultFontName Arial
+skinparam ArrowColor #444444
+skinparam RectangleBorderColor #1F4E79
+skinparam RectangleBackgroundColor #F4F8FD
+skinparam CardBorderColor #1F4E79
+skinparam CardBackgroundColor #FFFFFF
+skinparam DatabaseBorderColor #1F4E79
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #B8A04A
+
+
+title NewEra POS - Data view: what is stored where
+
+rectangle "Store database server (one for the store, shared by all registers, DC-09)" as SDB {
+  card "Product catalog, prices, rental fee and deposit\n(DR-01, DR-20)" as S1
+  card "Stock levels (DR-01)" as S2
+  card "Item list and item status (DR-02)" as S3
+  card "Customers: customer ID only (DR-18)" as S4
+  card "Transactions of all registers, with payments,\nrefunds and payment references\n(DR-03 to DR-08, DR-19)" as S5
+  card "Cashier sessions and their review (DR-09)" as S6
+  card "Settings: default tax rate (DR-15)" as S7
+}
+
+rectangle "Register computer (one for each register)" as REG {
+  rectangle "Local database (survives a restart or a network failure, DC-05, DR-13)" as LDB {
+    card "Local copy of the data that the register needs:\ncatalog, prices, stock levels, item status, customers,\ndefault tax rate" as L1
+    card "Transactions of this register, saved here first,\nwith the open sale and the approved authorizations\n(DR-03 to DR-08, FR-48, IR-15)" as L2
+    card "Data of the last receipt (DR-14)" as L3
+    card "Cashier session of this register (DR-09)" as L4
+    card "Local employee list: PIN only as salted hash\n(DR-11)" as L5
+    card "Queue of records for the Accounting System\n(DR-12)" as L6
+  }
+}
+
+rectangle "Never stored (DR-05, DR-11, DR-18, DC-06)" as NEVER #FDECEA {
+  card "Full card number, security code, card PIN" as N1
+  card "Employee PIN in plain text" as N2
+  card "Customer data other than the customer ID" as N3
+  card "Card data in logs (IR-10)" as N4
+}
+
+rectangle "Accounting System" as ACC #EAF1FB
+rectangle "HR System" as HR #EAF1FB
+rectangle "Back-office system" as BO #EAF1FB
+
+S1 -[hidden]down- S2
+S2 -[hidden]down- S3
+S3 -[hidden]down- S4
+S4 -[hidden]down- S5
+S5 -[hidden]down- S6
+S6 -[hidden]down- S7
+L1 -[hidden]down- L2
+L2 -[hidden]down- L3
+L3 -[hidden]down- L4
+L4 -[hidden]down- L5
+L5 -[hidden]down- L6
+N1 -[hidden]down- N2
+N2 -[hidden]down- N3
+N3 -[hidden]down- N4
+SDB <-right-> LDB : synchronisation and conflicts\n(AD-05, decided in W10)
+L6 --> ACC : in order; a record is deleted\nonly after the acknowledgement\n(IR-06, IR-07)
+HR --> L5 : refreshed at every start-up\n(IR-09)
+BO --> SDB : catalog file, import\n(IR-17)
+
+note bottom of SDB
+  The store database holds the master copy of the shared data.
+  The queue and the open transaction stay on the register only.
+end note
+@enduml

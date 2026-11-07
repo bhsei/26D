@@ -133,7 +133,53 @@ The deployment view shows where the software runs, which devices and systems it 
 - The local database product and the synchronisation with the store database are decided in AD-05 and AD-06 (W10).
 
 ### 4.5 Data view
-*To do (W9–W10).* From SRS §3.5 and the domain model: what is stored locally (transactions, Accounting System queue, local employee list, product catalog), and what is never stored (card data, DC-06).
+
+The data view shows **where each kind of data is stored**: in the store database that all registers share, in the local database of one register, or nowhere. It answers the concerns of the accountant (every transaction reaches the Accounting System once and in order) and of the development team (what survives a restart or a network failure, what is never stored) in §2. It is drawn from the logical database requirements of the SRS (§3.5, DR-01 to DR-20), the design constraints DC-05, DC-06 and DC-09 and the [domain model](domain_model.md), and it uses the same names. The choice of the database product and the table design belong to AD-05 and AD-06 (W10), so this view says *what* is stored where and not *how*.
+
+![NewEra POS data view](../../assets/architecture_data.png)
+
+*Editable source: [`assets/architecture_data.puml`](../../assets/architecture_data.puml) (PlantUML).*
+
+**Where the data is stored**
+
+The **master copy** of a data item is the place where its value is decided; the other place keeps a copy.
+
+| Data (SRS §3.5) | Store database server (shared by all registers) | Local database of each register | Source |
+| --- | --- | --- | --- |
+| Product catalog, prices, rental fee and deposit | Master copy. The catalog comes from the back-office file (IR-17) | Copy of what the register needs, to sell without the network | DR-01, DR-20, DC-09, IR-17 |
+| Stock levels | Master copy | Copy; a sale reduces the local value at once | DR-01, BR-09, DC-09 |
+| Item list and item status | Master copy: an item must not be rented at two registers at the same time | Copy of the last known status | DR-02, BR-11, DC-09 |
+| Customers (customer ID only) | Master copy: customer IDs are unique in the whole store | Copy of the customers the register needs, for the overdue check | DR-18, BR-12, DC-09 |
+| Transactions (sales, returns, rentals, rental returns) with their lines, payments, refunds and payment references | All transactions of all registers, so that a return can be made at another register | The transactions of this register, **saved here first**; the open sale and the approved authorizations too | DR-03 to DR-08, DR-13, DR-19, FR-48, IR-15, DC-05 |
+| Data of the last receipt | – | Yes, to print it again | DR-14, FR-17 |
+| Cashier sessions | A copy, so that a store manager can review a session (FR-74, FR-75) | The session of this register (at most one open) | DR-09 |
+| Employee list | – (the HR System is the master) | Copy of the HR System, refreshed at every start-up; the PIN only as a salted hash | DR-11, IR-09 |
+| Settings (default tax rate, reorder threshold) | Master copy; only a store manager changes it | Copy | DR-15, BR-02, BR-04 |
+| Queue of records for the Accounting System | – (it never goes to the store database) | **Only here**, in the order of the transactions; a record is deleted after the acknowledgement | DR-12, IR-06, IR-07, DC-05 |
+| Log of failed communications | – | Yes, without card data or other personal data | IR-10 |
+
+**What is never stored** (DR-05, DR-11, DR-18, DC-06, NFR-08, NFR-11)
+
+| Data | What the POS does instead |
+| --- | --- |
+| Full card number, security code, PIN of a card | Only the last 4 digits, the authorization code and the payment reference of the Payment Service are kept (DR-05, DR-19). Card data is passed only to the Payment adapter (AD-10, AD-09) |
+| PIN of an employee in plain text | The HR System checks the PIN; the local employee list keeps only a salted hash (DR-11) |
+| Personal data of a customer other than the customer ID | Only the data needed to find open and overdue rentals (DR-18) |
+| Card data or personal data in the logs | The log of IR-10 has the system, the time and the error only |
+
+**What survives a restart or a network failure**
+
+| Event | Result |
+| --- | --- |
+| Restart or crash of the register | The local database keeps the transactions, the open sale, the approved authorizations and the queue (DR-13, FR-48). The cashier logs in again, and every authorization without a completed transaction is voided (IR-15) |
+| Network or store database not available | The register works with its local copy and its queue (DC-09). The transactions are sent to the store database when the connection is back |
+| An external system not available | The adapter applies the fallback of SRS §3.1.3; the records for the Accounting System wait in the queue (IR-07) |
+
+**Open points of this view**
+1. **How the copies are kept up to date and how conflicts are solved** (stock levels that differ, an item rented at two registers while both are offline, customers registered twice) is decided in **AD-05** (W10, Borja), together with SRS open questions 6 and 8.
+2. **Receipt numbers and customer IDs** must be unique in the whole store (DC-09), also when a register is offline. A proposal for AD-05 is that each register builds the number from its register ID and its own counter.
+3. **Retention.** How long the transactions and the accounting records are kept after they have been sent is open (SRS §3.5, open question 8, Borja, W10); it decides the size of the local database.
+4. **Where the catalog import is stored** (IR-17): the import file is read at start-up or by a store manager; whether the register or the store database server imports it is decided in AD-05.
 
 ## 5. Correspondences
 
