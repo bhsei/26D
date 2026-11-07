@@ -226,10 +226,10 @@ First list of the decisions to take in W8–W9. Each decision will be recorded w
 | AD-01 | Architectural style of the POS | Layered (UI / domain / technical services); MVC; client–server | NFR-09, DC-02 | Accepted (W09) |
 | AD-02 | Kind of application | Desktop application; web application in a browser on the register | DC-03, DC-04, NFR-02 | Accepted (W09) |
 | AD-03 | Programming language and frameworks | Tools the team already knows (Java, Python, JavaScript…) | DC-04, team skills | Accepted (W09) |
-| AD-04 | How the POS talks to the external systems | One adapter per system behind an interface (stubs replaceable by real systems); direct calls | DC-01, DC-02, IR-01 to IR-10 | Open |
+| AD-04 | How the POS talks to the external systems | One adapter per system behind an interface (stubs replaceable by real systems); direct calls | DC-01, DC-02, IR-01 to IR-17 | Proposed (§6.1) |
 | AD-05 | Local storage | Embedded database (e.g. SQLite); files | NFR-04, IR-07, FR-48, DC-05 | Open |
 | AD-06 | Accounting System queue | Persistent local queue with acknowledgement and transaction ID (no duplicates) | IR-07, FR-42, BR-14 | Open |
-| AD-07 | Timeouts and fallbacks | Where timeouts (10 s / 5 s) and fallbacks are handled: in each adapter or in a common component | IR-02, IR-05, IR-09 | Open |
+| AD-07 | Timeouts and fallbacks | Where timeouts (10 s / 5 s) and fallbacks are handled: in each adapter or in a common component | IR-02, IR-05, IR-09, NFR-19 | Proposed (§6.1) |
 | AD-08 | Payment methods | One class per tender behind a common interface, so a new method can be added easily | NFR-09, FR-09 to FR-12 | Open |
 | AD-09 | Security of card data and PINs | Card data only in memory until the Payment Service answers; PINs stored as a salted hash; role check for manager actions | NFR-07, NFR-08, NFR-11, DC-06 | Open |
 | AD-10 | Device access | Scanner as keyboard input; printer and drawer through a device service | NFR-10, IR-11 to IR-14 | Proposed (§6.1) |
@@ -279,6 +279,28 @@ One subsection per decision, with this template. AD-01 to AD-03 were proposed in
 - Rationale: Two members know Java, and it fits the class design we already have: the conceptual classes, the adapter interfaces (DC-02) and one class per tender (AD-08) map directly to Java classes and interfaces. The type checks also help when six people work on the same code. Python is known by two members too and is faster to write, but there an adapter interface is only a convention. Option 3 is known by fewer members. In all three options the screens are HTML, CSS and JavaScript (AD-02).
 - Consequences: The database chosen in AD-05 needs a Java driver (SQLite has one). Members who don't know Java yet need a short setup guide in the repository.
 - Related requirements: DC-01, DC-02, DC-04, DC-07, NFR-09; C-04, C-06, C-08.
+
+#### AD-04 – How the POS talks to the external systems
+- Context: The POS uses four external systems (Payment Service, Tax Calculator, Accounting System, HR System) and imports the catalog from the back-office system (IR-01 to IR-17). In our project they are stubs (DC-01), and a stub must be replaceable by the real system without changing the rest of the POS (DC-02, QA-14). Each system has its own data format, timeout and fallback (SRS §3.1.3).
+- Options:
+  1. One adapter per external system. Each adapter implements a Java interface of `application.interfaces` (system_interfaces.md §4) and lives in `technical.external`.
+  2. Direct calls: each handler sends the HTTP requests of the stubs itself.
+  3. One common gateway class for all the external systems.
+- Decision (proposal): option 1.
+- Rationale: With direct calls (option 2), the protocol of the stubs would be spread over every handler, so replacing a stub by the real system would change every use case. That breaks DC-02. A common gateway (option 3) is one class that knows four protocols: every change touches it, and the tests can't simulate one system alone. With option 1 the stub and the real system are two implementations of the same interface, and the handlers don't see the difference. The tests can also use a simple fake of each interface, without any network.
+- Consequences: There are five adapters: `PaymentServiceAdapter`, `TaxCalculatorAdapter`, `AccountingSystemAdapter`, `HRSystemAdapter` and `CatalogFileImport`. The POS chooses the stub or the real implementation in its configuration at start-up. Each adapter turns the answer of its system into the result classes of system_interfaces.md (`PaymentResult`, `TaxResult`…) and logs a failed communication in the `EventLog`, without card data (IR-10). The `AccountingSystemAdapter` is called only from the `AccountingQueue` (IR-06, IR-07, AD-06). The card token goes from the card reader to the `PaymentServiceAdapter` only (DC-06).
+- Related requirements: DC-01, DC-02, DC-06, IR-01 to IR-17, NFR-09; QA-14; system_interfaces.md §4 and §5.
+
+#### AD-07 – Timeouts and fallbacks
+- Context: The POS waits at most 10 s for the Payment Service and 5 s for the Tax Calculator and the HR System (NFR-19). It never waits for the Accounting System, because records go through the local queue (IR-06, IR-07). When a system doesn't answer, SRS §3.1.3 gives the fallback: the cashier can retry a card payment with the same transaction ID or use another tender (IR-02), the default tax rate is applied and the transaction is marked *tax to be corrected* (IR-05), and the login uses the local employee list (IR-09). The screen shows a waiting message after 1 s (NFR-18).
+- Options:
+  1. Timeout and fallback both in each adapter.
+  2. Timeout in each adapter, fallback in the handler of the use case.
+  3. One common component that handles the timeouts and the fallbacks of all the systems.
+- Decision (proposal): option 2.
+- Rationale: The timeout belongs to the call, so the adapter that makes the call applies it and returns `NOT_AVAILABLE` instead of an error (system_interfaces.md, business results). The fallback is a business decision: which tender the cashier may use, which transactions get the mark *tax to be corrected*, what the cashier sees. It depends on the use case and its SSD extension, so it belongs to the handler. With option 1 these business rules would sit in the technical layer, and the adapter of the real system would have to repeat them. Option 3 puts everything in one place, but that component would need to know the extensions of every use case.
+- Consequences: Every method of the adapter interfaces returns a result that can be `NOT_AVAILABLE`, and each handler deals with it as its SSD extension says. The timeout values are in the configuration of the POS, with the values of NFR-19 as defaults. The adapter logs the failure (IR-10). For a retry, the handler sends the same transaction ID again (IR-02, IR-15). The screen shows the waiting message while the request is open (NFR-18). The stubs can simulate *timeout* and *not available* (DC-01), so each fallback is tested (NFR-19 verification).
+- Related requirements: NFR-18, NFR-19, IR-02, IR-05, IR-07, IR-09, IR-10, IR-15, DC-01; QA-05, QA-06, QA-07.
 
 #### AD-10 – Device access
 - Context: Each register has a barcode scanner, a card reader, a thermal receipt printer and a cash drawer (SRS §3.1.2). The POS runs as a local web application (AD-02): the browser shows the screens but cannot reach the printer or the cash drawer, and the card data must not be kept (IR-12, DC-06). The device models are not fixed and must be standard devices (NFR-10, QA-15). The register must go on when a device fails (SRS §3.1.2).
