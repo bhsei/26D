@@ -770,7 +770,7 @@ The use cases below are the source of the analysis models in [reference 9]: the 
 - How long may the POS use the local employee list, and how often is it refreshed? A dismissed employee could still log in until the next synchronization ([external_interfaces.md](external_interfaces.md), open question 5).
 - After a crash, should the previous cashier session continue, or must the cashier always log in again?
 - ~~There is no use case for logging out or closing the register at the end of the day. Who ends the cashier session?~~ Closed (#26, B-D16): the cashier closes the session with the close-session function (section 3.2.4.1, FR-60 to FR-63).
-- Is a cash difference above a limit reported to the store manager, and which limit applies?
+- ~~Is a cash difference above a limit reported to the store manager, and which limit applies?~~ Closed (Q9, W09): the limit is 5.00; a larger difference is reviewed by the store manager (BR-17, FR-74, FR-75).
 - How long may the POS work without the Accounting System before a manager must be warned ([external_interfaces.md](external_interfaces.md), section 3.3)?
 
 ##### 3.2.4.1 Close session
@@ -799,14 +799,17 @@ The cashier closes the cashier session at the end of a shift or when the registe
   1. The System refuses to close the session and asks the Cashier to finish or cancel it first (FR-60).
 - **3a. The amount entered is not valid (empty, not a number or negative):**
   1. The System rejects the amount and asks for it again (FR-61).
-- **4a. The difference is not zero:**
-  1. The System shows the difference and records it. The session is closed normally (see the open issue).
+- **4a. The difference is not zero, but not larger than 5.00:**
+  1. The System shows the difference and records it. The session is closed normally (BR-17).
+- **4b. The difference is larger than 5.00:**
+  1. The System shows the difference with a warning, marks the session as to review and tells the Cashier that the store manager will review it (BR-17, FR-74).
+  2. The session is closed normally. The store manager reviews it later in the list of sessions to review and confirms the review with a reason (FR-75).
 - **\*a. The register fails before the session is closed:**
   1. At the next start-up (UC4, extension \*a) the System sets the end time of the old session to the time of the restart and marks the session as interrupted, without closing cash (FR-63).
 
 **Open issues**
 
-- Is a cash difference above a limit reported to the store manager, and which limit applies? (section 5.3, Q9)
+- ~~Is a cash difference above a limit reported to the store manager, and which limit applies? (section 5.3, Q9)~~ Closed (Q9, W09): the limit is 5.00; a larger difference is reviewed by the store manager (BR-17, FR-74, FR-75).
 
 #### 3.2.5 UC5 Return Rental
 
@@ -999,7 +1002,7 @@ Derived from the fully dressed use cases. ID ranges: UC1 FR-01–FR-19, UC2 FR-2
 | FR-59 | The system shall print a rental return receipt with the common receipt contents (FR-71), the item and serial number, rental, due and return dates, condition, deposit, late fee and tax, amount kept and refund.                                                                                                                                                                                                                                       | Should   | UC5 step 11, ext. 11a, NFR-08                            |
 | FR-60 | The system shall allow the cashier to close the cashier session, and shall refuse to close it while a sale, return or rental of the session is still open. | Must | UC4 close session steps 1–2, ext. 2a, DR-09 |
 | FR-61 | When the cashier closes the session, the system shall open the cash drawer for the closing count, ask for the closing cash, reject an amount that is not valid and record the amount with the session. | Must | UC4 close session steps 2–3, ext. 3a, IR-14 |
-| FR-62 | The system shall calculate the expected cash of the session (opening cash plus cash payments minus cash refunds), show the difference with the closing cash and record the difference with the session. | Should | UC4 close session step 4, ext. 4a, #26 |
+| FR-62 | The system shall calculate the expected cash of the session (opening cash plus cash payments minus cash refunds), show the difference with the closing cash and record the difference with the session. | Should | UC4 close session step 4, ext. 4a, #26, BR-17 |
 | FR-63 | The system shall record the end time when a session is closed. When a session was interrupted by a failure, the system shall set its end time to the time of the next start-up and mark it as interrupted, without closing cash. | Must | UC4 close session step 6, ext. \*a, DR-09 |
 | FR-64 | The system shall complete a credit card payment of a rental only after the Payment Service has approved it, and shall record the authorization code. | Should | UC3 ext. 13b, BR-05, IR-01 |
 | FR-65 | The system shall accept payment of a rental by check authorized by the Payment Service. | Could | UC3 ext. 13c, BR-05, IR-16 |
@@ -1011,6 +1014,8 @@ Derived from the fully dressed use cases. ID ranges: UC1 FR-01–FR-19, UC2 FR-2
 | FR-71 | Every receipt (sale, return, rental, rental return) shall show the store, register, date and time, cashier, transaction ID, tender and, for cash, the change, and shall show only the last 4 digits of a card. | Must | FR-16, FR-29, FR-39, FR-59, NFR-11 |
 | FR-72 | When a returned rental item is damaged, the system shall keep the whole deposit, set the refund to zero and record the late fee and its tax, if any, without charging them. | Should | UC5 ext. 6a, BR-10 |
 | FR-73 | When the late fee and its tax of an undamaged item are larger than the deposit, the system shall show the amount still due and ask the customer to pay it. | Should | UC5 ext. 7b, BR-10 |
+| FR-74 | When the cashier closes a session and the difference between the closing cash and the expected cash is larger than 5.00, the system shall mark the session as to review and show it in the store manager's list of sessions to review. | Should | UC4 close session ext. 4b, BR-17 |
+| FR-75 | The system shall let a store manager review a session in that list, enter a reason and confirm the review, and shall record who reviewed it and when. | Should | UC4 close session ext. 4b, BR-17, NFR-07 |
 
 ### 3.3 Usability requirements
 
@@ -1066,7 +1071,7 @@ Derived from the [domain model](../design/domain_model.md). The store keeps its 
 | DR-06 | The system shall store every rental with its customer ID, its rental line items (item, rental period, rental fee, due date and deposit), tax, total, payment and cashier session. The overdue status of a rental shall be calculated from the due date and the current date, not stored. | Should | FR-31, FR-34, FR-38, BR-12 |
 | DR-07 | The system shall store every rental return linked to its rental line item, with the return date, condition (_undamaged_ or _damaged_) and description of the damage, days late, late fee and its tax, amount kept from the deposit, refund and tender.                                                                                                                  | Should   | FR-52 to FR-57, BR-10                    |
 | DR-08 | The system shall store every return of purchased items linked to the original sale, with its return line items (product, quantity returned, price paid and tax), the refund, the tender used and, for a card refund, the reference given by the Payment Service. The quantity already returned of each sale line item shall be known from these records (FR-21, FR-22). | Must     | UC2, FR-20 to FR-29, BR-07, BR-08        |
-| DR-09 | The system shall store every cashier session with the employee ID, the register ID, the start time, the opening cash and the end time. For a closed session it shall also store the closing cash and the difference with the expected cash; a session that was interrupted by a failure is marked as interrupted. Every transaction shall refer to exactly one cashier session, and a register shall have at most one open session. | Must | FR-40, FR-47, FR-60 to FR-63, BR-13 |
+| DR-09 | The system shall store every cashier session with the employee ID, the register ID, the start time, the opening cash and the end time. For a closed session it shall also store the closing cash and the difference with the expected cash; a session that was interrupted by a failure is marked as interrupted. A session with a difference larger than 5.00 (BR-17) is marked as to review, and its review (reviewer, time and reason) is stored. Every transaction shall refer to exactly one cashier session, and a register shall have at most one open session. | Must | FR-40, FR-47, FR-60 to FR-63, BR-13, FR-74, FR-75, BR-17 |
 | DR-10 | When a price override is approved, the system shall store the employee ID of the store manager with the sale line item.                                                                                                                                                                                                                                                 | Should   | FR-06, BR-04                             |
 | DR-11 | The system shall keep a local copy of the employee list (employee ID, name, role, active status) and the date and time of its last update. The PIN is checked by the HR System; the local copy keeps it only as a salted hash, used when the HR System is not available.                                                                                                | Should   | FR-44, FR-46, IR-08, IR-09, NFR-08       |
 | DR-12 | The system shall store the accounting records waiting to be sent in the order in which the transactions were made, each with a unique transaction ID, and shall delete a record only after the Accounting System has acknowledged it.                                                                                                                                   | Must     | FR-42, IR-06, IR-07                      |
@@ -1294,4 +1299,4 @@ The open questions of each use case are listed at the end of the use case. The q
 | 6  | Two registers renting the same item at the same time | Only one rental succeeds (one store database shared by all registers) | FR-33, DR-02, DR-13, DC-05 | Borja | W10 (architecture decision AD-05) |
 | 7  | Discounts and promotions | Not in this version | UC1, UC2, FR-08, FR-23 | Alfonso | W09 |
 | 8  | Retention period of transactions and accounting records; currency and tax rounding | One currency, two decimals | DR-03, DR-04, DR-12, DR-17 | Borja | W10 |
-| 9  | Cash difference at the end of a session: limit and who must be informed | The cashier closes the session; the difference is recorded and shown, there is no limit | UC4, DR-09, FR-62 | Avni | W09 |
+| 9 | Cash difference at the end of a session: limit and who must be informed | Decided in W09: a difference of up to 5.00 is recorded; a larger one marks the session as to review, and the store manager reviews it | UC4, DR-09, FR-62, BR-17, FR-74, FR-75 | Avni | Decided in W09 |
