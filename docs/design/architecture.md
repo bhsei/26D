@@ -80,10 +80,35 @@ First sketch (to be drawn as a diagram in `assets/architecture_context.puml`):
 The four external systems are replaced by stubs in our project (DC-01).
 
 ### 4.2 Logical view (layers)
-*To do (W9).* First proposal, to be confirmed by AD-01:
-- **UI layer** – cashier screens (based on the UI prototype).
-- **Application / domain layer** – Register, Sale, Rental, Return, Payment… (from the domain model); business rules BR-01 to BR-14.
-- **Technical services layer** – local storage, logging, device drivers, and one **adapter per external system** (DC-02).
+
+The logical view shows the main parts of the POS application and what each one is responsible for. It answers the concerns of the development team (§2): the business rules are kept apart from the screens and from the external systems, a stub can be replaced by the real system, and the work can be split between people. The style is the layered architecture of AD-01, inside the local web application of AD-02, in Java (AD-03). The names are those of the domain model, the SSDs and the system interfaces ([system_interfaces.md](system_interfaces.md)).
+
+![NewEra POS logical view](../../assets/architecture_logical.png)
+
+*Editable source: [`assets/architecture_logical.puml`](../../assets/architecture_logical.puml) (PlantUML).*
+
+| Layer | Package | Main classes | Responsibility | Source |
+| --- | --- | --- | --- | --- |
+| **UI** | `ui.screens` | Login, Menu, Sale, Payment, Receipt, Return, Rental, RentalReturn and Manager screens | Web pages shown in the browser of the register. They show data and send the cashier's actions; they contain no business rule. Based on the UI prototype. | AD-02, NFR-05, NFR-06, NFR-13 to NFR-18 |
+| | `ui.api` | `SessionController`, `SaleController`, `ReturnController`, `RentalController`, `RentalReturnController`, `ManagerController` | Receive the requests of the system API (one per system operation, system_interfaces.md §3), check the format and call the application layer. Together with the screens they form the MVC of the UI layer (AD-01). | AD-01, AD-02 |
+| **Application / domain** | `application` | `SessionHandler`, `SaleHandler`, `ReturnHandler`, `RentalHandler`, `RentalReturnHandler`, `ManagerHandler` | One handler per use case (UC4, UC1, UC2, UC3, UC5) and one for the store manager functions. A handler runs the system operations of its SSD (`makeNewSale`, `enterItem`, `endSale`, `makePayment`…) as described in the operation contracts, and decides the fallback when an external system is not available (AD-07). | SSDs, contracts, AD-07 |
+| | `application.interfaces` | `PaymentService`, `TaxCalculator`, `AccountingSystem`, `HRSystem`, `CatalogSource`, `CardReader`, `ReceiptPrinter`, `CashDrawer`, repositories | The Java interfaces of system_interfaces.md §4. The application layer only knows these interfaces, never their implementation. | DC-02, AD-04, AD-10 |
+| | `domain.store` | `Store`, `Register`, `Employee`, `CashierSession` | The register, the employees and the cashier session with its opening and closing cash. | Domain model, BR-13, BR-17 |
+| | `domain.catalog` | `ProductCatalog`, `ProductDescription`, `Item` | Products, prices, stock levels and the rentable items with their status. | Domain model, BR-09, BR-11, DR-02 |
+| | `domain.transactions` | `Transaction`, `Sale`, `Return`, `Rental`, `RentalReturn`, their line items, `Customer`, `Receipt`, `AccountingRecord` | The transactions and their business rules: totals, tax, refund amount, rental fee, deposit and late fee. | Domain model, BR-01 to BR-18 |
+| | `domain.payments` | `Payment`, `CashPayment`, `CreditCardPayment`, `CheckPayment`, `Refund` | One class per tender behind the abstract `Payment`, so that a new payment method is a new class (AD-08). | NFR-09, BR-05, BR-06, BR-08 |
+| **Technical services** | `technical.external` | `PaymentServiceAdapter`, `TaxCalculatorAdapter`, `AccountingSystemAdapter`, `HRSystemAdapter`, `CatalogFileImport` | One adapter per external system. Each adapter implements its interface, talks to the stub of its system (DC-01), applies the timeout and returns `NOT_AVAILABLE` when there is no answer (AD-04, AD-07). | DC-01, DC-02, IR-01 to IR-17 |
+| | `technical.devices` | `CardReaderDriver`, `ReceiptPrinterDriver`, `CashDrawerDriver` | The Device Service of AD-10. The scanner works as a keyboard and needs no class. | AD-10, IR-11 to IR-14 |
+| | `technical.storage` | `TransactionRepository`, `ItemRepository`, `AccountingQueue`, `EmployeeList` | Read and write the local database of the register and the queue of records for the Accounting System. The synchronisation with the store database is decided in AD-05 and AD-06 (W10). | DC-05, DC-09, IR-07, IR-09 |
+| | `technical.logging` | `EventLog` | Failed communications with external systems and every opening of the cash drawer, without card data or personal data. | IR-10, IR-14, NFR-11 |
+
+**Rules between the layers**
+- A layer only calls the layer below it. The UI never calls the domain or a technical service directly.
+- The domain classes don't depend on any other package. They can be tested without a database, a device or an external system.
+- The technical services implement the interfaces of `application.interfaces` (dependency inversion). So the stub and the real system are two implementations of the same interface, and only the adapter changes when the real system comes (DC-02, QA-14).
+- Card data goes from `CardReaderDriver` to `PaymentServiceAdapter` only. It is never stored, logged or sent to the screens (DC-06, NFR-11).
+
+**Correspondence with the other views (§5).** All the packages run inside the POS application on the register computer of the deployment view (§4.4), except `ui.screens`, which runs in the browser of the same register. The interaction view (§4.3) shows UC1 through these layers.
 
 ### 4.3 Interaction view
 *To do (W9).* At least: UC1 Process Sale through the layers (from the SSD of UC1), and *Payment Service not available* (IR-02).
