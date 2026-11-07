@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Maintainer** | Borja Nicolás |
-| **Version** | 0.5 (draft for review; adds UC4 and UC5, all five use cases) |
+| **Version** | 0.6 (draft for review; all five use cases; one tender per sale or rental) |
 | **Last updated** | W09 |
 | **Part of** | Increment 2 (Design); input to the [operation contracts](operation_contracts.md) |
 
@@ -45,7 +45,7 @@ The extensions of UC1 that are not part of the main scenario are mentioned in th
 ### 2.3 Open points
 
 1. **Payment declined (9b2a).** The Cashier asks for another tender and sends a new `makePayment` with it (note in the diagram). The retry of the same card payment after "Card payment not available" (9b2b) is the loop in the card variant.
-2. **Several tenders for one sale.** The SRS working assumption is one tender per transaction (SRS section 5.3, question 3), so `makePayment` is called once per successful payment. If the team changes this, the diagram needs a loop around the payment section.
+2. **One tender per sale (decided in W09).** BR-18: a sale or a rental is paid with one tender, so `makePayment` is called once per successful payment. A customer who cannot pay the whole total with one tender uses another one (for example after a declined card, 9b2a), and the diagram needs no loop around the payment section.
 3. **Tax Calculator failure (7a).** The contract of `endSale()` assumes the tax is the value returned by the Tax Calculator; the default tax rate and the flag *tax to be corrected* are not in the contract.
 
 ## 3. UC2 Handle Returns
