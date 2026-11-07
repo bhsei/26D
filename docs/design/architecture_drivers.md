@@ -5,6 +5,7 @@ Team D · Software Engineering · BUAA · Increment 2 (Design)
 | Version | Date | Author | Changes |
 |---|---|---|---|
 | 0.1 | 2026-10-27 | Alfonso Pinto | First draft: functional drivers, quality attribute drivers with utility tree, constraints (linked to DC-01–DC-08), trade-offs |
+| 0.2 | 2026-11-07 | Alfonso Pinto | Aligned with SRS v1.1 and the W09 decisions: new requirement ranges in the functional drivers, IR-15 in QA-05, constraint C-09 for the shared store database (DC-09), C-08 decided (AD-02, AD-03), open questions linked to SRS §5.3 (question 3 closed by DC-09), next steps |
 
 > **Status: draft.** First step of the architecture process (identify the drivers → define the system interfaces → create the structure). It is the input for the architecture document (`architecture.md`, ISO/IEC/IEEE 42010) and for the W11 design milestone.
 
@@ -16,7 +17,7 @@ Team D · Software Engineering · BUAA · Increment 2 (Design)
 - **Quality attribute drivers**: measurable quality requirements, prioritized.
 - **Constraints**: decisions already taken that limit the design. All constraints are drivers.
 
-Sources: [SRS](../requirements/SRS.md) (use cases UC1–UC5, FR-xx), [NFRs](../requirements/nfrs.md) and SRS §3.3 (NFR-01–NFR-18), [external interfaces](../requirements/external_interfaces.md) and SRS §3.1 (IR-01–IR-14), design constraints in SRS §3.6 (DC-01–DC-08), [project plan](../../plans/project_plan.md).
+Sources: [SRS](../requirements/SRS.md) (use cases UC1–UC5, FR-xx), [NFRs](../requirements/nfrs.md) and SRS §3.3 (NFR-01–NFR-20), [external interfaces](../requirements/external_interfaces.md) and SRS §3.1 (IR-01–IR-17), design constraints in SRS §3.6 (DC-01–DC-09), [project plan](../../plans/project_plan.md).
 
 ## 2. Functional drivers
 
@@ -24,10 +25,10 @@ Not every functional requirement is a driver. A use case is selected when it is 
 
 | ID | Use case / scenario | Why it is a driver | Main requirements |
 |---|---|---|---|
-| FD-1 | **UC1 Process Sale** | Core business of the store and most frequent use case. Uses three external systems in one transaction (Tax Calculator, Payment Service, Accounting System). Sets the performance at the counter. | FR-01–FR-17, IR-01, IR-04, IR-06, NFR-01, NFR-06 |
+| FD-1 | **UC1 Process Sale** | Core business of the store and most frequent use case. Uses three external systems in one transaction (Tax Calculator, Payment Service, Accounting System). Sets the performance at the counter. | FR-01–FR-19, FR-68, FR-69, IR-01, IR-04, IR-06, IR-15, NFR-01, NFR-06 |
 | FD-2 | **External system failures** (extensions of UC1–UC5) | Every use case must go on when an external system is down: default tax rate, cash instead of card, local accounting queue, local employee list. This decides how the POS stores data locally and talks to the external systems. | IR-02, IR-05, IR-07, IR-09, IR-10, NFR-04 |
-| FD-3 | **UC4 Start Up** | Opens the cashier session that every other use case needs; authenticates the employee with the HR System; sends the records left from the previous session. Sets security and recovery. | FR-40–FR-49, IR-08, IR-09, NFR-02, NFR-07 |
-| FD-4 | **UC3 Process Rental + UC5 Return Rental** | One physical item with a state (*Available*, *Rented*, *Under maintenance*) that must be the same for every register; a deposit that is paid in one visit and refunded in another. | FR-30–FR-39, FR-50–FR-59, BR-10–BR-12 |
+| FD-3 | **UC4 Start Up** (and close session) | Opens the cashier session that every other use case needs and closes it with the cash count; authenticates the employee with the HR System; sends the records left from the previous session. Sets security and recovery. | FR-40–FR-49, FR-60–FR-63, FR-70, FR-74, FR-75, IR-08, IR-09, NFR-02, NFR-07 |
+| FD-4 | **UC3 Process Rental + UC5 Return Rental** | One physical item with a state (*Available*, *Rented*, *Under maintenance*) that must be the same for every register; a deposit that is paid in one visit and refunded in another. | FR-30–FR-39, FR-50–FR-59, FR-64–FR-67, FR-72, FR-73, BR-10–BR-12, BR-15, BR-16, DC-09 |
 | FD-5 | **UC2 Handle Returns** (card refund) | Needs to find an earlier sale and to send refunds to the card of that sale through the Payment Service. | FR-20–FR-29, IR-03, BR-07, BR-08 |
 
 Not drivers (implemented on top of the structure): reprint receipt (FR-17), remove a line item (FR-05), cancel a transaction (FR-07, FR-36, FR-56), receipt contents (FR-16, FR-39, FR-59), screen layout and messages (NFR-13–NFR-18, covered by the UI prototype).
@@ -45,7 +46,7 @@ Each quality attribute is refined into a measurable scenario. Every scenario has
 | | QA-02 | The cashier switches on the register → the login screen is ready in **< 30 s**, also when records are waiting for the Accounting System. | NFR-02, UC4 | (M, M) |
 | **Reliability / availability** | QA-03 | During store hours the register is used continuously → it is available **99.9 %** of the time. | NFR-03 | **(H, H)** |
 | | QA-04 | The network goes down in the middle of a sale → the sale is completed and saved locally; when the network is back, every record reaches the Accounting System **in order, without loss and without duplicates**. | NFR-04, IR-07 | **(H, H)** |
-| | QA-05 | The Payment Service does not answer → after **10 s** the cashier is told, can retry the card payment or use another tender, and the transaction stays open; **no card payment is completed without authorization**. | IR-02, BR-05 | **(H, L)** |
+| | QA-05 | The Payment Service does not answer → after **10 s** the cashier is told, can retry the card payment (with the same transaction ID) or use another tender, and the transaction stays open; **no card payment is completed without authorization**, and an authorization left open by a crash is voided at the next start-up. | IR-02, IR-15, BR-05 | **(H, L)** |
 | | QA-06 | The Tax Calculator does not answer → the default tax rate is applied and the transaction is flagged for correction; the cashier can go on. | IR-05, BR-02 | (M, L) |
 | | QA-07 | The HR System does not answer at login → a known cashier can still log in with the local employee list (PIN kept only as a salted hash). | IR-08, IR-09, DR-11 | (M, M) |
 | **Security** | QA-08 | A cashier tries to override a price → the system refuses; a store manager who identifies himself or herself can do it, and the override is recorded. | NFR-07, BR-04 | **(H, M)** |
@@ -56,7 +57,7 @@ Each quality attribute is refined into a measurable scenario. Every scenario has
 | **Modifiability** | QA-13 | The store wants a new payment method → it is added in **< 3 development days** without changing the sale logic. | NFR-09 | **(M, H)** |
 | | QA-14 | A simulated external system is replaced by the real one → only its adapter changes, not the use cases. | Constraint C-01 (derived) | (H, M) |
 | **Compatibility** | QA-15 | The store connects a standard thermal printer or USB scanner → it works without custom drivers. | NFR-10, IR-11–IR-14 | (M, L) |
-| **Data consistency** | QA-16 | Two registers try to rent the same item at the same time → only one rental succeeds. | BR-11, DR-02, UC3 open issue | (M, H) |
+| **Data consistency** | QA-16 | Two registers try to rent the same item at the same time → only one rental succeeds. | BR-11, DR-02, DC-09 | (M, H) |
 
 ### 3.2 Priority drivers
 
@@ -66,7 +67,7 @@ The scenarios rated (H, H), (H, M) and (M, H) drive the first architecture decis
 2. **QA-01 Fast line entry**: entering items must not depend on any external system (tax and payment are called only at the end of the sale).
 3. **QA-08 / QA-09 Security of roles and card data**.
 4. **QA-13 / QA-14 Modifiability of payment methods and external systems**: each external system and each tender behind its own interface.
-5. **QA-16 Item status shared between registers.**
+5. **QA-16 Item status shared between registers**: one store database for all registers, with a local copy on each register (DC-09; details in AD-05, W10).
 
 ### 3.3 Trade-offs
 
@@ -90,19 +91,20 @@ No architecture can maximize every attribute; these conflicts must be decided ex
 | C-05 | Management | **Schedule:** design ready in W11, build and test in W12–W15, launch in W16 (iterative-incremental process). | UC1 must work end to end first; the structure must allow adding UC2–UC5 incrementally. | DC-07 |
 | C-06 | Management | No budget: free and open-source tools only. | Open-source language, database and libraries. | – |
 | C-07 | Documentation | Architecture described following **ISO/IEC/IEEE 42010**. | Views and decisions recorded in `architecture.md`. | – |
-| C-08 | Technical (open) | Programming language and platform **not decided yet** (team skills: Java, Python, C/C++, web; the UI prototype is HTML). | Decision to be taken in W8 with the architecture style (AD-02, AD-03 in `architecture.md`). | DC-04 |
+| C-08 | Technical | Programming language and platform chosen from the team skills (Java, Python, C/C++, web; the UI prototype is HTML). Decided in W09: local web application on each register (AD-02) and Java (AD-03). | Screens in HTML, CSS and JavaScript; the logic, the devices and the local storage in a Java program on the register (`architecture.md` §6.1). | DC-04 |
+| C-09 | Technical | **One store database shared by all registers**; each register keeps a local copy of the data it needs and its own queue of records. Receipt numbers and customer IDs are unique in the store. | The register works on its own when the store database is not reachable; synchronisation and conflicts between registers are decided in AD-05 (W10). | DC-09 |
 
 ## 5. Open questions that affect the architecture
 
-1. Is an offline (deferred) card authorization for small amounts allowed? ([external_interfaces.md](../requirements/external_interfaces.md), open question 1)
-2. For rentals paid by card, is the deposit charged or only held (pre-authorization)? (UC3, UC5)
-3. How many registers does a store have, and do they share one database? (QA-16)
+1. Is an offline (deferred) card authorization for small amounts allowed? ([external_interfaces.md](../requirements/external_interfaces.md), open question 1; SRS §5.3, question 4, Haifa, W09)
+2. For rentals paid by card, is the deposit charged or only held (pre-authorization)? (UC3, UC5; SRS §5.3, question 2, Haifa, W09)
+3. ~~How many registers does a store have, and do they share one database? (QA-16)~~ Closed (W08, review B-D01): a store has several registers that share one store database, each with a local copy (DC-09, C-09).
 4. How long may a register work without the Accounting System before a manager is warned? (UC4 open issues)
 
-Closed: the PIN is checked by the HR System; the local employee list keeps it only as a salted hash (IR-08, IR-09, review #23).
+Closed: a sale or a rental is paid with one tender (BR-18, SRS §5.3, question 3, W09). The PIN is checked by the HR System; the local employee list keeps it only as a salted hash (IR-08, IR-09, review #23).
 
 ## 6. Next steps
 
-- **Step 2 – System interfaces:** turn the system operations of the system sequence diagrams and the operation contracts (`makeNewSale`, `enterItem`, `endSale`, `makePayment`, …) into the interfaces of the system and of its components.
-- **Step 3 – Structure:** choose the architecture style and the components that satisfy the priority drivers of section 3.2 (W8–W9), documented in `architecture.md`.
+- **Step 2 – System interfaces:** done in W09 in [system_interfaces.md](system_interfaces.md): the system operations of the SSDs and the operation contracts grouped into the interfaces of the system, and the interfaces of the adapters to the external systems and devices.
+- **Step 3 – Structure:** AD-01 to AD-03 were accepted in W09 (layers on each register, local web application, Java). The views and the other decisions (AD-04 to AD-10) are documented in `architecture.md` in W09–W10.
 - Review this document with the team and confirm the ratings of the utility tree.
