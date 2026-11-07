@@ -112,8 +112,8 @@ Interface requirements that come from this inventory. IDs follow the scheme in [
 
 ## 5. Open questions
 
-1. **Card authorization when the Payment Service is down:** is an offline (deferred) authorization for small amounts allowed, or is the card payment always refused? (Current draft: always refused.)
-2. **Rental deposit by card:** is the deposit charged, or only *held* (pre-authorization) and released when the item is returned? **Proposal (review #14): pre-authorization (hold)**, released or charged at UC5 Return Rental. To be confirmed in the fully dressed UC3 (W07); this changes the Payment Service interface for UC3 and UC5.
+1. ~~**Card authorization when the Payment Service is down:** is an offline (deferred) authorization for small amounts allowed, or is the card payment always refused?~~ **Decided (W09, SRS §5.3 question 4):** no offline authorization. The card payment is refused, and the cashier retries or uses another tender (IR-02).
+2. ~~**Rental deposit by card:** is the deposit charged, or only *held* (pre-authorization) and released when the item is returned?~~ **Decided (W09, SRS §5.3 question 2):** charged and refunded, not held. The proposal of review #14 (hold) was dropped: a hold expires after a few days, so a late return could outlive it, and the Payment Service would need hold, capture and release operations. The deposit is refunded to the card at UC5 Return Rental (IR-03), less the late fee, or kept when the item is damaged.
 3. **Refund to card** when the original card is not present: allowed, or refund in cash? (Related to BR-08.)
 4. **Tax correction:** who corrects the transactions taxed with the default rate, and does the correction go through the POS or directly in the Accounting System?
 5. ~~**HR local copy:** how often is it refreshed?~~ **Resolved (review #14):** refreshed at every start-up (UC4); a store manager can disable an employee locally (see 3.4).
