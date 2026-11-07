@@ -5,7 +5,7 @@
 | | |
 | --- | --- |
 | **Maintainer** | Avni Oflaz |
-| **Version** | 0.5 |
+| **Version** | 0.6 |
 | **Last updated** | W09 |
 | **Part of** | SRS (Assignment 1), ISO/IEC/IEEE 29148 |
 
@@ -18,6 +18,7 @@
 | 0.3 | Review #23: added the terms that the SRS uses but the glossary did not define: *Authorization code*, *Customer ID*, *Employee ID*, *Item list*, *Local employee list*, *Local queue*, *Login*, *Main screen*, *PIN*, *Price override*, *Register ID*, *Rental receipt*, *Reorder list*, *Salted hash*, *Simulator*, *System administrator*, *Tax to be corrected*, *Timeout*, *Transaction ID*. |
 | 0.4 | Reviews #36 and #50 (B-D04, B-D17): BR-12 states the accepted risk of a new customer ID. The business rules are defined in SRS section 3.10; this file is informative. |
 | 0.5 | Open questions 1 and 9 decided in W09: refund period 30 days (BR-07), no tax on the deposit (BR-10), rental periods (BR-15), late fee (BR-16), cash difference limit (BR-17); new terms *Cash difference* and *Session to review*. |
+| 0.6 | Open questions 3 and 7 decided in W09 (SRS section 5.3): one tender per sale or rental (BR-18); no discounts or promotions in this version (open question 6). |
 
 ## 1. Purpose
 
@@ -123,6 +124,7 @@ Terms are sorted alphabetically. Where two words mean the same thing, the prefer
 | BR-15 | Rental | A rental lasts 1, 3 or 7 days; no other rental period is offered. The due date is the day of the rental plus the rental period. | Proposed (decided in W09) |
 | BR-16 | Rental | For each whole day after the due date, a late fee of one day's rental fee of the item is charged, with its tax. It is taken from the deposit (BR-10); if it is larger than the deposit, the customer pays the rest. | Proposed (decided in W09) |
 | BR-17 | Cash | A cashier session may close with a cash difference of up to 5.00 (in the store currency). A larger difference must be reviewed by the store manager. | Proposed (decided in W09) |
+| BR-18 | Payment | A sale or a rental is paid with one tender (cash, credit card or check). A customer who cannot pay the whole total with one tender pays it with another one. | Proposed (decided in W09) |
 
 ## 4. Open questions
 
@@ -134,6 +136,6 @@ Source checked so far: project proposal (W01). The full case study has not yet b
 3. What is the **maximum rental period**, and is there a **late fee**? If so, how is it calculated? Decided in W09: the maximum is 7 days, and the late fee is one day's rental fee for each day late (SRS section 5.3, Q1).
 4. The proposal lists **3 payment methods**; the third is assumed to be **check**. Confirm against the case.
 5. Do **rented items** count toward the stock level for the reorder threshold (BR-09)?
-6. Are there **discounts or promotions** that need their own price rules?
+6. Are there **discounts or promotions** that need their own price rules? Decided in W09: no discounts or promotions in this version (SRS section 5.3, Q7).
 7. Does the Accounting System receive the **deposit**, or only the rental fee (BR-14)?
 8. Is **tax** charged on the **deposit**, or only on the rental fee (Total, BR-10)? Decided in W09: the deposit is not taxed (SRS section 5.3, Q1).
