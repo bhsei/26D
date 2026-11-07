@@ -1,0 +1,117 @@
+@startuml
+' NewEra POS - System sequence diagram of UC5 Return Rental (main scenario and main variants), W09
+' Team D - editable source of assets/ssd_uc5.png
+' Render with: java -jar plantuml.jar -tpng assets/ssd_uc5.puml
+' Step numbers refer to UC5 in docs/requirements/SRS.md (W09).
+
+skinparam shadowing false
+skinparam dpi 130
+skinparam defaultFontName Arial
+skinparam ArrowColor #444444
+skinparam SequenceLifeLineBorderColor #444444
+skinparam ParticipantBorderColor #1F4E79
+skinparam ParticipantBackgroundColor #EAF1FB
+skinparam ActorBorderColor #444444
+skinparam ActorBackgroundColor #FFFFFF
+skinparam SequenceGroupBackgroundColor #F4F8FD
+skinparam SequenceGroupBorderColor #1F4E79
+skinparam SequenceDividerBackgroundColor #EAF1FB
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #B8A04A
+skinparam responseMessageBelowArrow true
+
+title NewEra POS - System sequence diagram: UC5 Return Rental
+
+actor ":Cashier" as Cashier
+participant ":NewEra POS" as POS <<system>>
+
+note over Cashier, POS
+  Precondition: a cashier session is open (UC4) and the item was rented with UC3.
+  The Customer takes part only through the Cashier. The Payment Service,
+  the Tax Calculator and the Accounting System are inside the black box.
+end note
+
+== Start the rental return (UC5 steps 2-3) ==
+Cashier -> POS : makeNewRentalReturn()
+activate POS
+POS --> Cashier : new rental return opened
+deactivate POS
+
+== Find the open rental (steps 4-5) ==
+Cashier -> POS : findRental(code)
+activate POS
+alt open rental found
+  POS --> Cashier : customer, item, rental date, due date, deposit and tender of the rental
+else no open rental for this code (5a)
+  POS --> Cashier : "No open rental for this item"
+end
+deactivate POS
+note right of POS
+  code = serial number of the item or rental receipt number.
+  No receipt and no readable serial number (5b): the Cashier enters
+  the customer ID with findRentalsOfCustomer(customerID) and
+  selects the rental with selectRental(rentalID).
+end note
+
+== Check the item (steps 6-7) ==
+Cashier -> POS : recordCondition(condition, damageNote)
+activate POS
+alt undamaged, on time
+  POS --> Cashier : no late fee; refund = the full deposit
+else undamaged, after the due date (7a)
+  POS --> Cashier : days late, late fee, tax of the late fee;\nrefund = deposit - late fee - tax (never below zero)
+else damaged (6a)
+  POS --> Cashier : a store manager must confirm the damage
+  Cashier -> POS : confirmDamage(managerID, pin)
+  activate POS
+  POS --> Cashier : damage confirmed; refund = 0 (the whole deposit is kept)
+  deactivate POS
+end
+deactivate POS
+note right of POS
+  The tax of the late fee comes from the Tax Calculator (default rate if it is not available,
+  7a1). When the item is damaged and late, the late fee is only recorded (6a4).
+  Late fee and tax larger than the deposit (7b): refund = 0 and the Customer pays
+  the difference with makePayment(amount, tenderType), as in UC1.
+end note
+
+== Confirm and refund (steps 8-11) ==
+Cashier -> POS : confirmRentalReturn()
+activate POS
+alt rental paid in cash (9a)
+  POS --> Cashier : refund due in cash (drawer opens), rental return receipt
+  deactivate POS
+else rental paid by credit card (9b)
+  note right of POS
+    The POS sends the refund request, with the reference of the rental
+    payment, to the Payment Service.
+  end note
+  alt refund approved
+    POS --> Cashier : card refund done, rental return receipt
+    deactivate POS
+  else declined (9b2a)
+    POS --> Cashier : reason; no cash is paid, a store manager must approve a cash refund
+    deactivate POS
+    Cashier -> POS : approveCashRefund(managerID, reason)
+    activate POS
+    POS --> Cashier : refund due in cash (drawer opens), rental return receipt
+    deactivate POS
+  else no answer (9b2b)
+    POS --> Cashier : no cash is paid; the POS asks for the refund status\n(done, failed as 9b2a, or pending: a store manager completes it later)
+    deactivate POS
+  end
+else rental paid by check (9c, Could)
+  POS --> Cashier : a check cannot be refunded; a store manager must approve a cash refund
+  deactivate POS
+  Cashier -> POS : approveCashRefund(managerID, reason)
+  activate POS
+  POS --> Cashier : refund due in cash (drawer opens), rental return receipt
+  deactivate POS
+end
+
+note over Cashier, POS
+  After the refund the POS saves the rental return, closes the rental, changes the item status
+  (Available if undamaged, Under maintenance if damaged), queues the AccountingRecord
+  and prints the rental return receipt (steps 10-11). Cancel before confirming: cancelRentalReturn() (8a).
+end note
+@enduml

@@ -1,0 +1,105 @@
+@startuml
+' NewEra POS - System sequence diagram of UC4 Start Up and Close session (main scenario and main variants), W09
+' Team D - editable source of assets/ssd_uc4.png
+' Render with: java -jar plantuml.jar -tpng assets/ssd_uc4.puml
+' Step numbers refer to UC4 and to section 3.2.4.1 (Close session) in docs/requirements/SRS.md (W09).
+
+skinparam shadowing false
+skinparam dpi 130
+skinparam defaultFontName Arial
+skinparam ArrowColor #444444
+skinparam SequenceLifeLineBorderColor #444444
+skinparam ParticipantBorderColor #1F4E79
+skinparam ParticipantBackgroundColor #EAF1FB
+skinparam ActorBorderColor #444444
+skinparam ActorBackgroundColor #FFFFFF
+skinparam SequenceGroupBackgroundColor #F4F8FD
+skinparam SequenceGroupBorderColor #1F4E79
+skinparam SequenceDividerBackgroundColor #EAF1FB
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #B8A04A
+skinparam responseMessageBelowArrow true
+
+title NewEra POS - System sequence diagram: UC4 Start Up (with Close session)
+
+actor ":Cashier" as Cashier
+participant ":NewEra POS" as POS <<system>>
+
+note over Cashier, POS
+  Precondition: the register is switched on and no cashier session is open.
+  The HR System and the Accounting System are inside the black box.
+end note
+
+== Start the POS (UC4 steps 1-4) ==
+Cashier -> POS : startUp()
+activate POS
+POS --> Cashier : login screen with the register ID
+deactivate POS
+note right of POS
+  The POS checks that the product catalog and the stored data are available
+  (2a: error, no login screen) and sends the records waiting for the
+  Accounting System in their original order (3). If the Accounting System
+  does not answer, the records stay in the queue (3a, 3b).
+end note
+
+== Log in (steps 5-7) ==
+Cashier -> POS : logIn(employeeID, pin)
+activate POS
+alt valid, active cashier and correct PIN
+  POS --> Cashier : name of the cashier; asks for the opening cash
+else employee not found or not an active cashier (6a)
+  POS --> Cashier : "Employee ID not found or not an active cashier"
+else wrong PIN (6b)
+  POS --> Cashier : error; the Cashier enters the PIN again
+else HR System not available (6c)
+  POS --> Cashier : warning with the date of the local employee list;\nID and PIN checked against the local copy (salted hash)
+end
+deactivate POS
+note right of POS
+  Without a local employee list (6c2) the register cannot be
+  started for sales. The PIN is never shown, logged or stored in plain text.
+end note
+
+== Open the session (steps 8-10) ==
+Cashier -> POS : enterOpeningCash(amount)
+activate POS
+alt amount valid
+  POS --> Cashier : cashier session opened; main screen ready for UC1, UC2, UC3 and UC5
+else empty, not a number or negative (8a)
+  POS --> Cashier : amount rejected; asks for it again
+end
+deactivate POS
+
+... The Cashier works in the session (UC1, UC2, UC3, UC5) ...
+
+== Close the session (section 3.2.4.1, steps 1-6) ==
+Cashier -> POS : closeSession()
+activate POS
+alt no sale, return or rental is open
+  POS --> Cashier : cash drawer opened for the closing count
+else a sale, return or rental is still open (2a)
+  POS --> Cashier : refused; finish or cancel it first
+end
+deactivate POS
+Cashier -> POS : enterClosingCash(amount)
+activate POS
+POS --> Cashier : expected cash and difference with the closing cash
+deactivate POS
+note right of POS
+  Expected cash = opening cash + cash payments - cash refunds of the session.
+  An amount that is not valid is rejected (3a).
+end note
+Cashier -> POS : confirmCloseSession()
+activate POS
+alt difference up to 5.00 (4a)
+  POS --> Cashier : session closed; login screen
+else difference larger than 5.00 (4b, BR-17)
+  POS --> Cashier : warning; session closed and marked "to review" by the store manager; login screen
+end
+deactivate POS
+
+note over Cashier, POS
+  After a failure the POS ends the interrupted session at the next start-up (end time = restart time,
+  marked interrupted, no closing cash) and the Cashier logs in again (*a, FR-63).
+end note
+@enduml

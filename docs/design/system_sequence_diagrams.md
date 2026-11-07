@@ -3,13 +3,13 @@
 | | |
 | --- | --- |
 | **Maintainer** | Borja Nicolás |
-| **Version** | 0.4 (draft for review; UC2 updated to the SRS after the W08 review) |
-| **Last updated** | W08 |
+| **Version** | 0.5 (draft for review; adds UC4 and UC5, all five use cases) |
+| **Last updated** | W09 |
 | **Part of** | Increment 2 (Design); input to the [operation contracts](operation_contracts.md) |
 
 ## 1. Purpose
 
-A system sequence diagram (SSD) shows, for one use case scenario, the events that the actor sends to the system and the answers of the system, with the system treated as a **black box**. Each event is a **system operation**; the [operation contracts](operation_contracts.md) then describe what each operation changes in the [domain model](domain_model.md). The SSDs are drawn from the fully dressed use cases of the [SRS](../requirements/SRS.md). This version contains UC1 (W07) and UC2 and UC3 (W08); UC4 and UC5 follow in the next iterations.
+A system sequence diagram (SSD) shows, for one use case scenario, the events that the actor sends to the system and the answers of the system, with the system treated as a **black box**. Each event is a **system operation**; the [operation contracts](operation_contracts.md) then describe what each operation changes in the [domain model](domain_model.md). The SSDs are drawn from the fully dressed use cases of the [SRS](../requirements/SRS.md). This version contains the SSDs of all five use cases: UC1 (W07), UC2 and UC3 (W08), and UC4 and UC5 (W09). The state diagrams of the item and of the rental, which explain the status changes shown here, are in the [domain model](domain_model.md), section 7.
 
 ## 2. UC1 Process Sale
 
@@ -60,11 +60,11 @@ The diagram shows the **main success scenario** (UC2 steps 1–12) and the refun
 
 | Operation | UC2 steps | Returns to the Cashier | Contract |
 | --- | --- | --- | --- |
-| `makeNewReturn()` | 2–3 | Confirmation that a new return is open | to be written (C3) |
-| `findSale(receiptNumber)` | 4–5 | The sale line items with the quantity bought and the quantity already returned; refused if the sale is outside the refund period (BR-07) | to be written (C3) |
-| `enterReturnItem(itemID, quantity, condition)` | 6–7 (repeated) | The return line item, the refund total (price paid plus tax charged in the original sale) and the tender of the original sale | to be written (C3) |
-| `confirmReturn()` | 8–11 | Cash: refund due and receipt. Credit card: card refund through the Payment Service; if it is declined (9b2a) no cash is paid until a store manager approves it; if there is no answer (9b2b) no cash is paid and the POS asks for the refund status. Check (*Could*): cash only with manager approval. In all cases the return receipt | to be written (C3) |
-| `approveCashRefund(managerID, reason)` | 9b2a, 9c | The refund due in cash and the return receipt. The approval and the reason are recorded | to be written (C3) |
+| `makeNewReturn()` | 2–3 | Confirmation that a new return is open | Contract 5 |
+| `findSale(receiptNumber)` | 4–5 | The sale line items with the quantity bought and the quantity already returned; refused if the sale is outside the refund period (BR-07) | Contract 6 |
+| `enterReturnItem(itemID, quantity, condition)` | 6–7 (repeated) | The return line item, the refund total (price paid plus tax charged in the original sale) and the tender of the original sale | Contract 7 |
+| `confirmReturn()` | 8–11 | Cash: refund due and receipt. Credit card: card refund through the Payment Service; if it is declined (9b2a) no cash is paid until a store manager approves it; if there is no answer (9b2b) no cash is paid and the POS asks for the refund status. Check (*Could*): cash only with manager approval. In all cases the return receipt | Contract 8 |
+| `approveCashRefund(managerID, reason)` | 9b2a, 9c | The refund due in cash and the return receipt. The approval and the reason are recorded | Contract 9 |
 
 The tender is not a parameter of `confirmReturn()`: the System takes it from the original sale (BR-08). The store manager identifies himself or herself at the cashier's register, so `approveCashRefund` is sent by the Cashier with the manager's ID.
 
@@ -94,15 +94,15 @@ The diagram shows the **main success scenario** (UC3 steps 1–17), the identifi
 
 | Operation | UC3 steps | Returns to the Cashier | Contract |
 | --- | --- | --- | --- |
-| `makeNewRental()` | 2–3 | Confirmation that a new rental is open | to be written (C3) |
-| `enterCustomerID(customerID)` | 4–5 | Customer accepted; or "Customer ID not found" (4a); or the overdue message and no rental (5a, BR-12) | to be written (C3) |
-| `registerCustomer()` | 4a | A new customer ID (stored with no other personal data, DR-18) | to be written (C3) |
-| `enterRentalItem(serialNumber)` | 6–7 | Description, item status, rental fee per day and deposit; rejected if the serial number is unknown (7a) or the item is not *Available* (7b, BR-11) | to be written (C3) |
-| `selectRentalPeriod(days)` | 8–9 | The rental line item: rental fee, due date and deposit (can be repeated, 8a) | to be written (C3) |
-| `endRental()` | 10–11 | Rental fee, tax of the rental fee, deposit, total and due date | to be written (C3) |
-| `makePayment(amount, tenderType)` | 13–16 | Cash: change due. Credit card or check: approval. In all cases the rental receipt | Contract 4 of UC1 must also cover a rental (C3) |
+| `makeNewRental()` | 2–3 | Confirmation that a new rental is open | Contract 10 |
+| `enterCustomerID(customerID)` | 4–5 | Customer accepted; or "Customer ID not found" (4a); or the overdue message and no rental (5a, BR-12) | Contract 11 |
+| `registerCustomer()` | 4a | A new customer ID (stored with no other personal data, DR-18) | Contract 12 |
+| `enterRentalItem(serialNumber)` | 6–7 | Description, item status, rental fee per day and deposit; rejected if the serial number is unknown (7a) or the item is not *Available* (7b, BR-11) | Contract 13 |
+| `selectRentalPeriod(days)` | 8–9 | The rental line item: rental fee, due date and deposit (can be repeated, 8a) | Contract 14 |
+| `endRental()` | 10–11 | Rental fee, tax of the rental fee, deposit, total and due date | Contract 15 |
+| `makePayment(amount, tenderType)` | 13–16 | Cash: change due. Credit card or check: approval. In all cases the rental receipt | Contract 4 (shared with UC1) |
 
-`makePayment` is the **same operation as in UC1**. It applies to the transaction that is open (a sale or a rental), so Josué's contract needs to say that the `Payment` is associated with the current `Sale` **or** `Rental`, and that after a rental the item status becomes *Rented*.
+`makePayment` is the **same operation as in UC1**. It applies to the transaction that is open (a sale or a rental): Contract 4 (W08) already says that the `Payment` is associated with the current `Sale` or `Rental` and that after a rental the item status becomes *Rented*.
 
 ### 4.2 What is not in the diagram
 
@@ -116,10 +116,84 @@ The diagram shows the **main success scenario** (UC3 steps 1–17), the identifi
 2. **Who may register a customer** (UC3 open issue): `registerCustomer()` is a system operation of the Cashier for now.
 3. **Card payment of the deposit** (UC3 open issue): if the deposit is only held, the card variant of `makePayment` changes.
 
-## 5. Summary of the system operations
+## 5. UC4 Start Up (with Close session)
+
+![System sequence diagram of UC4 Start Up](../../assets/ssd_uc4.png)
+
+*Editable source: [`assets/ssd_uc4.puml`](../../assets/ssd_uc4.puml) (PlantUML).*
+
+The diagram shows the **main success scenario** of the start-up (UC4 steps 1–10), the four results of the login (6a, 6b, 6c and the valid cashier) and the **close session** function (SRS section 3.2.4.1, FR-60 to FR-63), which is a part of UC4 and not a new use case. The HR System and the Accounting System are inside the black box. Between the opening and the closing of the session the Cashier works with UC1, UC2, UC3 and UC5.
+
+### 5.1 System operations
+
+| Operation | UC4 steps | Returns to the Cashier | Contract |
+| --- | --- | --- | --- |
+| `startUp()` | 1–4 | The login screen with the register ID; or an error and no login screen if the catalog or the stored data are not available (2a). The waiting records are sent to the Accounting System, or stay in the queue (3a, 3b) | to be written (B2) |
+| `logIn(employeeID, pin)` | 5–7 | The name of the cashier and the request for the opening cash; or "Employee ID not found or not an active cashier" (6a); or a wrong PIN (6b); or a warning that the local employee list was used (6c) | to be written (B2) |
+| `enterOpeningCash(amount)` | 8–10 | The cashier session is open and the main screen is shown; or the amount is rejected (8a) | to be written (B2) |
+| `closeSession()` | close session 1–2 | The cash drawer opens for the closing count; or a refusal because a sale, return or rental is still open (2a, FR-60) | to be written (B2) |
+| `enterClosingCash(amount)` | close session 3–4 | The expected cash and the difference with the closing cash; or the amount is rejected (3a, FR-61, FR-62) | to be written (B2) |
+| `confirmCloseSession()` | close session 5–6 | The session is closed and the login screen is shown; if the difference is larger than 5.00, a warning and the mark "to review" (4b, BR-17, FR-74) | to be written (B2) |
+
+`startUp()` is the first event of the whole system: it is sent when the POS program is started, and before it there is no cashier session. The PIN is a parameter of `logIn` only; it is never shown, logged or stored in plain text (NFR-08).
+
+### 5.2 What is not in the diagram
+
+| Item | Possible operation |
+| --- | --- |
+| Failure of the register (\*a) | none: at the next `startUp()` the System ends the interrupted session (end time = restart time, marked interrupted) and the Cashier logs in again (FR-63) |
+| Review of a session by the store manager (FR-75) | `listSessionsToReview()` and `confirmSessionReview(sessionID, reason)`, sent by the store manager; not a step of UC4 |
+| Disabling an employee or changing the default tax rate while the HR System is not available (6c4) | functions of the store manager; no system operation yet |
+
+### 5.3 Open points
+
+1. **Login attempts and the role.** The SRS does not say if the login is blocked after several wrong PINs or if a store manager may open a session (UC4 open issues). If it does, `logIn` returns one more result.
+2. **Opening cash.** The System only records the amount; whether it is compared with an expected amount is open (UC4 open issues).
+3. **Session after a crash.** The SRS decided that the Cashier always logs in again (FR-48), so no operation continues an old session.
+
+## 6. UC5 Return Rental
+
+![System sequence diagram of UC5 Return Rental](../../assets/ssd_uc5.png)
+
+*Editable source: [`assets/ssd_uc5.puml`](../../assets/ssd_uc5.puml) (PlantUML).*
+
+The diagram shows the **main success scenario** (UC5 steps 1–12), the three results of the condition check (on time, late, damaged) and the refund variants of step 9, which depend on the tender of the rental. The Payment Service, the Tax Calculator and the Accounting System are inside the black box. The refund variants are the same as in UC2: `approveCashRefund` is the same operation.
+
+### 6.1 System operations
+
+| Operation | UC5 steps | Returns to the Cashier | Contract |
+| --- | --- | --- | --- |
+| `makeNewRentalReturn()` | 2–3 | Confirmation that a new rental return is open | to be written (B2) |
+| `findRental(code)` | 4–5 | The customer, the item, the rental date, the due date, the deposit and the tender of the rental; or "No open rental for this item" (5a). `code` is the serial number of the item or the rental receipt number | to be written (B2) |
+| `findRentalsOfCustomer(customerID)` and `selectRental(rentalID)` | 5b | The open rentals of the customer, and the one the Cashier selects. They replace `findRental` when there is neither a receipt nor a readable serial number | to be written (B2) |
+| `recordCondition(condition, damageNote)` | 6–7 | On time: no late fee and the full deposit as refund. Late: days late, late fee, its tax and the refund (7a). Damaged: the request for a store manager (6a) | to be written (B2) |
+| `confirmDamage(managerID, pin)` | 6a | The damage is confirmed and the refund is zero (the store keeps the whole deposit). Without this confirmation the item cannot be recorded as damaged (FR-52) | to be written (B2) |
+| `confirmRentalReturn()` | 8–11 | Cash: the refund due and the receipt. Credit card: the card refund; if it is declined (9b2a) no cash is paid until a store manager approves it; if there is no answer (9b2b) no cash is paid and the POS asks for the refund status. Check (*Could*): cash only with the approval of a store manager. In all cases the rental return receipt | to be written (B2) |
+| `approveCashRefund(managerID, reason)` | 9b2a, 9c | The refund due in cash and the receipt. **Same operation as in UC2** (Contract 9): it applies to the return or rental return that is open | Contract 9 of UC2 must also cover a rental return (B2) |
+
+`makePayment(amount, tenderType)` is used in UC5 only when the late fee and its tax are larger than the deposit (7b): the refund is zero and the Customer pays the difference as in UC1. It is the same operation as in UC1 and UC3.
+
+### 6.2 What is not in the diagram
+
+| Extension | Possible operation |
+| --- | --- |
+| 8a Cancel the rental return before confirming | `cancelRentalReturn()` |
+| 9b2b The refund status cannot be obtained | none: the rental return is saved with the refund *pending*; a store manager completes it later (no function in the SRS yet, see the [state diagram of the rental](domain_model.md)) |
+| 11a Printer without paper | `reprintReceipt()` (as in UC1, FR-17) |
+
+### 6.3 Open points
+
+1. **Who decides the damage** and whether the whole deposit is always kept (UC5 open issues): `confirmDamage` is sent with the manager's ID and PIN as the SRS says now; if the answer changes, the operation changes.
+2. **Card deposit held or charged** (UC5 open issues, external interfaces question 2): if it was only held, the card variant of `confirmRentalReturn` releases the hold and not a refund.
+3. **Payment of the balance (7b).** Contract 4 of `makePayment` names the `Sale` and the `Rental`; for the difference that the Customer pays in UC5 it must also name the `RentalReturn`. To be added with the contracts of UC5 (B2).
+4. **`findRental` has two kinds of code.** The contract has to say that the System recognises a serial number and a receipt number; if the team prefers, they can be two operations.
+
+## 7. Summary of the system operations
 
 | Use case | Operations |
 | --- | --- |
 | UC1 Process Sale | `makeNewSale`, `enterItem`, `endSale`, `makePayment` (contracts written) |
-| UC2 Handle Returns | `makeNewReturn`, `findSale`, `enterReturnItem`, `confirmReturn`, `approveCashRefund` |
-| UC3 Process Rental | `makeNewRental`, `enterCustomerID`, `registerCustomer`, `enterRentalItem`, `selectRentalPeriod`, `endRental`, `makePayment` (shared with UC1) |
+| UC2 Handle Returns | `makeNewReturn`, `findSale`, `enterReturnItem`, `confirmReturn`, `approveCashRefund` (contracts 5 to 9 written) |
+| UC3 Process Rental | `makeNewRental`, `enterCustomerID`, `registerCustomer`, `enterRentalItem`, `selectRentalPeriod`, `endRental`, `makePayment` (shared with UC1) (contracts 10 to 15 written) |
+| UC4 Start Up (with Close session) | `startUp`, `logIn`, `enterOpeningCash`, `closeSession`, `enterClosingCash`, `confirmCloseSession` |
+| UC5 Return Rental | `makeNewRentalReturn`, `findRental`, `findRentalsOfCustomer`, `selectRental`, `recordCondition`, `confirmDamage`, `confirmRentalReturn`, `approveCashRefund` (shared with UC2), `makePayment` (shared, only in 7b) |
