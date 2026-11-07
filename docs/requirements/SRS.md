@@ -1133,7 +1133,7 @@ Stakeholders and cashier persona: [stakeholders.md](stakeholders.md). Elicitatio
 
 ### 3.10 Business rules
 
-The business rules of the store are defined here (#36, B-D17). The glossary repeats them for its readers; if the two differ, this section prevails. _Given_ means that the rule comes from the case or the task; _Proposed_ means that the team still has to confirm it with the full case study.
+The business rules of the store are defined here (#36, B-D17). The glossary repeats them for its readers; if the two differ, this section prevails. _Given_ means that the rule comes from the case or the task; _Proposed_ means that the team still has to confirm it with the full case study. A value marked _decided in W09_ was chosen by the team in the open questions 1 and 9 (section 5.3), because the case does not give it.
 
 | ID | Category | Rule | Status |
 | --- | --- | --- | --- |
@@ -1143,24 +1143,27 @@ The business rules of the store are defined here (#36, B-D17). The glossary repe
 | BR-04 | Price | Only a store manager may change a product's price or approve a manual price override at the register. | Proposed |
 | BR-05 | Payment | A credit card payment must be authorized by the Payment Service before the transaction is completed. | Proposed |
 | BR-06 | Payment | For cash payments, the amount tendered must be at least the total; the change due is the amount tendered minus the total. | Proposed |
-| BR-07 | Return | A refund is given only for a purchased item with a valid receipt, returned within the refund period. | Given (period: see open questions) |
+| BR-07 | Return | A refund is given only for a purchased item with a valid receipt, returned within 30 days of the sale. | Given (period decided in W09) |
 | BR-08 | Return | A refund is paid with the same tender used in the original sale. | Proposed |
 | BR-09 | Inventory | When the stock level of a product falls below 10 units, the product must be reordered. | Given |
-| BR-10 | Rental | Every rental requires a deposit. The deposit is refunded at the rental return if the item is undamaged. | Given (amount and tax: see open questions) |
+| BR-10 | Rental | Every rental requires a deposit, set for each product in the catalog. The deposit is not taxed. At the rental return it is refunded if the item is undamaged, less any late fee and its tax (BR-16); if the item is damaged, the store keeps the whole deposit. | Given (amount per product; no tax on the deposit, decided in W09) |
 | BR-11 | Rental | Only an item with status *Available* can be rented. A *Rented* item cannot be sold or rented again until it is returned. | Proposed |
 | BR-12 | Rental | A customer with an overdue rental cannot start a new rental. The store accepts that a customer can avoid this rule by registering again under a new customer ID, and relies on the deposit (BR-10) for this case. | Proposed |
 | BR-13 | Staff | Every transaction is the responsibility of the cashier who carries it out. A cashier may work at a register only under their own identity, never under another employee's. | Proposed |
 | BR-14 | Accounting | Every completed sale, return, rental and rental return must be recorded in the store's accounts. | Proposed |
+| BR-15 | Rental | A rental lasts 1, 3 or 7 days; no other rental period is offered. The due date is the day of the rental plus the rental period. | Proposed (decided in W09) |
+| BR-16 | Rental | For each whole day after the due date, a late fee of one day's rental fee of the item is charged, with its tax. It is taken from the deposit (BR-10); if it is larger than the deposit, the customer pays the rest. | Proposed (decided in W09) |
+| BR-17 | Cash | A cashier session may close with a cash difference of up to 5.00 (in the store currency). A larger difference must be reviewed by the store manager. | Proposed (decided in W09) |
 
 #### 3.10.1 Requirements that depend on a Proposed rule
 
-10 of the 14 business rules are still _Proposed_. In this version, 27 of the 67 functional requirements (13 of the 32 _Must_ requirements) cite at least one of them. If a Proposed rule changes, these requirements change with it.
+13 of the 17 business rules are still _Proposed_. In this version, 32 of the 75 functional requirements (14 of the 34 _Must_ requirements) cite at least one of them. If a Proposed rule changes, these requirements change with it.
 
 | Proposed rule | Requirements that cite it |
 | --- | --- |
-| BR-02 | FR-35, FR-53 |
+| BR-02 | FR-35, FR-53, FR-69 |
 | BR-03 | FR-02, FR-23 |
-| BR-04 | FR-06 |
+| BR-04 | FR-06, FR-69 |
 | BR-05 | FR-10, FR-64, FR-65 |
 | BR-06 | FR-09, FR-37 |
 | BR-08 | FR-23, FR-25, FR-26 |
@@ -1168,7 +1171,9 @@ The business rules of the store are defined here (#36, B-D17). The glossary repe
 | BR-12 | FR-31, FR-57 |
 | BR-13 | FR-01, FR-13, FR-20, FR-27, FR-30, FR-38, FR-40, FR-50, FR-57 |
 | BR-14 | FR-15, FR-28, FR-42, FR-58 |
-
+| BR-15 | FR-34 |
+| BR-16 | FR-53 |
+| BR-17 | FR-62, FR-74, FR-75 |
 
 ## 4. Verification
 
