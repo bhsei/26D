@@ -1,0 +1,78 @@
+@startuml
+' NewEra POS - Deployment (physical) view, W09
+' Team D - editable source of assets/architecture_deployment.png
+' Render with: java -jar plantuml.jar -tpng assets/architecture_deployment.puml
+' Names follow docs/design/architecture.md (AD-01 layers, AD-02 local web application, AD-10 devices),
+' the domain model (Register) and the SRS (IR-01 to IR-17, DC-01 to DC-09).
+
+left to right direction
+skinparam shadowing false
+skinparam dpi 130
+skinparam defaultFontName Arial
+skinparam ArrowColor #444444
+skinparam ArrowFontSize 11
+skinparam nodesep 30
+skinparam ranksep 60
+skinparam NodeBorderColor #1F4E79
+skinparam NodeBackgroundColor #EAF1FB
+skinparam ComponentBorderColor #1F4E79
+skinparam ComponentBackgroundColor #FFFFFF
+skinparam DatabaseBorderColor #1F4E79
+skinparam DatabaseBackgroundColor #FFFFFF
+skinparam ArtifactBorderColor #444444
+skinparam ArtifactBackgroundColor #FFFFFF
+skinparam RectangleBorderColor #888888
+skinparam RectangleBackgroundColor #FFFFFF
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #B8A04A
+
+title NewEra POS - Deployment view
+
+rectangle "Devices of the register" as Devices {
+  node "Barcode scanner" as Scanner <<device>>
+  node "Card reader\n(chip, contactless)" as CardReader <<device>>
+  node "Receipt printer\n(thermal)" as Printer <<device>>
+  node "Cash drawer" as Drawer <<device>>
+}
+
+node "Register computer\n(one per Register)" as Reg <<device>> {
+  node "Browser\n(full screen)" as Browser <<execution environment>>
+  component "POS application (Java, local web server)\n\nUI layer\nApplication / domain layer\nTechnical services layer:\nadapters, Device Service,\nlocal storage, logging" as Pos
+  database "Local database\nlocal copy, Accounting queue,\nlocal employee list" as Local
+}
+
+node "Store database server" as StoreSrv <<device>> {
+  database "Store database\n(shared by all registers)" as StoreDB
+}
+
+node "Back-office system\n(exports the catalog file, IR-17)" as BO <<node>>
+
+node "External systems\n(stubs in our project, DC-01)" as Ext <<node>> {
+  artifact "Payment Service stub" as PayStub
+  artifact "Tax Calculator stub" as TaxStub
+  artifact "Accounting System stub" as AccStub
+  artifact "HR System stub" as HRStub
+}
+
+Scanner --> Pos : keyboard input (IR-11)
+CardReader --> Pos : card data, not kept (IR-12)
+Pos --> Printer : receipt, status (IR-13)
+Pos --> Drawer : open command (IR-14)
+
+Browser -down-> Pos : localhost
+Pos -down-> Local
+
+Pos --> StoreDB : store LAN, shared data (DC-09)
+BO .left.> Pos
+
+Pos --> PayStub : Payment adapter, 10 s
+Pos --> TaxStub : Tax adapter, 5 s
+Pos --> AccStub : Accounting adapter + queue (IR-07)
+Pos --> HRStub : HR adapter, 5 s
+
+legend bottom
+  Browser and POS application run on the same register and talk only on localhost (AD-02).
+  The register keeps selling when the network, the store database or an external system is down (QA-04).
+  A stub is replaced by the real system by changing only its adapter (DC-02).
+endlegend
+@enduml
