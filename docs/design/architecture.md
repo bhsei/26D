@@ -316,5 +316,5 @@ One subsection per decision, with this template. AD-01 to AD-03 were proposed in
 ## 7. Open issues
 
 1. The architecture drivers and the utility tree (Alfonso) are needed to rank the decisions above.
-2. The rental deposit by card (hold or charge) is still open (external_interfaces.md, open question 2) and changes the Payment Service adapter.
+2. Closed in W09: the rental deposit by card is charged and refunded, not held (SRS §5.3, question 2). The `PaymentService` interface needs no hold or release operation.
 3. Closed in W09: the team accepted AD-01 to AD-03. The web framework and the build tool of AD-03 are fixed at the start of increment 3.
