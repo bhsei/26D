@@ -3,12 +3,14 @@
 | | |
 | --- | --- |
 | **Maintainer** | Alfonso Pinto |
-| **Version** | 0.1 (draft for review) |
+| **Version** | 0.2 (draft for review; UC4 and UC5 aligned with the SSDs v0.6) |
 | **Last updated** | W09 |
 | **Part of** | Increment 2 – Design (milestone W11); step 2 of the architecture process |
 | **Inputs** | [System sequence diagrams](system_sequence_diagrams.md), [operation contracts](operation_contracts.md), [SRS](../requirements/SRS.md) §3.1 and §3.2, [architecture](architecture.md) AD-01 to AD-03, AD-10 |
 
-> **Status: draft.** UC1, UC2 and UC3 come from the SSDs and contracts that are already written. The operations of UC4 (start up and close session) and UC5 (rental return) are **provisional**: they follow the SRS and will be aligned with Borja's SSDs and Josué's contracts of W09 (sections 3.1 and 3.5).
+> **Status: draft.** The operations of all five use cases have the names of the [system sequence diagrams](system_sequence_diagrams.md) v0.6. UC1, UC2 and UC3 also have their operation contracts; the contracts of UC4 and UC5 are being written (Josué, W09) and are referenced here when they are ready.
+>
+> **v0.2:** sections 3.1 and 3.5 follow the SSDs of UC4 and UC5 (close session in three operations; `findRentalsOfCustomer`, `selectRental`, `recordCondition`, `confirmDamage`; `makePayment` for the amount still due); `approveCashRefund(managerID, reason)` and the session review use the SSD names.
 
 ## 1. Purpose
 
@@ -39,14 +41,16 @@ These rules apply to every request of the system API.
 
 The column *Operation* gives the name of the system operation in the SSD; *Contract* the operation contract that describes its effect.
 
-### 3.1 Cashier session – UC4 Start Up and close session (provisional)
+### 3.1 Cashier session – UC4 Start Up and close session
 
 | Operation | Request | Answer | Requirements |
 | --- | --- | --- | --- |
-| *start-up check* | `GET /api/status` | Catalog and stored data available, store database connected, records waiting for the Accounting System, HR System available, date of the last update of the local employee list | FR-41, FR-42, FR-48, FR-45 |
-| `logIn(employeeID, pin)` | `POST /api/sessions` `{"employeeID", "pin"}` | `201` session ID, cashier name, register ID; a warning when the local employee list was used. `403` unknown, inactive or wrong PIN | FR-40, FR-43–FR-46, FR-49, IR-08, IR-09 |
-| `enterOpeningCash(amount)` | `PUT /api/sessions/current/opening-cash` `{"amount"}` | Amount recorded; the cash drawer opens for the count. `400` amount not valid | FR-47, IR-14 |
-| `closeSession(closingCash)` | `POST /api/sessions/current/close` `{"closingCash"}` | Expected cash, difference, end time; `"toReview": true` when the difference is larger than 5.00. `409` a transaction of the session is still open | FR-60–FR-63, FR-74, BR-17 |
+| `startUp()` | `POST /api/startup` (sent once by the POS program when it starts, before any session) | Register ID and the login screen; or an error and no login when the catalog or the stored data are not available (2a). Records waiting for the Accounting System are sent or stay in the queue; a session interrupted by a crash is ended | FR-41, FR-42, FR-48, FR-63, IR-15 |
+| `logIn(employeeID, pin)` | `POST /api/sessions` `{"employeeID", "pin"}` | `201` session ID, cashier name, request for the opening cash; a warning when the local employee list was used (6c). `403` not found or not an active cashier (6a), or wrong PIN (6b) | FR-40, FR-43–FR-46, FR-49, IR-08, IR-09 |
+| `enterOpeningCash(amount)` | `PUT /api/sessions/current/opening-cash` `{"amount"}` | Session open, main screen. `400` amount not valid (8a) | FR-47 |
+| `closeSession()` | `POST /api/sessions/current/close` | The cash drawer opens for the closing count. `409` a sale, return or rental is still open (2a) | FR-60, IR-14 |
+| `enterClosingCash(amount)` | `PUT /api/sessions/current/closing-cash` `{"amount"}` | Expected cash and difference. `400` amount not valid (3a) | FR-61, FR-62 |
+| `confirmCloseSession()` | `POST /api/sessions/current/confirm-close` | Session closed, login screen; `"toReview": true` and a warning when the difference is larger than 5.00 (4b) | FR-62, FR-74, BR-17 |
 
 ### 3.2 Sale – UC1 Process Sale
 
@@ -72,7 +76,7 @@ One payment per sale (BR-18): after `DECLINED` or `NOT_AVAILABLE` the screen sen
 | `enterReturnItem(itemID, quantity, condition)` | `POST /api/returns/{returnID}/lines` `{"itemID", "quantity", "condition": "RESELLABLE" \| "NOT_RESELLABLE"}` | Return line, refund total, tender of the sale. `409` not in the sale or quantity too large | 7 | FR-22, FR-23 |
 | `removeReturnItem(lineNumber)` | `DELETE /api/returns/{returnID}/lines/{lineNumber}` | New refund total | – | FR-22 |
 | `confirmReturn()` | `POST /api/returns/{returnID}/confirm` | `"refund"`: `CASH_PAID` (drawer opens) · `CARD_REFUNDED` · `NEEDS_APPROVAL` (card declined or check) · `PENDING` (no answer from the Payment Service); receipt number when the return is complete | 8 | FR-25–FR-29, IR-03, BR-08 |
-| `approveCashRefund(reason)` | `POST /api/returns/{returnID}/cash-approval` `{"reason", "manager"}` | Refund paid in cash, receipt number. `403` not a store manager | 9 | FR-25 |
+| `approveCashRefund(managerID, reason)` | `POST /api/returns/{returnID}/cash-approval` `{"reason", "manager"}` | Refund paid in cash, receipt number. `403` not a store manager | 9 | FR-25 |
 | `checkRefundStatus()` | `GET /api/returns/{returnID}/refund` | `CARD_REFUNDED`, `FAILED` (then `NEEDS_APPROVAL`) or still `PENDING` | – | FR-26 |
 | `cancelReturn()` | `DELETE /api/returns/{returnID}` | Return cancelled, nothing changed | – | FR-24 |
 
@@ -89,18 +93,21 @@ One payment per sale (BR-18): after `DECLINED` or `NOT_AVAILABLE` the screen sen
 | `makePayment(amount, tenderType)` | `POST /api/rentals/{rentalID}/payment` (same body and answer as for a sale) | As in UC1; after `APPROVED` the item becomes *Rented* | 4 | FR-37–FR-39, FR-64–FR-67, BR-18 |
 | `cancelRental()` | `DELETE /api/rentals/{rentalID}` | Rental cancelled, item status unchanged | – | FR-36 |
 
-### 3.5 Rental return – UC5 Return Rental (provisional)
+### 3.5 Rental return – UC5 Return Rental
 
 | Operation | Request | Answer | Requirements |
 | --- | --- | --- | --- |
 | `makeNewRentalReturn()` | `POST /api/rental-returns` | `201` rental return ID | FR-50 |
-| `findRental(key)` | `PUT /api/rental-returns/{id}/rental` `{"serialNumber"}` or `{"receiptNumber"}` or `{"customerID"}` | Customer, item, rental date, due date, deposit, tender; days late and late fee with its tax. `404` no open rental | FR-51, FR-53, BR-16 |
-| `enterCondition(condition, damageNote)` | `PUT /api/rental-returns/{id}/condition` `{"condition": "UNDAMAGED" \| "DAMAGED", "damageNote", "manager"}` (manager only for *damaged*) | Refund (deposit minus late fee and tax, never below zero), zero for a damaged item, or the amount still due | FR-52, FR-54, FR-72, FR-73 |
-| `payAmountDue(amount, tenderType)` | `POST /api/rental-returns/{id}/payment` | As `makePayment` | FR-73 |
-| `confirmRentalReturn()` | `POST /api/rental-returns/{id}/confirm` | As `confirmReturn` of UC2; item becomes *Available* or *Under maintenance* | FR-55, FR-57–FR-59 |
-| `approveCashRefund(reason)` | `POST /api/rental-returns/{id}/cash-approval` `{"reason", "manager"}` | As in UC2 | FR-55 |
-| `checkRefundStatus()` | `GET /api/rental-returns/{id}/refund` | As in UC2 | FR-55 |
-| `cancelRentalReturn()` | `DELETE /api/rental-returns/{id}` | Rental and item status unchanged | FR-56 |
+| `findRental(code)` | `PUT /api/rental-returns/{id}/rental` `{"code"}` (serial number of the item or rental receipt number) | Customer, item, rental date, due date, deposit, tender. `404` no open rental for this item (5a) | FR-51 |
+| `findRentalsOfCustomer(customerID)` | `GET /api/rentals?customerID=...&open=true` | Open rentals of the customer (5b) | FR-51 |
+| `selectRental(rentalID)` | `PUT /api/rental-returns/{id}/rental` `{"rentalID"}` | As `findRental` | FR-51 |
+| `recordCondition(condition, damageNote)` | `PUT /api/rental-returns/{id}/condition` `{"condition": "UNDAMAGED" \| "DAMAGED", "damageNote"}` | On time: full deposit as refund. Late: days late, late fee, its tax and the refund (7a), or the amount still due when the late fee is larger than the deposit (7b). Damaged: request for a store manager (6a) | FR-52–FR-54, FR-73, BR-16 |
+| `confirmDamage(managerID, pin)` | `POST /api/rental-returns/{id}/damage-confirmation` `{"manager"}` | Damage confirmed, refund zero. `403` not a store manager | FR-52, FR-72 |
+| `makePayment(amount, tenderType)` | `POST /api/rental-returns/{id}/payment` (same body and answer as for a sale; only in 7b) | As in UC1 | FR-73, BR-18 |
+| `confirmRentalReturn()` | `POST /api/rental-returns/{id}/confirm` | As `confirmReturn` of UC2 (`CASH_PAID`, `CARD_REFUNDED`, `NEEDS_APPROVAL`, `PENDING`); item becomes *Available* or *Under maintenance*; rental return receipt | FR-55, FR-57–FR-59, IR-03 |
+| `approveCashRefund(managerID, reason)` | `POST /api/rental-returns/{id}/cash-approval` `{"reason", "manager"}` | As in UC2 (same operation, Contract 9) | FR-55 |
+| *refund status* | `GET /api/rental-returns/{id}/refund` | As in UC2 | FR-55 |
+| `cancelRentalReturn()` | `DELETE /api/rental-returns/{id}` | Rental and item status unchanged (8a) | FR-56 |
 
 ### 3.6 Store manager functions
 
@@ -109,8 +116,8 @@ One payment per sale (BR-18): after `DECLINED` or `NOT_AVAILABLE` the screen sen
 | Reorder and stock-check list | `GET /api/products/flagged?limit=20&offset=0` | Products flagged for reorder or stock check, with stock level and threshold | FR-68, BR-09 |
 | Change the default tax rate | `PUT /api/settings/default-tax-rate` `{"rate", "manager"}` | New rate, who changed it and when | FR-69, IR-05 |
 | Disable an employee in the local list | `PUT /api/employees/{employeeID}/local-status` `{"active": false, "manager"}` | Employee disabled, who did it and when | FR-70, IR-09 |
-| Sessions to review | `GET /api/sessions?toReview=true&limit=20&offset=0` | Sessions with a cash difference larger than 5.00 | FR-74 |
-| Review a session | `POST /api/sessions/{sessionID}/review` `{"reason", "manager"}` | Review recorded | FR-75 |
+| `listSessionsToReview()` | `GET /api/sessions?toReview=true&limit=20&offset=0` | Sessions with a cash difference larger than 5.00 | FR-74 |
+| `confirmSessionReview(sessionID, reason)` | `POST /api/sessions/{sessionID}/review` `{"reason", "manager"}` | Review recorded | FR-75 |
 | Import the catalog | `POST /api/catalog/imports` (file + `"manager"`) | Number of products imported, or the fields that are missing or not valid (the previous catalog is kept) | IR-17 |
 
 ## 4. Interfaces of the technical services (application layer → adapters)
@@ -193,9 +200,8 @@ In our project the four external systems are stubs: small HTTP servers that answ
 
 ## 6. Open points
 
-1. **UC4 and UC5.** Sections 3.1 and 3.5 are provisional. When Borja's SSDs of UC4 and UC5 are pushed, the names and parameters are aligned with them, and Josué's contracts are referenced.
+1. **Contracts of UC4 and UC5** (Josué, W09): referenced in sections 3.1 and 3.5 when they are written. Contract 4 (`makePayment`) must also name the `RentalReturn`, and Contract 9 (`approveCashRefund`) must also cover a rental return.
 2. **Card deposit of a rental** (SRS §5.3, question 2, Haifa): if the deposit is only held, `PaymentService` needs `hold` and `release` operations.
 3. **Offline card authorization** (SRS §5.3, question 4, Haifa): if it is allowed for small amounts, `authorize` gets a deferred result.
-4. **One tender per transaction** (BR-18, decided in W09): the domain model still allows several payments per transaction (Transaction – Payment 1 – \*) and the SSD of UC1 has an open point about it; both can be changed to one payment (Borja).
-5. **Timeouts and fallbacks** in the adapters or in a common component: AD-07 (Haifa).
-6. **Storage interfaces**: after AD-05 and AD-06 (W10).
+4. **Timeouts and fallbacks** in the adapters or in a common component: AD-07 (Haifa).
+5. **Storage interfaces**: after AD-05 and AD-06 (W10).
