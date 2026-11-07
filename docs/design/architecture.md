@@ -89,7 +89,48 @@ The four external systems are replaced by stubs in our project (DC-01).
 *To do (W9).* At least: UC1 Process Sale through the layers (from the SSD of UC1), and *Payment Service not available* (IR-02).
 
 ### 4.4 Deployment view
-*To do (W9).* Register computer with the POS and its local storage, the four devices, and the network connection to the external systems (stubs).
+
+The deployment view shows where the software runs, which devices and systems it is connected to, and what is replaced by a stub in our project. It answers the concerns of the system administrator and of the development team (§2): easy to install and configure, devices and external systems easy to connect, and a stub that can be replaced by the real system (NFR-10, DC-02, DC-03). The names are those of the logical view (AD-01), the domain model (`Register`) and the SRS.
+
+![NewEra POS deployment view](../../assets/architecture_deployment.png)
+
+*Editable source: [`assets/architecture_deployment.puml`](../../assets/architecture_deployment.puml) (PlantUML).*
+
+| Node | What runs or is stored there | Source |
+| --- | --- | --- |
+| **Register computer** (one for each `Register`) | A standard computer. It runs the browser, the POS application and the local database, and the devices are connected to it. | DC-03, AD-01, AD-02 |
+| Browser | Shows the cashier screens in full-screen mode. It talks to the POS application only on `localhost`. | AD-02 |
+| POS application | The Java program that runs as a small local web server. It contains the three layers of AD-01 (UI, application / domain, technical services). The technical services layer holds one adapter for each external system, the Device Service, the local storage and the logging. | AD-01 to AD-03, DC-02 |
+| Local database | The local copy of the data that the register needs (transactions, product catalog, local employee list) and the queue of records for the Accounting System. It survives a restart and a network failure. | DC-05, DC-09, NFR-04, IR-07, IR-09, FR-48 |
+| **Store database server** | The one store database shared by all registers: product catalog, prices, stock levels, item status, customers and transactions. The registers are its clients. | DC-09, QA-16, BR-11 |
+| **Devices** | Barcode scanner (works as a keyboard), card reader (chip and contactless), thermal receipt printer and cash drawer. They are standard devices connected to the register computer; the models are not fixed. | IR-11 to IR-14, NFR-10, AD-10 |
+| **External systems** | In our project the Payment Service, Tax Calculator, Accounting System and HR System are **stubs** that follow the interfaces of SRS §3.1.3 and can simulate *approved*, *declined*, *timeout* and *not available*. The POS reaches each one through its own adapter, so the real system replaces the stub without a change in the rest of the POS. | DC-01, DC-02, IR-01 to IR-10 |
+| Back-office system | Exports the product catalog as a file. The POS imports it at start-up or when a store manager starts an import. | IR-17 |
+
+**Network links**
+
+| Link | Medium | Notes |
+| --- | --- | --- |
+| Browser – POS application | `localhost` | The local server only accepts connections from the register itself (AD-02). |
+| Register – devices | Cable to the register computer, standard drivers | Through the Device Service (AD-10). |
+| Register – store database server | Store network | If the connection is lost, the register keeps selling with its local copy and its queue (DC-09). |
+| Register – external systems | Network | Timeouts: 10 s for the Payment Service, 5 s for the Tax Calculator and the HR System (IR-02, IR-05, IR-09). |
+
+**What the register does when something is not available**
+
+| What is not available | What the register does | Source |
+| --- | --- | --- |
+| Network or store database server | Sells, returns and rents with the local copy; the records wait in the local queue and are sent later, in order. | DC-09, QA-04, IR-07 |
+| An external system | The adapter applies the fallback of SRS §3.1.3: card payment refused and cash offered, default tax rate, local queue, local employee list. | IR-02, IR-05, IR-07, IR-09 |
+| A device | The cashier sees a message and uses the fallback of SRS §3.1.2: types the identifier, uses another tender, reprints, or opens the drawer with the key. | IR-11 to IR-14 |
+| The register computer (restart) | It is ready in less than 30 seconds. The queue is kept, and every approved authorization without a completed transaction is voided at the next start-up. | NFR-02, FR-48, IR-15 |
+
+**Correspondence with the logical view (§5).** The UI layer is served by the POS application and shown in the browser; the application / domain layer and the technical services layer run inside the POS application on the register computer.
+
+**Open points of this view**
+- The number of registers in a store is not fixed (architecture drivers, open question 3); the diagram shows one register, and the store database server serves all of them.
+- In our project the stubs run on a separate test computer, or on the register computer during development. The protocol and the data format between the POS and the external systems are fixed in the system interfaces (`system_interfaces.md`).
+- The local database product and the synchronisation with the store database are decided in AD-05 and AD-06 (W10).
 
 ### 4.5 Data view
 *To do (W9–W10).* From SRS §3.5 and the domain model: what is stored locally (transactions, Accounting System queue, local employee list, product catalog), and what is never stored (card data, DC-06).
@@ -120,7 +161,7 @@ First list of the decisions to take in W8–W9. Each decision will be recorded w
 | AD-07 | Timeouts and fallbacks | Where timeouts (10 s / 5 s) and fallbacks are handled: in each adapter or in a common component | IR-02, IR-05, IR-09 | Open |
 | AD-08 | Payment methods | One class per tender behind a common interface, so a new method can be added easily | NFR-09, FR-09 to FR-12 | Open |
 | AD-09 | Security of card data and PINs | Card data only in memory until the Payment Service answers; PINs stored as a salted hash; role check for manager actions | NFR-07, NFR-08, NFR-11, DC-06 | Open |
-| AD-10 | Device access | Scanner as keyboard input; printer and drawer through a device service | NFR-10, IR-11 to IR-14 | Open |
+| AD-10 | Device access | Scanner as keyboard input; printer and drawer through a device service | NFR-10, IR-11 to IR-14 | Proposed (§6.1) |
 
 ### 6.1 Decision records
 One subsection per decision, with this template. AD-01 to AD-03 have a first proposal (W08); the other decisions are filled in during W9.
@@ -167,6 +208,17 @@ One subsection per decision, with this template. AD-01 to AD-03 have a first pro
 - Rationale: Two members know Java, and it fits the class design we already have: the conceptual classes, the adapter interfaces (DC-02) and one class per tender (AD-08) map directly to Java classes and interfaces. The type checks also help when six people work on the same code. Python is known by two members too and is faster to write, but there an adapter interface is only a convention. Option 3 is known by fewer members. In all three options the screens are HTML, CSS and JavaScript (AD-02).
 - Consequences: The database chosen in AD-05 needs a Java driver (SQLite has one for Java and for Python). The build tool (Maven or Gradle) and the exact framework are fixed at the start of increment 3. Members who don't know Java yet need a short setup guide in the repository.
 - Related requirements: DC-01, DC-02, DC-04, DC-07, NFR-09; C-04, C-06, C-08.
+
+#### AD-10 – Device access
+- Context: Each register has a barcode scanner, a card reader, a thermal receipt printer and a cash drawer (SRS §3.1.2). The POS runs as a local web application (AD-02): the browser shows the screens but cannot reach the printer or the cash drawer, and the card data must not be kept (IR-12, DC-06). The device models are not fixed and must be standard devices (NFR-10, QA-15). The register must go on when a device fails (SRS §3.1.2).
+- Options:
+  1. Every device behind its own interface in a Device Service of the technical services layer, scanner included.
+  2. The scanner as keyboard input; the card reader, the printer and the cash drawer behind interfaces in the Device Service.
+  3. The browser talks to the devices directly, with browser interfaces for USB or serial devices.
+- Decision (proposal): option 2.
+- Rationale: A standard scanner works as a keyboard, so the POS reads an item identifier, a serial number or a receipt number in the same way as typed text (IR-11). It needs no driver, and the cashier can always type the code when the scanner fails. A web page cannot control the printer and the cash drawer in a reliable way (AD-02), and the cash drawer may only be opened for the reasons of IR-14, so the Device Service on the register does it, checks the reason and logs it. The interfaces (`ReceiptPrinter`, `CashDrawer`, `CardReader`) let the team test with simulated devices and change a device model without changing the rest of the POS (QA-15, NFR-10).
+- Consequences: The technical services layer has a Device Service with three interfaces. The application layer gives a reason with every request to open the cash drawer, and the Device Service logs the time, the cashier and the reason (IR-14). The card reader passes the card data only to the Payment adapter, never to the local database or to the logs (IR-12, NFR-11). The Device Service reports the printer status (ready, no paper, error), and the application layer shows the message and the fallback of SRS §3.1.2 (IR-13). The tests use simulated devices. The cabling and the operating system drivers are part of the installation of each register (system administrator).
+- Related requirements: NFR-10, NFR-11; IR-11 to IR-14; DC-03, DC-06; QA-15; AD-02.
 
 ## 7. Open issues
 
