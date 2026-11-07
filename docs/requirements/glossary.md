@@ -5,8 +5,8 @@
 | | |
 | --- | --- |
 | **Maintainer** | Avni Oflaz |
-| **Version** | 0.4 |
-| **Last updated** | W08 |
+| **Version** | 0.5 |
+| **Last updated** | W09 |
 | **Part of** | SRS (Assignment 1), ISO/IEC/IEEE 29148 |
 
 ### Version history
@@ -17,6 +17,7 @@
 | 0.2 | Fixes from review #17: added *Serial number*, *Rental return*, *Amount tendered*, *Refund period*, *Payment*; BR-02, BR-13 and BR-14 rewritten as store policies; open question on deposit tax. Aligned with SRS v0.1: Payment Service also authorizes checks and card refunds; Customer is a stakeholder; Cashier is the primary actor of all use cases. |
 | 0.3 | Review #23: added the terms that the SRS uses but the glossary did not define: *Authorization code*, *Customer ID*, *Employee ID*, *Item list*, *Local employee list*, *Local queue*, *Login*, *Main screen*, *PIN*, *Price override*, *Register ID*, *Rental receipt*, *Reorder list*, *Salted hash*, *Simulator*, *System administrator*, *Tax to be corrected*, *Timeout*, *Transaction ID*. |
 | 0.4 | Reviews #36 and #50 (B-D04, B-D17): BR-12 states the accepted risk of a new customer ID. The business rules are defined in SRS section 3.10; this file is informative. |
+| 0.5 | Open questions 1 and 9 decided in W09: refund period 30 days (BR-07), no tax on the deposit (BR-10), rental periods (BR-15), late fee (BR-16), cash difference limit (BR-17); new terms *Cash difference* and *Session to review*. |
 
 ## 1. Purpose
 
@@ -34,6 +35,7 @@ Terms are sorted alphabetically. Where two words mean the same thing, the prefer
 | **Amount tendered** | Amount of money the customer hands over for a cash payment. It may be higher than the total; the difference is the change due (see BR-06). |
 | **Authorization** | Approval of a credit card payment, a check payment or a card refund by the Payment Service before the transaction is completed. |
 | **Authorization code** | Code that the Payment Service returns when it approves a card or check payment. It is recorded with the payment. |
+| **Cash difference** | Difference between the closing cash counted in the drawer and the expected cash of the session (opening cash plus cash payments minus cash refunds). A difference larger than 5.00 must be reviewed by the store manager (BR-17). |
 | **Cashier** | Store employee who operates the register and processes sales, returns, rentals and rental returns. Primary actor of all use cases. |
 | **Cashier session** | The period between a cashier's login and logout on one register. Every transaction in the session is linked to that cashier. |
 | **Change due** | Amount returned to the customer when the cash tendered is greater than the total. |
@@ -50,7 +52,7 @@ Terms are sorted alphabetically. Where two words mean the same thing, the prefer
 | **Item identifier** | Unique code (for example, a barcode) that identifies a product description, that is, a product type, and is scanned or typed by the cashier. It does not identify one single item (see *Serial number*). |
 | **Item list** | List of all rentable items, each with its serial number, description and item status. |
 | **Item status** | State of one rentable item, identified by its serial number: *Available*, *Rented* or *Under maintenance*. Only *Available* items can be rented. |
-| **Late fee** | Charge applied when a rented item is returned after its due date (see open questions). |
+| **Late fee** | Charge for a rented item that is returned after its due date: one day's rental fee of the item for each whole day late, with its tax (BR-16). |
 | **Line item** | General term for one line of a transaction: see *Sale line item* and *Rental line item*. |
 | **Local employee list** | Copy of the employee list kept on the register (employee ID, name, role, active status and PIN as a salted hash). It is refreshed at every start-up and is used when the HR System is not available (IR-09). |
 | **Local queue** | Records of completed transactions that are saved on the register while the Accounting System is not available, and sent in the order in which they were made when it is available again (IR-07). Synonym: *queue*. |
@@ -67,13 +69,13 @@ Terms are sorted alphabetically. Where two words mean the same thing, the prefer
 | **Product description** | Information about a product: item identifier, name, price and whether it can be rented. |
 | **Receipt** | Printed record of a completed transaction, given to the customer. |
 | **Refund** | Money paid back to the customer for a returned item. |
-| **Refund period** | Maximum time after a sale during which a purchased item can be returned for a refund (see BR-07 and open question 1). |
+| **Refund period** | Maximum time after a sale during which a purchased item can be returned for a refund: 30 days (BR-07). |
 | **Register** | The physical POS terminal (computer, scanner, cash drawer, receipt printer) at which a cashier works. |
 | **Register ID** | Identification of one register. It is shown on the login screen and stored in the cashier session. |
 | **Rental** | Transaction in which a customer takes an item for a limited period, pays a rental fee and a deposit, and must return it by the due date. |
 | **Rental fee** | Price charged for renting an item for the rental period. |
 | **Rental line item** | One line of a rental: the item, the rental period, the rental fee and the deposit. |
-| **Rental period** | The time between the start of a rental and its due date. |
+| **Rental period** | The time between the start of a rental and its due date: 1, 3 or 7 days (BR-15). |
 | **Rental receipt** | Receipt of a rental: it shows the item and its serial number, the rental fee, the tax, the refundable deposit, the total, the tender and the due date. |
 | **Rental return** | Transaction in which a customer brings back a rented item; the item is checked, the late fee is applied if needed and the deposit is refunded. Handled by UC5 Return Rental. Not the same as *Return*. |
 | **Reorder list** | List of the products whose stock level is below the reorder threshold, shown to the store manager (BR-09). |
@@ -83,6 +85,7 @@ Terms are sorted alphabetically. Where two words mean the same thing, the prefer
 | **Sale line item** | One line of a sale: a product description, the quantity and the line subtotal. |
 | **Salted hash** | The way a PIN is stored: only a one-way scrambled value of the PIN, mixed with random data (the salt), is kept, so the PIN itself cannot be read back. |
 | **Serial number** | Unique number that identifies one single physical item. Different from the item identifier, which identifies the product type (all units of the same product share one item identifier). |
+| **Session to review** | A cashier session that closed with a cash difference larger than 5.00. It appears in the store manager's list until the store manager has reviewed it (BR-17). |
 | **Simulator** | Program that replaces an external system during development and tests and follows its interface specification. Synonym: *stub*. |
 | **Stock level** | Number of units of a product currently in the store. |
 | **Store manager** | Employee responsible for the store, who can approve exceptions (for example, price changes). |
@@ -109,25 +112,28 @@ Terms are sorted alphabetically. Where two words mean the same thing, the prefer
 | BR-04 | Price | Only a store manager may change a product's price or approve a manual price override at the register. | Proposed |
 | BR-05 | Payment | A credit card payment must be authorized by the Payment Service before the transaction is completed. | Proposed |
 | BR-06 | Payment | For cash payments, the amount tendered must be at least the total; the change due is the amount tendered minus the total. | Proposed |
-| BR-07 | Return | A refund is given only for a purchased item with a valid receipt, returned within the refund period. | Given (period: see open questions) |
+| BR-07 | Return | A refund is given only for a purchased item with a valid receipt, returned within 30 days of the sale. | Given (period decided in W09) |
 | BR-08 | Return | A refund is paid with the same tender used in the original sale. | Proposed |
 | BR-09 | Inventory | When the stock level of a product falls below 10 units, the product must be reordered. | Given |
-| BR-10 | Rental | Every rental requires a deposit. The deposit is refunded at the rental return if the item is undamaged. | Given (amount and tax: see open questions) |
+| BR-10 | Rental | Every rental requires a deposit, set for each product in the catalog. The deposit is not taxed. At the rental return it is refunded if the item is undamaged, less any late fee and its tax (BR-16); if the item is damaged, the store keeps the whole deposit. | Given (amount per product; no tax on the deposit, decided in W09) |
 | BR-11 | Rental | Only an item with status *Available* can be rented. A *Rented* item cannot be sold or rented again until it is returned. | Proposed |
 | BR-12 | Rental | A customer with an overdue rental cannot start a new rental. The store accepts that a customer can avoid this rule by registering again under a new customer ID, and relies on the deposit (BR-10) for this case. | Proposed |
 | BR-13 | Staff | Every transaction is the responsibility of the cashier who carries it out. A cashier may work at a register only under their own identity, never under another employee's. | Proposed |
 | BR-14 | Accounting | Every completed sale, return, rental and rental return must be recorded in the store's accounts. | Proposed |
+| BR-15 | Rental | A rental lasts 1, 3 or 7 days; no other rental period is offered. The due date is the day of the rental plus the rental period. | Proposed (decided in W09) |
+| BR-16 | Rental | For each whole day after the due date, a late fee of one day's rental fee of the item is charged, with its tax. It is taken from the deposit (BR-10); if it is larger than the deposit, the customer pays the rest. | Proposed (decided in W09) |
+| BR-17 | Cash | A cashier session may close with a cash difference of up to 5.00 (in the store currency). A larger difference must be reviewed by the store manager. | Proposed (decided in W09) |
 
 ## 4. Open questions
 
 Source checked so far: project proposal (W01). The full case study has not yet been checked.
 
 
-1. What is the **refund period** for returns (BR-07)?
+1. What is the **refund period** for returns (BR-07)? Decided in W09: 30 days from the sale (SRS section 5.3, Q1).
 2. How is the **deposit amount** set: fixed, or a percentage of the item value (BR-10)?
-3. What is the **maximum rental period**, and is there a **late fee**? If so, how is it calculated?
+3. What is the **maximum rental period**, and is there a **late fee**? If so, how is it calculated? Decided in W09: the maximum is 7 days, and the late fee is one day's rental fee for each day late (SRS section 5.3, Q1).
 4. The proposal lists **3 payment methods**; the third is assumed to be **check**. Confirm against the case.
 5. Do **rented items** count toward the stock level for the reorder threshold (BR-09)?
 6. Are there **discounts or promotions** that need their own price rules?
 7. Does the Accounting System receive the **deposit**, or only the rental fee (BR-14)?
-8. Is **tax** charged on the **deposit**, or only on the rental fee (Total, BR-10)?
+8. Is **tax** charged on the **deposit**, or only on the rental fee (Total, BR-10)? Decided in W09: the deposit is not taxed (SRS section 5.3, Q1).
