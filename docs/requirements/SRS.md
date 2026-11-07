@@ -395,7 +395,7 @@ The use cases below are the source of the analysis models in [reference 9]: the 
 **Open issues**
 
 - ~~Discounts and promotions (glossary open question 6).~~ Closed (Q7, W09): not in this version (section 1.2).
-- Is an offline card authorization for small amounts allowed? ([external_interfaces.md](external_interfaces.md), open question 1)
+- ~~Is an offline card authorization for small amounts allowed?~~ Closed (Q4, W09): no, every card payment needs the authorization of the Payment Service (BR-05, IR-02).
 - ~~Can a single sale be paid with more than one tender (for example, part cash and part card)?~~ Closed (Q3, W09): one tender per sale (BR-18).
 
 #### 3.2.2 UC2 Handle Returns
@@ -1301,7 +1301,7 @@ The open questions of each use case are listed at the end of the use case. The q
 | 1 | Refund period, rental periods, late fee, and whether the deposit is taxed (glossary, open questions 1, 3, 8) | Decided in W09: refund period 30 days; rental periods 1, 3 or 7 days; late fee of one day's rental fee for each whole day late, taxed like the rental fee; the deposit is not taxed | BR-07, BR-10–BR-12, FR-21, FR-34, FR-35, FR-53, FR-54, DR-06, DR-07, BR-15, BR-16 | Avni | Decided in W09 |
 | 2 | Is the deposit of a card rental charged or only held (pre-authorization)? | Decided in W09: charged and refunded. The deposit is charged with the rental payment (FR-64) and refunded to the card at the rental return through the Payment Service (FR-55, IR-03). No pre-authorization: a hold expires after a few days, so a late return could outlive it, and keeping part of the deposit (late fee, BR-16) or all of it (damage, BR-10) is a normal refund of the rest | UC3 ext. 13b, UC5 ext. 9b, FR-55, FR-64, IR-03, BR-10, BR-16 | Haifa | Decided in W09 |
 | 3 | Can a sale be paid with more than one tender? | Decided in W09: one tender per sale or rental (BR-18); a refund uses the tender of the original transaction (BR-08) | UC1 ext. 9a–9c, FR-09 to FR-12, FR-25, FR-26, DR-05, BR-18, FR-37, FR-64, FR-65 | Alfonso | W09 |
-| 4  | Is an offline card authorization allowed for small amounts? | No; a card payment always needs authorization (BR-05) | FR-10, FR-11, FR-64, IR-01, IR-02 | Haifa | W09 |
+| 4 | Is an offline card authorization allowed for small amounts? | Decided in W09: no. Every card payment needs the authorization of the Payment Service (BR-05), also for small amounts. When the Payment Service does not answer, the cashier retries with the same transaction ID or uses another tender (IR-02, FR-11, FR-66). Security comes first here (architecture drivers, trade-off availability vs. security) | FR-10, FR-11, FR-64, FR-66, IR-01, IR-02, BR-05 | Haifa | Decided in W09 |
 | 5  | How are customers identified and which customer data is stored? | Customer ID only; the store accepts that a new customer ID avoids BR-12 and relies on the deposit (BR-10, BR-12) | UC3 ext. 4a, FR-31, DR-06, DR-18, NFR-12 | Avni | W11 |
 | 6  | Two registers renting the same item at the same time | Only one rental succeeds (one store database shared by all registers) | FR-33, DR-02, DR-13, DC-05 | Borja | W10 (architecture decision AD-05) |
 | 7 | Discounts and promotions | Decided in W09: no discounts or promotions in this version (section 1.2); a store manager can override the price of a line (FR-06) | UC1, UC2, FR-08, FR-23 | Alfonso | W09 |
