@@ -1,0 +1,58 @@
+@startuml
+' NewEra POS - State diagram of a rental (DR-06, DR-07), W09
+' Team D - editable source of assets/state_rental.png
+' Render with: java -jar plantuml.jar -tpng assets/state_rental.puml
+' Sources: SRS UC3, UC5, DR-06, DR-07, BR-11, BR-12, BR-15, BR-16 (review #50, B-D03 and B-D19).
+
+skinparam shadowing false
+skinparam dpi 130
+skinparam defaultFontName Arial
+skinparam ArrowColor #444444
+skinparam StateBorderColor #1F4E79
+skinparam StateBackgroundColor #EAF1FB
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #B8A04A
+skinparam StateStartColor #444444
+skinparam StateEndColor #444444
+
+title NewEra POS - State diagram: life of a rental
+
+state "Being created" as Creating
+state "Open" as Open
+state "Overdue" as Overdue
+state "Return in progress" as Returning
+state "Closed" as Closed
+state "Closed, refund pending" as Pending
+
+[*] --> Creating : makeNewRental()\n(UC3 steps 2-3)
+Creating --> [*] : cancelled before payment (FR-36),\nnot paid, or crash:\nnothing is saved
+Creating --> Open : payment accepted\n(UC3 step 15, FR-38)
+
+Open --> Overdue : the due date has passed\n(calculated, not stored, DR-06)
+Open --> Returning : makeNewRentalReturn()\n(UC5 steps 2-5)
+Overdue --> Returning : makeNewRentalReturn()\n(UC5 steps 2-5)
+Returning --> Open : cancelled (UC5 ext. 8a, FR-56)\nor crash: the rental stays as it was
+Returning --> Closed : rental return confirmed and\nrefund paid or card refund made\n(UC5 steps 9-10, FR-57)
+Returning --> Pending : confirmed, but the Payment Service\ngives no answer and the refund status\nis not known (UC5 ext. 9b2b)
+Pending --> Closed : a store manager completes the refund
+Closed --> [*]
+
+note right of Open
+  A rental lasts 1, 3 or 7 days (BR-15).
+  A customer with an Overdue rental cannot
+  start a new rental (BR-12).
+end note
+
+note bottom of Overdue
+  Late fee: one day's rental fee for each whole day late (BR-16).
+  It is taken from the deposit; the Customer pays the rest
+  (UC5 ext. 7a, 7b).
+end note
+
+note bottom of Pending
+  The item status changes at the confirmation: Available or Under maintenance
+  (see the state diagram of the item status).
+  The refund is never paid twice. The function with which the
+  store manager completes the refund has no FR yet.
+end note
+@enduml

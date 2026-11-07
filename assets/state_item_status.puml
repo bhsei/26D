@@ -1,0 +1,44 @@
+@startuml
+' NewEra POS - State diagram of the item status (DR-02), W09
+' Team D - editable source of assets/state_item_status.png
+' Render with: java -jar plantuml.jar -tpng assets/state_item_status.puml
+' Sources: SRS DR-02, FR-33, FR-38, FR-57, BR-11 (review #50, B-D03 and B-D19).
+
+skinparam shadowing false
+skinparam dpi 130
+skinparam defaultFontName Arial
+skinparam ArrowColor #444444
+skinparam StateBorderColor #1F4E79
+skinparam StateBackgroundColor #EAF1FB
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #B8A04A
+skinparam StateStartColor #444444
+skinparam StateEndColor #444444
+
+title NewEra POS - State diagram: status of a rentable item (Item.status)
+
+[*] --> Available : item added to the item list\n(catalog import, IR-17)
+
+Available --> Rented : rental paid and saved\n(UC3 step 15, FR-38)
+Rented --> Available : rental return confirmed,\nitem undamaged\n(UC5 step 10, FR-57)
+Rented --> UnderMaintenance : rental return confirmed,\ndamage confirmed by a store manager\n(UC5 ext. 6a, FR-52, FR-57)
+UnderMaintenance --> Available : a store manager confirms\nthat the item can be rented again\n(DR-02)
+
+state "Under maintenance" as UnderMaintenance
+
+note right of Rented
+  A Rented item cannot be rented or sold
+  until it is returned (BR-11).
+  Open: an item that is never returned
+  (lost or stolen) stays Rented and the rental
+  stays overdue (BR-12). SRS section 3.5, open point.
+end note
+
+note bottom of UnderMaintenance
+  Not drawn because no requirement or decision exists yet:
+  - the function with which the store manager confirms the repair (no FR yet);
+  - retiring an item. An item that is no longer used is marked inactive,
+    not deleted (DR-16); this is not an item status.
+  The status Reserved was removed in W08 (B-D03).
+end note
+@enduml

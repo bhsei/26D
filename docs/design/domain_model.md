@@ -3,8 +3,8 @@
 | | |
 | --- | --- |
 | **Maintainer** | Borja Nicolás |
-| **Version** | 0.2 (draft for review; aligned with the W08 review changes of the SRS) |
-| **Last updated** | W08 |
+| **Version** | 0.3 (draft for review; adds the state diagrams of the item and of the rental) |
+| **Last updated** | W09 |
 | **Part of** | Increment 2 (Design), input to the SRS section 3.5, the [system sequence diagram](system_sequence_diagrams.md) and the [operation contracts](operation_contracts.md) |
 
 ## 1. Purpose
@@ -80,7 +80,7 @@ The four external systems (Payment Service, Tax Calculator, Accounting System, H
 
 ## 6. Decisions and open questions
 
-**Changes in version 0.2 (W08, review #50).** `ItemStatus` no longer has *Reserved*, and an item that is under maintenance becomes *Available* again when a store manager confirms it (SRS DR-02; B-D03). `CreditCardPayment` has the new attribute `paymentReference` (the transaction ID and reference number that the Payment Service returns), which a card refund needs (SRS DR-19; B-D05). The data of the store is kept in one store database shared by all registers, with a local copy and queue in each register (SRS DC-09; B-D01); this is a design decision and does not change the concepts. The state diagram of the item status is planned for increment 2 (B-D03).
+**Changes in version 0.2 (W08, review #50).** `ItemStatus` no longer has *Reserved*, and an item that is under maintenance becomes *Available* again when a store manager confirms it (SRS DR-02; B-D03). `CreditCardPayment` has the new attribute `paymentReference` (the transaction ID and reference number that the Payment Service returns), which a card refund needs (SRS DR-19; B-D05). The data of the store is kept in one store database shared by all registers, with a local copy and queue in each register (SRS DC-09; B-D01); this is a design decision and does not change the concepts. The state diagrams of the item status and of the rental are in section 7 (W09).
 
 1. **Transaction as a generalization.** Sale, Return, Rental and RentalReturn share the same attributes (date, totals, session, payments, receipt, accounting record), so they are subclasses of the abstract `Transaction`, the term the glossary already uses.
 2. **Items are modelled only when they are rented.** A sold product is only a stock level; a rentable unit needs an identity because it has a status (BR-11). Whether rented items count in the stock level for BR-09 is still open (glossary, open question 5).
@@ -89,3 +89,36 @@ The four external systems (Payment Service, Tax Calculator, Accounting System, H
 5. **Late fee and deposit.** The attributes `lateFee`, `lateFeeTax` and `amountKept` of `RentalReturn` follow the working assumptions of UC5 (late fee taxed, deposit not taxed); they change if the team decides otherwise.
 6. **Split tenders.** If a sale cannot be paid with more than one tender, the multiplicity Sale–Payment becomes 1 – 1.
 7. **Opening cash and logout.** `endTime` of the session is filled only if the team adds a way to end the session (see the review of the SRS: no function ends a cashier session).
+
+## 7. State diagrams (W09)
+
+The state diagrams show how the **status of an item** and the **life of a rental** change, and which use case or requirement causes each change. They answer the review findings B-D03 and B-D19 (review #50) and use the names of this model (`Item.status`, `Rental`, `RentalReturn`). Their source is the SRS: DR-02, DR-06, DR-07, UC3, UC5 and the business rules BR-11, BR-12, BR-15 and BR-16.
+
+### 7.1 Status of an item
+
+![State diagram of the status of a rentable item](../../assets/state_item_status.png)
+
+*Editable source: [`assets/state_item_status.puml`](../../assets/state_item_status.puml) (PlantUML).*
+
+| Transition | Caused by | Requirement |
+| --- | --- | --- |
+| Available → Rented | A rental is paid and saved (UC3 step 15) | FR-38, BR-11 |
+| Rented → Available | A rental return of an undamaged item is confirmed (UC5 step 10) | FR-57 |
+| Rented → Under maintenance | A rental return of a damaged item is confirmed, with the damage confirmed by a store manager (UC5 ext. 6a) | FR-52, FR-57 |
+| Under maintenance → Available | A store manager confirms that the item can be rented again | DR-02 |
+
+### 7.2 Life of a rental
+
+![State diagram of a rental](../../assets/state_rental.png)
+
+*Editable source: [`assets/state_rental.puml`](../../assets/state_rental.puml) (PlantUML).*
+
+A rental is **not saved** while it is being created: it exists from the payment (UC3 step 15). *Overdue* is **calculated** from the due date and the current date and is not stored (DR-06); a customer with an overdue rental cannot start a new rental (BR-12). A rental return that is cancelled or interrupted by a failure leaves the rental as it was (UC5 ext. 8a and \*a). When the Payment Service does not answer and the refund status is not known, the rental return is saved and the rental is closed with the refund *pending* (UC5 ext. 9b2b).
+
+### 7.3 Gaps found in the SRS
+
+Drawing the diagrams showed three points that the SRS does not cover yet. They are proposed to the owners of the SRS for version 1.2; until then the diagrams say so in a note.
+
+1. **Repair of an item.** DR-02 says that a store manager confirms the change from *Under maintenance* to *Available*, but no functional requirement describes this function.
+2. **Pending refund.** UC5 ext. 9b2b says that a store manager completes a pending refund later, and FR-26 and FR-55 keep the refund pending, but no functional requirement describes how a store manager completes it (UC2 and UC5).
+3. **Item that is never returned.** The SRS keeps it as an open point (section 3.5): the item stays *Rented* and the rental stays *Overdue*, so the customer is blocked (BR-12) and the deposit is not settled. The status transitions of a lost or stolen item depend on the answer of the store manager (interview before W11).
