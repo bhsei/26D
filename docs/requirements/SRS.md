@@ -654,7 +654,7 @@ The use cases below are the source of the analysis models in [reference 9]: the 
 
 - ~~What are the available rental periods, the rental fee per day and the deposit of each product? Is there a maximum rental period?~~ Closed (Q1, W09): the rental period is 1, 3 or 7 days and there is no longer rental (BR-15). The rental fee per day and the deposit of each product come from the product catalog (IR-17).
 - ~~Is the deposit taxed?~~ Closed (Q1, W09): the deposit is not taxed; only the rental fee is taxed (BR-10).
-- For a card payment, is the deposit charged, or only held and released at the rental return? This changes steps 13b and UC5 ([external_interfaces.md](external_interfaces.md), open question 2).
+- ~~For a card payment, is the deposit charged, or only held and released at the rental return?~~ Closed (Q2, W09): the deposit is charged with the rental payment and refunded to the card at the rental return (UC5 ext. 9b, FR-55).
 - Who may register a new customer at the register, and is more than the customer ID needed (for example, contact data to follow up an overdue rental)? DR-18 allows only the customer ID for now.
 - Can one rental include several items, possibly with different rental periods?
 - What happens if two registers try to rent the same item at the same time?
@@ -929,7 +929,7 @@ The cashier closes the cashier session at the end of a shift or when the registe
 
 - ~~How is the late fee calculated (amount per day, maximum) and is it taxed?~~ Closed (Q1, W09): one day's rental fee of the item for each whole day late, no maximum, taxed like the rental fee (BR-16).
 - Is the whole deposit kept for any damage, or only part of it depending on the damage? Who decides: the cashier or the store manager?
-- For a card payment, was the deposit charged or only held (pre-authorization)? If it was held, step 9b releases the hold instead of making a refund ([external_interfaces.md](external_interfaces.md), open question 2).
+- ~~For a card payment, was the deposit charged or only held (pre-authorization)?~~ Closed (Q2, W09): it was charged, so step 9b makes a card refund (FR-55, IR-03).
 - Can someone other than the customer who rented the item bring it back?
 - Can a rental be extended (a new due date) instead of being returned?
 
@@ -1299,7 +1299,7 @@ The open questions of each use case are listed at the end of the use case. The q
 | #  | Question | Working assumption | Requirements that depend on it | Owner | Decide by |
 | -- | -------- | ------------------ | ------------------------------ | ----- | --------- |
 | 1 | Refund period, rental periods, late fee, and whether the deposit is taxed (glossary, open questions 1, 3, 8) | Decided in W09: refund period 30 days; rental periods 1, 3 or 7 days; late fee of one day's rental fee for each whole day late, taxed like the rental fee; the deposit is not taxed | BR-07, BR-10–BR-12, FR-21, FR-34, FR-35, FR-53, FR-54, DR-06, DR-07, BR-15, BR-16 | Avni | Decided in W09 |
-| 2  | Is the deposit of a card rental charged or only held (pre-authorization)? | Charged and refunded | UC3 ext. 13b, UC5 ext. 9b, FR-55, FR-64, IR-03 | Haifa | W09 |
+| 2 | Is the deposit of a card rental charged or only held (pre-authorization)? | Decided in W09: charged and refunded. The deposit is charged with the rental payment (FR-64) and refunded to the card at the rental return through the Payment Service (FR-55, IR-03). No pre-authorization: a hold expires after a few days, so a late return could outlive it, and keeping part of the deposit (late fee, BR-16) or all of it (damage, BR-10) is a normal refund of the rest | UC3 ext. 13b, UC5 ext. 9b, FR-55, FR-64, IR-03, BR-10, BR-16 | Haifa | Decided in W09 |
 | 3 | Can a sale be paid with more than one tender? | Decided in W09: one tender per sale or rental (BR-18); a refund uses the tender of the original transaction (BR-08) | UC1 ext. 9a–9c, FR-09 to FR-12, FR-25, FR-26, DR-05, BR-18, FR-37, FR-64, FR-65 | Alfonso | W09 |
 | 4  | Is an offline card authorization allowed for small amounts? | No; a card payment always needs authorization (BR-05) | FR-10, FR-11, FR-64, IR-01, IR-02 | Haifa | W09 |
 | 5  | How are customers identified and which customer data is stored? | Customer ID only; the store accepts that a new customer ID avoids BR-12 and relies on the deposit (BR-10, BR-12) | UC3 ext. 4a, FR-31, DR-06, DR-18, NFR-12 | Avni | W11 |
