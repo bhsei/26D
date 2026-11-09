@@ -3,12 +3,14 @@
 | | |
 | --- | --- |
 | **Maintainer** | Alfonso Pinto |
-| **Version** | 0.2 (draft for review; UC4 and UC5 aligned with the SSDs v0.6) |
+| **Version** | 0.3 (draft for review; after the internal review #55; aligned with the SSDs v0.7 and contracts 1 to 28) |
 | **Last updated** | W09 |
 | **Part of** | Increment 2 – Design (milestone W11); step 2 of the architecture process |
 | **Inputs** | [System sequence diagrams](system_sequence_diagrams.md), [operation contracts](operation_contracts.md), [SRS](../requirements/SRS.md) §3.1 and §3.2, [architecture](architecture.md) AD-01 to AD-03, AD-10 |
 
-> **Status: draft.** The operations of all five use cases have the names of the [system sequence diagrams](system_sequence_diagrams.md) v0.6. UC1, UC2 and UC3 also have their operation contracts; the contracts of UC4 and UC5 are being written (Josué, W09) and are referenced here when they are ready.
+> **Status: draft.** The operations of all five use cases have the names of the [system sequence diagrams](system_sequence_diagrams.md) v0.7, and each one refers to its [operation contract](operation_contracts.md) (contracts 1 to 28).
+>
+> **v0.3 (review #55):** contract numbers of UC4 and UC5; the same store manager parameters (`managerID`, `pin`) in every operation that needs approval; `selectRental` with its own sub-resource; answers for a second payment and for a card or check amount that does not match; table of the refund results (§3.7); `NOT_AVAILABLE` for every external system and a status for the card reader and the cash drawer; `voidAuthorization` with the transaction ID (AD-07).
 >
 > **v0.2:** sections 3.1 and 3.5 follow the SSDs of UC4 and UC5 (close session in three operations; `findRentalsOfCustomer`, `selectRental`, `recordCondition`, `confirmDamage`; `makePayment` for the amount still due); `approveCashRefund(managerID, reason)` and the session review use the SSD names.
 
@@ -31,9 +33,9 @@ These rules apply to every request of the system API.
 | Format | JSON in UTF-8. Money is a string with two decimals (`"37.90"`), never a floating-point number, so amounts are exact. Dates and times in ISO 8601. | DR-17 |
 | Only on the register | The POS application accepts requests only from `localhost`. Every request applies to the open cashier session of the register, so every transaction is linked to its cashier without sending the employee ID again. | AD-02, BR-13, FR-01 |
 | Card data | The screens never send or receive card data. For a card payment the POS application reads the card through the card reader and passes it only to the Payment Service adapter. The answers show only the last 4 digits. | IR-12, DC-06, NFR-11 |
-| Store manager approval | A request that needs a store manager carries `"manager": {"employeeID": "...", "pin": "..."}`. The PIN is checked like a login (HR System, or the local employee list when the HR System is not available) and is never logged or returned. | FR-06, FR-45, NFR-07 |
+| Store manager approval | Every operation that needs a store manager has the parameters `managerID` and `pin`, and its request carries them as `"manager": {"employeeID": "...", "pin": "..."}`. The PIN is checked like a login (HR System, or the local employee list when the HR System is not available) and is never logged or returned. | FR-06, FR-45, NFR-07 |
 | Business results | An expected business result is an answer, not an error: a payment returns `200` with `"result": "APPROVED"`, `"DECLINED"` or `"NOT_AVAILABLE"`. | IR-02, FR-11 |
-| Errors | `400` invalid input (for example a quantity that is not a whole number) · `403` store manager approval missing or wrong · `404` unknown item, sale, rental or customer · `409` not allowed in the current state (item not *Available*, sale not ended, customer with an overdue rental) · `422` against a business rule (cash amount lower than the total). The body is `{"error": "<code>", "message": "<text for the cashier>"}`. | FR-03, FR-18, FR-31, FR-33 |
+| Errors | `400` invalid input (for example a quantity that is not a whole number) · `403` store manager approval missing or wrong · `404` unknown item, sale, rental or customer · `409` not allowed in the current state (item not *Available*, sale not ended, transaction already paid, customer with an overdue rental) · `422` against a business rule (cash amount lower than the total, card or check amount different from the total). The body is `{"error": "<code>", "message": "<text for the cashier>"}`. | FR-03, FR-18, FR-31, FR-33, BR-18 |
 | Idempotent retry | A payment or refund keeps the transaction ID of the first attempt. Sending the same request again (retry after *Card payment not available*) never charges the customer twice. | IR-02, FR-26 |
 | Lists | Lists for the store manager are paginated: `?limit=20&offset=0`. | Course, step 2 |
 
@@ -43,14 +45,14 @@ The column *Operation* gives the name of the system operation in the SSD; *Contr
 
 ### 3.1 Cashier session – UC4 Start Up and close session
 
-| Operation | Request | Answer | Requirements |
-| --- | --- | --- | --- |
-| `startUp()` | `POST /api/startup` (sent once by the POS program when it starts, before any session) | Register ID and the login screen; or an error and no login when the catalog or the stored data are not available (2a). Records waiting for the Accounting System are sent or stay in the queue; a session interrupted by a crash is ended | FR-41, FR-42, FR-48, FR-63, IR-15 |
-| `logIn(employeeID, pin)` | `POST /api/sessions` `{"employeeID", "pin"}` | `201` session ID, cashier name, request for the opening cash; a warning when the local employee list was used (6c). `403` not found or not an active cashier (6a), or wrong PIN (6b) | FR-40, FR-43–FR-46, FR-49, IR-08, IR-09 |
-| `enterOpeningCash(amount)` | `PUT /api/sessions/current/opening-cash` `{"amount"}` | Session open, main screen. `400` amount not valid (8a) | FR-47 |
-| `closeSession()` | `POST /api/sessions/current/close` | The cash drawer opens for the closing count. `409` a sale, return or rental is still open (2a) | FR-60, IR-14 |
-| `enterClosingCash(amount)` | `PUT /api/sessions/current/closing-cash` `{"amount"}` | Expected cash and difference. `400` amount not valid (3a) | FR-61, FR-62 |
-| `confirmCloseSession()` | `POST /api/sessions/current/confirm-close` | Session closed, login screen; `"toReview": true` and a warning when the difference is larger than 5.00 (4b) | FR-62, FR-74, BR-17 |
+| Operation | Request | Answer | Contract | Requirements |
+| --- | --- | --- | --- | --- |
+| `startUp()` | `POST /api/startup` (sent once by the POS program when it starts, before any session) | Register ID and the login screen; or an error and no login when the catalog or the stored data are not available (2a). Records waiting for the Accounting System are sent or stay in the queue; a session interrupted by a crash is ended | 16 | FR-41, FR-42, FR-48, FR-63, IR-15 |
+| `logIn(employeeID, pin)` | `POST /api/sessions` `{"employeeID", "pin"}` | `201` session ID, cashier name, request for the opening cash; a warning when the local employee list was used (6c). `403` not found or not an active cashier (6a), or wrong PIN (6b) | 17 | FR-40, FR-43–FR-46, FR-49, IR-08, IR-09 |
+| `enterOpeningCash(amount)` | `PUT /api/sessions/current/opening-cash` `{"amount"}` | Session open, main screen. `400` amount not valid (8a) | 18 | FR-47 |
+| `closeSession()` | `POST /api/sessions/current/close` | The cash drawer opens for the closing count. `409` a sale, return, rental or rental return is still open (2a) | 19 | FR-60, IR-14 |
+| `enterClosingCash(amount)` | `PUT /api/sessions/current/closing-cash` `{"amount"}` | Expected cash and difference. `400` amount not valid (3a) | 20 | FR-61, FR-62 |
+| `confirmCloseSession()` | `POST /api/sessions/current/confirm-close` | Session closed, login screen; `"toReview": true` and a warning when the difference is larger than 5.00 (4b) | 21 | FR-62, FR-74, BR-17 |
 
 ### 3.2 Sale – UC1 Process Sale
 
@@ -59,13 +61,13 @@ The column *Operation* gives the name of the system operation in the SSD; *Contr
 | `makeNewSale()` | `POST /api/sales` | `201` sale ID | 1 | FR-01 |
 | `enterItem(itemID, quantity)` | `POST /api/sales/{saleID}/lines` `{"itemID", "quantity"}` | Line number, description, unit price, line subtotal, running subtotal. `404` unknown item · `400` quantity not valid · a warning when the stock level falls below zero | 2 | FR-02–FR-04, FR-18, FR-19 |
 | `removeItem(lineNumber)` | `DELETE /api/sales/{saleID}/lines/{lineNumber}` | New running subtotal | – | FR-05 |
-| `overridePrice(lineNumber, newPrice)` | `PUT /api/sales/{saleID}/lines/{lineNumber}/price` `{"newPrice", "manager"}` | New line subtotal and running subtotal. `403` not a store manager | – | FR-06, BR-04 |
+| `overridePrice(lineNumber, newPrice, managerID, pin)` | `PUT /api/sales/{saleID}/lines/{lineNumber}/price` `{"newPrice", "manager"}` | New line subtotal and running subtotal. `403` not a store manager | – | FR-06, BR-04 |
 | `endSale()` | `POST /api/sales/{saleID}/end` | Subtotal, tax, total; `"taxToBeCorrected": true` when the default tax rate was used. `409` sale without lines | 3 | FR-08, FR-18, IR-04, IR-05 |
-| `makePayment(amount, tenderType)` | `POST /api/sales/{saleID}/payment` `{"tenderType": "CASH" \| "CREDIT_CARD" \| "CHECK", "amount"}` | `"result"`: `APPROVED` (with change due for cash, last 4 digits and authorization code for a card, receipt number) · `DECLINED` (reason) · `NOT_AVAILABLE` (retry allowed). `422` cash lower than the total | 4 | FR-09–FR-16, FR-71, IR-01, IR-02, IR-06, BR-18 |
+| `makePayment(amount, tenderType)` | `POST /api/sales/{saleID}/payment` `{"tenderType": "CASH" \| "CREDIT_CARD" \| "CHECK", "amount"}` | `"result"`: `APPROVED` (with change due for cash, last 4 digits and authorization code for a card, receipt number) · `DECLINED` (reason) · `NOT_AVAILABLE` (retry allowed). `422` cash lower than the total, or a card or check amount different from the total · `409` sale not ended or already paid | 4 | FR-09–FR-16, FR-71, IR-01, IR-02, IR-06, BR-18 |
 | `cancelSale()` | `DELETE /api/sales/{saleID}` | Sale cancelled, no change in the stock levels. `409` already paid | – | FR-07 |
 | `reprintReceipt()` | `POST /api/receipts/{receiptNumber}/print` | Printer status | – | FR-17, FR-29, IR-13 |
 
-One payment per sale (BR-18): after `DECLINED` or `NOT_AVAILABLE` the screen sends a new `makePayment` with the same or another tender, and the sale keeps the same transaction ID.
+One payment per sale (BR-18): after `DECLINED` or `NOT_AVAILABLE` no payment is created, and the screen sends a new `makePayment` with the same or another tender; the sale keeps the same transaction ID. When the cashier gives up a card payment after `NOT_AVAILABLE` (another tender or `cancelSale`), the POS first sends `voidAuthorization` with that transaction ID, so a late approval can never charge the customer (AD-07, IR-15).
 
 ### 3.3 Return – UC2 Handle Returns
 
@@ -75,9 +77,9 @@ One payment per sale (BR-18): after `DECLINED` or `NOT_AVAILABLE` the screen sen
 | `findSale(receiptNumber)` | `PUT /api/returns/{returnID}/sale` `{"receiptNumber"}` | Lines of the sale with the quantity bought and already returned, and the tender. `404` no sale · `409` older than 30 days | 6 | FR-21, BR-07 |
 | `enterReturnItem(itemID, quantity, condition)` | `POST /api/returns/{returnID}/lines` `{"itemID", "quantity", "condition": "RESELLABLE" \| "NOT_RESELLABLE"}` | Return line, refund total, tender of the sale. `409` not in the sale or quantity too large | 7 | FR-22, FR-23 |
 | `removeReturnItem(lineNumber)` | `DELETE /api/returns/{returnID}/lines/{lineNumber}` | New refund total | – | FR-22 |
-| `confirmReturn()` | `POST /api/returns/{returnID}/confirm` | `"refund"`: `CASH_PAID` (drawer opens) · `CARD_REFUNDED` · `NEEDS_APPROVAL` (card declined or check) · `PENDING` (no answer from the Payment Service); receipt number when the return is complete | 8 | FR-25–FR-29, IR-03, BR-08 |
-| `approveCashRefund(managerID, reason)` | `POST /api/returns/{returnID}/cash-approval` `{"reason", "manager"}` | Refund paid in cash, receipt number. `403` not a store manager | 9 | FR-25 |
-| `checkRefundStatus()` | `GET /api/returns/{returnID}/refund` | `CARD_REFUNDED`, `FAILED` (then `NEEDS_APPROVAL`) or still `PENDING` | – | FR-26 |
+| `confirmReturn()` | `POST /api/returns/{returnID}/confirm` | `"refund"`: `CASH_PAID` (drawer opens) · `CARD_REFUNDED` · `NEEDS_APPROVAL` · `PENDING` (see §3.7); receipt number when the return is complete | 8 | FR-25–FR-29, IR-03, BR-08 |
+| `approveCashRefund(managerID, pin, reason)` | `POST /api/returns/{returnID}/cash-approval` `{"reason", "manager"}` | Refund paid in cash, receipt number. `403` not a store manager · `409` the refund is not `NEEDS_APPROVAL` | 9 | FR-25 |
+| `checkRefundStatus()` | `GET /api/returns/{returnID}/refund` | `CARD_REFUNDED`, `NEEDS_APPROVAL` or still `PENDING` (see §3.7) | – | FR-26 |
 | `cancelReturn()` | `DELETE /api/returns/{returnID}` | Return cancelled, nothing changed | – | FR-24 |
 
 ### 3.4 Rental – UC3 Process Rental
@@ -95,34 +97,49 @@ One payment per sale (BR-18): after `DECLINED` or `NOT_AVAILABLE` the screen sen
 
 ### 3.5 Rental return – UC5 Return Rental
 
-| Operation | Request | Answer | Requirements |
-| --- | --- | --- | --- |
-| `makeNewRentalReturn()` | `POST /api/rental-returns` | `201` rental return ID | FR-50 |
-| `findRental(code)` | `PUT /api/rental-returns/{id}/rental` `{"code"}` (serial number of the item or rental receipt number) | Customer, item, rental date, due date, deposit, tender. `404` no open rental for this item (5a) | FR-51 |
-| `findRentalsOfCustomer(customerID)` | `GET /api/rentals?customerID=...&open=true` | Open rentals of the customer (5b) | FR-51 |
-| `selectRental(rentalID)` | `PUT /api/rental-returns/{id}/rental` `{"rentalID"}` | As `findRental` | FR-51 |
-| `recordCondition(condition, damageNote)` | `PUT /api/rental-returns/{id}/condition` `{"condition": "UNDAMAGED" \| "DAMAGED", "damageNote"}` | On time: full deposit as refund. Late: days late, late fee, its tax and the refund (7a), or the amount still due when the late fee is larger than the deposit (7b). Damaged: request for a store manager (6a) | FR-52–FR-54, FR-73, BR-16 |
-| `confirmDamage(managerID, pin)` | `POST /api/rental-returns/{id}/damage-confirmation` `{"manager"}` | Damage confirmed, refund zero. `403` not a store manager | FR-52, FR-72 |
-| `makePayment(amount, tenderType)` | `POST /api/rental-returns/{id}/payment` (same body and answer as for a sale; only in 7b) | As in UC1 | FR-73, BR-18 |
-| `confirmRentalReturn()` | `POST /api/rental-returns/{id}/confirm` | As `confirmReturn` of UC2 (`CASH_PAID`, `CARD_REFUNDED`, `NEEDS_APPROVAL`, `PENDING`); item becomes *Available* or *Under maintenance*; rental return receipt | FR-55, FR-57–FR-59, IR-03 |
-| `approveCashRefund(managerID, reason)` | `POST /api/rental-returns/{id}/cash-approval` `{"reason", "manager"}` | As in UC2 (same operation, Contract 9) | FR-55 |
-| *refund status* | `GET /api/rental-returns/{id}/refund` | As in UC2 | FR-55 |
-| `cancelRentalReturn()` | `DELETE /api/rental-returns/{id}` | Rental and item status unchanged (8a) | FR-56 |
+| Operation | Request | Answer | Contract | Requirements |
+| --- | --- | --- | --- | --- |
+| `makeNewRentalReturn()` | `POST /api/rental-returns` | `201` rental return ID | 22 | FR-50 |
+| `findRental(code)` | `PUT /api/rental-returns/{id}/rental` `{"code"}` (serial number of the item or rental receipt number) | Customer, item, rental date, due date, deposit, tender. `404` no open rental for this item (5a) | 23 | FR-51 |
+| `findRentalsOfCustomer(customerID)` | `GET /api/rentals?customerID=...&open=true` | Open rentals of the customer (5b) | 24 | FR-51 |
+| `selectRental(rentalID)` | `PUT /api/rental-returns/{id}/selected-rental` `{"rentalID"}` | As `findRental`. `409` the rental is not open | 25 | FR-51 |
+| `recordCondition(condition, damageNote)` | `PUT /api/rental-returns/{id}/condition` `{"condition": "UNDAMAGED" \| "DAMAGED", "damageNote"}` | On time: full deposit as refund. Late: days late, late fee, its tax and the refund (7a), or the amount still due when the late fee is larger than the deposit (7b). Damaged: request for a store manager (6a) | 26 | FR-52–FR-54, FR-73, BR-16 |
+| `confirmDamage(managerID, pin)` | `POST /api/rental-returns/{id}/damage-confirmation` `{"manager"}` | Damage confirmed, refund zero. `403` not a store manager | 27 | FR-52, FR-72 |
+| `makePayment(amount, tenderType)` | `POST /api/rental-returns/{id}/payment` (same body and answer as for a sale; only in 7b, for the amount still due) | As in UC1. `409` no amount still due | 4 | FR-73, BR-18 |
+| `confirmRentalReturn()` | `POST /api/rental-returns/{id}/confirm` | As `confirmReturn` of UC2 (§3.7); item becomes *Available* or *Under maintenance*; rental return receipt | 28 | FR-55, FR-57–FR-59, IR-03 |
+| `approveCashRefund(managerID, pin, reason)` | `POST /api/rental-returns/{id}/cash-approval` `{"reason", "manager"}` | As in UC2 (same operation) | 9 | FR-55 |
+| `checkRefundStatus()` | `GET /api/rental-returns/{id}/refund` | As in UC2 (§3.7) | – | FR-55 |
+| `cancelRentalReturn()` | `DELETE /api/rental-returns/{id}` | Rental and item status unchanged (8a) | – | FR-56 |
 
 ### 3.6 Store manager functions
 
 | Operation | Request | Answer | Requirements |
 | --- | --- | --- | --- |
 | Reorder and stock-check list | `GET /api/products/flagged?limit=20&offset=0` | Products flagged for reorder or stock check, with stock level and threshold | FR-68, BR-09 |
-| Change the default tax rate | `PUT /api/settings/default-tax-rate` `{"rate", "manager"}` | New rate, who changed it and when | FR-69, IR-05 |
-| Disable an employee in the local list | `PUT /api/employees/{employeeID}/local-status` `{"active": false, "manager"}` | Employee disabled, who did it and when | FR-70, IR-09 |
+| Change the default tax rate (`managerID`, `pin`) | `PUT /api/settings/default-tax-rate` `{"rate", "manager"}` | New rate, who changed it and when | FR-69, IR-05 |
+| Disable an employee in the local list (`managerID`, `pin`) | `PUT /api/employees/{employeeID}/local-status` `{"active": false, "manager"}` | Employee disabled, who did it and when | FR-70, IR-09 |
 | `listSessionsToReview()` | `GET /api/sessions?toReview=true&limit=20&offset=0` | Sessions with a cash difference larger than 5.00 | FR-74 |
-| `confirmSessionReview(sessionID, reason)` | `POST /api/sessions/{sessionID}/review` `{"reason", "manager"}` | Review recorded | FR-75 |
-| Import the catalog | `POST /api/catalog/imports` (file + `"manager"`) | Number of products imported, or the fields that are missing or not valid (the previous catalog is kept) | IR-17 |
+| `confirmSessionReview(sessionID, reason, managerID, pin)` | `POST /api/sessions/{sessionID}/review` `{"reason", "manager"}` | Review recorded | FR-75 |
+| Import the catalog (`managerID`, `pin`) | `POST /api/catalog/imports` (file + `"manager"`) | Number of products imported, or the fields that are missing or not valid (the previous catalog is kept) | IR-17 |
+
+### 3.7 Card refund results (UC2 and UC5)
+
+The handler turns the answer of the Payment Service (§4.1) into the refund state of the system API. Cash is paid only after a confirmed failure and with a store manager (UC2 and UC5 ext. 9b2a, 9b2b, 9c; FR-25, FR-26, FR-55).
+
+| Tender of the original transaction | Answer of the Payment Service | Refund state in the API | What the handler does |
+| --- | --- | --- | --- |
+| Cash | – | `CASH_PAID` | Opens the cash drawer (IR-14) and completes the return |
+| Credit card | `refund` → `APPROVED` | `CARD_REFUNDED` | Records the refund with its reference and completes the return |
+| Credit card | `refund` → `DECLINED` | `NEEDS_APPROVAL` | No cash; waits for `approveCashRefund` (9b2a) |
+| Credit card | `refund` → `NOT_AVAILABLE` | `PENDING` | No cash; asks `refundStatus` with the same transaction ID (9b2b) |
+| Credit card | `refundStatus` → `APPROVED` | `CARD_REFUNDED` | As above: the refund was made |
+| Credit card | `refundStatus` → `DECLINED` (refund failed or unknown to the Payment Service) | `NEEDS_APPROVAL` | Confirmed failure; cash only with `approveCashRefund` |
+| Credit card | `refundStatus` → `NOT_AVAILABLE` | `PENDING` | The return is saved with the refund *pending*; nothing is paid; the cashier can ask again later with `checkRefundStatus` |
+| Check | – | `NEEDS_APPROVAL` | Cash only with `approveCashRefund` (9c) |
 
 ## 4. Interfaces of the technical services (application layer → adapters)
 
-The application layer only knows these interfaces (AD-01, DC-02). Each one has a real implementation (out of scope in our project), a stub implementation for the tests and the demo (DC-01), and the timeout of SRS §3.1.3. Where the timeout and the fallback are handled (in each adapter or in a common component) is decided in AD-07 (Haifa). The signatures are in Java (AD-03); the classes of the parameters are listed under each interface.
+The application layer only knows these interfaces (AD-01, DC-02). Each one has a real implementation (out of scope in our project), a stub implementation for the tests and the demo (DC-01), and the timeout of SRS §3.1.3. Every method that calls an external system returns `NOT_AVAILABLE` after its timeout instead of an error; the adapter applies the timeout and the handler decides the fallback (AD-07). The signatures are in Java (AD-03); the classes of the parameters are listed under each interface.
 
 ### 4.1 External systems
 
@@ -131,7 +148,7 @@ public interface PaymentService {                                   // timeout 1
     PaymentResult authorize(PaymentRequest request);                // IR-01, IR-16
     PaymentResult refund(RefundRequest request);                    // IR-03
     PaymentResult refundStatus(String transactionID);               // FR-26, FR-55
-    PaymentResult voidAuthorization(String paymentReference);       // IR-15
+    PaymentResult voidAuthorization(String transactionID);          // IR-15, AD-07: after a crash or a payment given up
 }
 
 public interface TaxCalculator {                                    // timeout 5 s (IR-05)
@@ -139,12 +156,12 @@ public interface TaxCalculator {                                    // timeout 5
 }
 
 public interface AccountingSystem {                                 // called only from the local queue (IR-06, IR-07)
-    Acknowledgement send(AccountingRecord record);
+    Acknowledgement send(AccountingRecord record);                  // timeout 5 s (AD-07)
 }
 
 public interface HRSystem {                                         // timeout 5 s (IR-09)
     EmployeeCheck checkEmployee(String employeeID, String pin);     // IR-08
-    List<EmployeeEntry> employeeList();                             // IR-09, FR-46
+    EmployeeListResult employeeList();                              // IR-09, FR-46
 }
 
 public interface CatalogSource {
@@ -159,15 +176,16 @@ public interface CatalogSource {
 | `PaymentResult` | `APPROVED`, `DECLINED` or `NOT_AVAILABLE` (timeout, error or connection lost); authorization code, payment reference, last 4 digits, reason |
 | `TaxRequest` / `TaxResult` | transaction ID and type, lines (item ID, quantity, line subtotal), date / tax per line and total, or `NOT_AVAILABLE` |
 | `AccountingRecord` | the fields of the [external interfaces](../requirements/external_interfaces.md) §3.3, with the transaction ID and the mark *tax to be corrected* |
-| `Acknowledgement` | the transaction ID received; the queue removes the record only after it (FR-42) |
-| `EmployeeCheck` / `EmployeeEntry` | valid, active, name, role (*cashier* or *store manager*) / employee ID, name, role, active, PIN as a salted hash only (DR-11) |
+| `Acknowledgement` | `RECEIVED` with the transaction ID, or `NOT_AVAILABLE`; the queue removes the record only after `RECEIVED` (FR-42) and keeps it otherwise (IR-07) |
+| `EmployeeCheck` | `VALID` (with name and role, *cashier* or *store manager*), `INVALID` (not found, not active or wrong PIN) or `NOT_AVAILABLE`, after which the handler checks the local employee list (UC4 6c, IR-09) |
+| `EmployeeListResult` | `OK` with the list of `EmployeeEntry` (employee ID, name, role, active, PIN as a salted hash only, DR-11), or `NOT_AVAILABLE`, after which the local copy is kept as it is |
 | `CatalogImport` | products imported, or the list of rejected fields |
 
 ### 4.2 Devices (AD-10)
 
 ```java
 public interface CardReader {
-    CardToken read();                       // IR-12: token, last 4 digits, expiry; passed only to PaymentService
+    CardReadResult read();                  // IR-12: OK with a CardToken (token, last 4 digits, expiry; passed only to PaymentService) or ERROR
 }
 
 public interface ReceiptPrinter {
@@ -175,9 +193,17 @@ public interface ReceiptPrinter {
 }
 
 public interface CashDrawer {
-    void open(DrawerReason reason, String employeeID);   // IR-14: CASH_PAYMENT, CASH_REFUND, OPENING_COUNT, CLOSING_COUNT; every opening is logged
+    DrawerStatus open(DrawerReason reason, String employeeID);   // IR-14: CASH_PAYMENT, CASH_REFUND, OPENING_COUNT, CLOSING_COUNT; OPENED or ERROR; every opening is logged
 }
 ```
+
+When a device fails, the register goes on with the fallback of SRS §3.1.2:
+
+| Result | What the screen shows | Source |
+| --- | --- | --- |
+| `CardReader.read()` → `ERROR` (reader error or no card read) | "Card could not be read": read the card again or use another tender; the attempt counts as a failed payment and no payment is created | UC1 ext. 9b1a, contract 4, IR-12 |
+| `ReceiptPrinter.print()` → `NO_PAPER` or `ERROR` | The printer message; the transaction is already saved and the receipt can be reprinted (`reprintReceipt`) | IR-13, FR-17 |
+| `CashDrawer.open()` → `ERROR` | "The cash drawer did not open": open it with the key; the opening is logged as manual | IR-14 |
 
 The barcode scanner works as a keyboard and has no interface (AD-10, IR-11).
 
@@ -200,8 +226,8 @@ In our project the four external systems are stubs: small HTTP servers that answ
 
 ## 6. Open points
 
-1. **Contracts of UC4 and UC5** (Josué, W09): referenced in sections 3.1 and 3.5 when they are written. Contract 4 (`makePayment`) must also name the `RentalReturn`, and Contract 9 (`approveCashRefund`) must also cover a rental return.
+1. ~~**Contracts of UC4 and UC5**~~ Closed (W09): contracts 16 to 28 are referenced in sections 3.1 and 3.5; contracts 4 and 9 also cover the rental return.
 2. ~~**Card deposit of a rental**~~ Closed (SRS §5.3, question 2, W09): the deposit is charged and refunded, so `PaymentService` needs no `hold` or `release` operation.
 3. ~~**Offline card authorization**~~ Closed (SRS §5.3, question 4, W09): not allowed, so `authorize` has no deferred result.
-4. **Timeouts and fallbacks** in the adapters or in a common component: AD-07 (Haifa).
+4. ~~**Timeouts and fallbacks**~~ Closed (AD-07, W09): the adapter applies the timeout and returns `NOT_AVAILABLE`; the handler decides the fallback.
 5. **Storage interfaces**: after AD-05 and AD-06 (W10).
