@@ -201,7 +201,7 @@ In our project the four external systems are stubs: small HTTP servers that answ
 ## 6. Open points
 
 1. **Contracts of UC4 and UC5** (Josué, W09): referenced in sections 3.1 and 3.5 when they are written. Contract 4 (`makePayment`) must also name the `RentalReturn`, and Contract 9 (`approveCashRefund`) must also cover a rental return.
-2. **Card deposit of a rental** (SRS §5.3, question 2, Haifa): if the deposit is only held, `PaymentService` needs `hold` and `release` operations.
-3. **Offline card authorization** (SRS §5.3, question 4, Haifa): if it is allowed for small amounts, `authorize` gets a deferred result.
+2. ~~**Card deposit of a rental**~~ Closed (SRS §5.3, question 2, W09): the deposit is charged and refunded, so `PaymentService` needs no `hold` or `release` operation.
+3. ~~**Offline card authorization**~~ Closed (SRS §5.3, question 4, W09): not allowed, so `authorize` has no deferred result.
 4. **Timeouts and fallbacks** in the adapters or in a common component: AD-07 (Haifa).
 5. **Storage interfaces**: after AD-05 and AD-06 (W10).
