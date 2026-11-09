@@ -101,14 +101,30 @@ else The Cashier uses another tender
   Cashier -> Screens : choose cash
   Screens -> Ctl : POST /api/sales/{saleID}/payment (CASH)
   Ctl -> H : makePayment(amount, CASH)
+  H -> PayA : voidAuthorization(T)
+  PayA -> PayS : POST /payments/voids (T)
+  PayS --> PayA : void confirmed
+  PayA --> H : PaymentResult
   note right of H
-    Continues as UC1 extension 9a (cash payment).
+    The first request got no answer, so its outcome is unknown.
+    The handler voids it with the same T, so a late approval
+    can't charge the customer (IR-15, AD-07).
+  end note
+  note right of H
+    Then it continues as UC1 extension 9a (cash payment).
     Still one payment per sale (BR-18).
   end note
 else The Cashier cancels the sale
   Cashier -> Screens : cancel sale
   Screens -> Ctl : DELETE /api/sales/{saleID}
   Ctl -> H : cancelSale()
+  H -> PayA : voidAuthorization(T)
+  PayA -> PayS : POST /payments/voids (T)
+  PayS --> PayA : void confirmed
+  PayA --> H : PaymentResult
+  note right of H
+    Same void as above: the card payment is given up (IR-15, AD-07).
+  end note
   H -> Sale : cancel
   note right of H
     No change in the stock levels (FR-07).
