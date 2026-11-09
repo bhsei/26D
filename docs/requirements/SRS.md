@@ -782,20 +782,20 @@ The cashier closes the cashier session at the end of a shift or when the registe
 | **Function**          | Close session                                                                                                |
 | **Primary actor**     | Cashier                                                                                                      |
 | **Trigger**           | The cashier ends the shift or closes the register                                                            |
-| **Precondition**      | A cashier session is open and no sale, return or rental of the session is in progress                        |
+| **Precondition**      | A cashier session is open and no sale, return, rental or rental return of the session is in progress                        |
 | **Success guarantee** | The session is closed with its end time, closing cash and difference; the register shows the login screen    |
 
 **Main success scenario**
 
 | Actor action                                                       | System responsibility                                                                                                                                                  |
 | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. The Cashier chooses to close the cashier session.               | 2. The System checks that no sale, return or rental of the session is open and opens the cash drawer for the closing count (IR-14).                                    |
+| 1. The Cashier chooses to close the cashier session.               | 2. The System checks that no sale, return, rental or rental return of the session is open and opens the cash drawer for the closing count (IR-14).                                    |
 | 3. The Cashier counts the cash in the drawer and enters the amount. | 4. The System calculates the expected cash (opening cash plus cash payments minus cash refunds of the session) and shows the difference with the closing cash.        |
 | 5. The Cashier confirms.                                           | 6. The System records the end time, the closing cash and the difference, closes the session and shows the login screen (UC4 step 4).                                   |
 
 **Extensions**
 
-- **2a. A sale, return or rental of the session is still open:**
+- **2a. A sale, return, rental or rental return of the session is still open:**
   1. The System refuses to close the session and asks the Cashier to finish or cancel it first (FR-60).
 - **3a. The amount entered is not valid (empty, not a number or negative):**
   1. The System rejects the amount and asks for it again (FR-61).
@@ -1000,7 +1000,7 @@ Derived from the fully dressed use cases. ID ranges: UC1 FR-01–FR-19, UC2 FR-2
 | FR-57 | The system shall save every confirmed rental return linked to its rental, close the rental and change the item status to _Available_ (undamaged) or _Under maintenance_ (damaged).                                                                                                                                                                                                                                                                     | Should   | UC5 step 10, ext. 6a, BR-11, BR-12, BR-13                |
 | FR-58 | The system shall send every confirmed rental return to the Accounting System, queueing it if the system is not available.                                                                                                                                                                                                                                                                                                                              | Should   | UC5 step 10, ext. 10a, BR-14, IR-06, IR-07               |
 | FR-59 | The system shall print a rental return receipt with the common receipt contents (FR-71), the item and serial number, rental, due and return dates, condition, deposit, late fee and tax, amount kept and refund.                                                                                                                                                                                                                                       | Should   | UC5 step 11, ext. 11a, NFR-11                            |
-| FR-60 | The system shall allow the cashier to close the cashier session, and shall refuse to close it while a sale, return or rental of the session is still open. | Must | UC4 close session steps 1–2, ext. 2a, DR-09 |
+| FR-60 | The system shall allow the cashier to close the cashier session, and shall refuse to close it while a sale, return, rental or rental return of the session is still open. | Must | UC4 close session steps 1–2, ext. 2a, DR-09 |
 | FR-61 | When the cashier closes the session, the system shall open the cash drawer for the closing count, ask for the closing cash, reject an amount that is not valid and record the amount with the session. | Must | UC4 close session steps 2–3, ext. 3a, IR-14 |
 | FR-62 | The system shall calculate the expected cash of the session (opening cash plus cash payments minus cash refunds), show the difference with the closing cash and record the difference with the session. | Should | UC4 close session step 4, ext. 4a, #26, BR-17 |
 | FR-63 | The system shall record the end time when a session is closed. When a session was interrupted by a failure, the system shall set its end time to the time of the next start-up and mark it as interrupted, without closing cash. | Must | UC4 close session step 6, ext. \*a, DR-09 |
