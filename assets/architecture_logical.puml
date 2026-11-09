@@ -35,33 +35,38 @@ package "UI layer" as UI {
 package "Application / domain layer" as APP {
   package "application" as application {
     rectangle "SessionHandler · SaleHandler · ReturnHandler\nRentalHandler · RentalReturnHandler · ManagerHandler" as Handlers
+    rectangle "ManagerApproval\n(manager ID + PIN, AD-09)" as Approval
+    rectangle "AccountingSender\n(background, IR-06)" as Sender
   }
   package "application.interfaces" as interfaces {
-    rectangle "<<interface>>\nPaymentService · TaxCalculator · AccountingSystem\nHRSystem · CatalogSource\nCardReader · ReceiptPrinter · CashDrawer · repositories" as Interfaces
+    rectangle "<<interface>>\nPaymentService · TaxCalculator · AccountingSystem\nHRSystem · CatalogSource\nCardReader · ReceiptPrinter · CashDrawer · repositories\n+ result classes (PaymentResult, TaxResult…)" as Interfaces
   }
-  package "domain.store" as dstore {
-    rectangle "Store · Register\nEmployee · CashierSession" as DStore
-  }
-  package "domain.catalog" as dcatalog {
-    rectangle "ProductCatalog\nProductDescription · Item" as DCatalog
-  }
-  package "domain.transactions" as dtrans {
-    rectangle "Transaction · Sale · Return · Rental · RentalReturn\n(line items) · Customer · Receipt · AccountingRecord" as DTrans
-  }
-  package "domain.payments" as dpay {
-    rectangle "Payment · CashPayment · CreditCardPayment\nCheckPayment · Refund" as DPay
+  package "domain" as domain {
+    package "domain.store" as dstore {
+      rectangle "Store · Register\nEmployee · CashierSession" as DStore
+    }
+    package "domain.catalog" as dcatalog {
+      rectangle "ProductCatalog\nProductDescription · Item" as DCatalog
+    }
+    package "domain.transactions" as dtrans {
+      rectangle "Transaction · Sale · Return · Rental · RentalReturn\n(line items) · Customer · Receipt · AccountingRecord" as DTrans
+    }
+    package "domain.payments" as dpay {
+      rectangle "Payment · CashPayment · CreditCardPayment\nCheckPayment · Refund" as DPay
+    }
   }
 }
 
 package "Technical services layer" as TECH {
   package "technical.external (one adapter per system)" as external {
-    rectangle "PaymentServiceAdapter · TaxCalculatorAdapter\nAccountingSystemAdapter · HRSystemAdapter · CatalogFileImport" as Adapters
+    rectangle "PaymentServiceAdapter · TaxCalculatorAdapter\nAccountingSystemAdapter · HRSystemAdapter · CatalogSourceAdapter" as Adapters
   }
   package "technical.devices (Device Service)" as devices {
     rectangle "CardReaderDriver · ReceiptPrinterDriver\nCashDrawerDriver" as Drivers
   }
   package "technical.storage" as storage {
     rectangle "TransactionRepository · ItemRepository\nAccountingQueue · EmployeeList" as Repos
+    rectangle "StoreDatabaseSync\n(placeholder, AD-05, W10)" as Sync
   }
   package "technical.logging" as logging {
     rectangle "EventLog" as Log
@@ -70,23 +75,24 @@ package "Technical services layer" as TECH {
 
 Screens -down-> Controllers : HTTP + JSON (localhost)
 Controllers -down-> Handlers : system operations
-Handlers -down-> DTrans
+Handlers -down-> domain
 Handlers -down-> Interfaces
-DTrans -[hidden]right- DPay
+Handlers -right-> Approval
+Approval -down-> Interfaces
+Sender -down-> Interfaces : AccountingQueue to\nAccountingSystem
 DStore -[hidden]right- DCatalog
+DTrans -[hidden]right- DPay
 DStore -[hidden]down- DTrans
+Repos -[hidden]right- Sync
 Adapters -up-|> Interfaces : implements
 Drivers -up-|> Interfaces : implements
 Repos -up-|> Interfaces : implements
 Adapters -down-> Log
 Drivers -down-> Log
 
-note right of Adapters
-  Each adapter talks to the stub of its
-  external system (DC-01) and returns
-  NOT_AVAILABLE after its timeout (AD-07).
-  A real system replaces the stub by
-  changing only its adapter (DC-02).
-end note
+legend bottom
+  Each adapter talks to the stub of its external system (DC-01) and returns NOT_AVAILABLE after its timeout (AD-07).
+  A real system replaces the stub by changing only its adapter (DC-02).
+endlegend
 
 @enduml
