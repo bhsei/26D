@@ -1,0 +1,121 @@
+@startuml
+' NewEra POS - Interaction view: UC1 Process Sale paid by credit card, through the layers (W09)
+' Team D - editable source of assets/architecture_uc1.png
+' Render with: java -jar plantuml.jar -tpng assets/architecture_uc1.puml
+' Operation names follow docs/design/system_interfaces.md (section 3.2) and the SSD of UC1;
+' the participants are the classes of the logical view (docs/design/architecture.md, section 4.2).
+
+skinparam shadowing false
+skinparam dpi 130
+skinparam defaultFontName Arial
+skinparam ArrowColor #444444
+skinparam SequenceLifeLineBorderColor #444444
+skinparam ParticipantBorderColor #1F4E79
+skinparam ParticipantBackgroundColor #EAF1FB
+skinparam ActorBorderColor #444444
+skinparam ActorBackgroundColor #FFFFFF
+skinparam BoxPadding 6
+skinparam SequenceGroupBackgroundColor #F4F8FD
+skinparam SequenceGroupBorderColor #1F4E79
+skinparam SequenceDividerBackgroundColor #EAF1FB
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #B8A04A
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 170
+
+title NewEra POS - Interaction view: UC1 Process Sale paid by credit card
+
+actor ":Cashier" as Cashier
+box "UI layer" #F4F8FD
+  participant ":Screens\n(browser)" as Screens
+  participant ":SaleController" as Ctl
+end box
+box "Application / domain layer" #F4F8FD
+  participant ":SaleHandler" as H
+  participant ":ProductCatalog" as Cat
+  participant ":Sale" as Sale
+end box
+box "Technical services" #F4F8FD
+  participant ":TaxCalculator\nAdapter" as TaxA
+  participant ":CardReader\nDriver" as CR
+  participant ":PaymentService\nAdapter" as PayA
+  participant ":Transaction\nRepository" as Repo
+  participant ":Accounting\nQueue" as Q
+  participant ":ReceiptPrinter\nDriver" as Pr
+end box
+participant "Tax Calculator\n(stub)" as TaxS <<external>>
+participant "Payment Service\n(stub)" as PayS <<external>>
+
+note over Cashier, Ctl
+  Precondition: a cashier session is open (UC4).
+  The scanner works as a keyboard (IR-11), so the item ID arrives like typed text.
+end note
+
+== Start the sale and enter the items (UC1 steps 2-5) ==
+Cashier -> Screens : new sale
+Screens -> Ctl : POST /api/sales
+Ctl -> H : makeNewSale()
+H -> Sale ** : create (linked to the cashier session)
+Ctl --> Screens : sale ID
+loop for each item
+  Cashier -> Screens : scan or type itemID, quantity
+  Screens -> Ctl : POST /api/sales/{saleID}/lines
+  Ctl -> H : enterItem(itemID, quantity)
+  H -> Cat : findProduct(itemID)
+  Cat --> H : ProductDescription
+  H -> Sale : addLineItem(product, quantity)
+  Sale --> H : line subtotal, running subtotal
+  H --> Ctl : line data
+  Ctl --> Screens : description, unit price, subtotals
+end
+note right of Screens
+  Registering a sale line takes less than 1 s (NFR-01).
+end note
+
+== End the sale: the tax (steps 6-7) ==
+Cashier -> Screens : end sale
+Screens -> Ctl : POST /api/sales/{saleID}/end
+Ctl -> H : endSale()
+H -> TaxA : calculateTax(TaxRequest)
+TaxA -> TaxS : POST /tax
+TaxS --> TaxA : tax of each line, total tax
+TaxA --> H : TaxResult
+H -> Sale : setTax(tax)
+Sale --> H : total
+H --> Ctl : subtotal, tax, total
+Ctl --> Screens : subtotal, tax, total
+
+== Pay by credit card (steps 8-11) ==
+Cashier -> Screens : choose credit card
+Screens -> Ctl : POST /api/sales/{saleID}/payment (CREDIT_CARD)
+Ctl -> H : makePayment(amount, CREDIT_CARD)
+H -> CR : read()
+CR --> H : CardToken (never stored or logged)
+note right of CR
+  The token stays in memory. The handler gives it only to the
+  PaymentServiceAdapter, never to a screen, a repository or the EventLog (AD-09, DC-06).
+end note
+H -> PayA : authorize(PaymentRequest)
+note right of PayA
+  PaymentRequest = transaction ID, register ID, amount, tender, card token.
+  The adapter applies the timeout of 10 s (AD-07).
+end note
+PayA -> PayS : POST /payments/authorizations
+PayS --> PayA : APPROVED, authorization code, payment reference, last 4 digits
+PayA --> H : PaymentResult APPROVED
+
+== Save and print (steps 11-12) ==
+H -> Sale : markPaid(CreditCardPayment)
+H -> Cat : reduceStock(sold quantities)
+H -> Repo : save(sale)
+H -> Q : enqueue(AccountingRecord)
+note right of Q
+  The record goes to the Accounting System later, from the queue.
+  The receipt does not wait for it (IR-06).
+end note
+H -> Pr : print(receipt)
+Pr --> H : READY
+H --> Ctl : APPROVED, last 4 digits, authorization code, receipt number
+Ctl --> Screens : APPROVED, receipt number
+Screens --> Cashier : payment approved, receipt printed
+@enduml
