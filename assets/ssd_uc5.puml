@@ -92,7 +92,7 @@ else rental paid by credit card (9b)
   else declined (9b2a)
     POS --> Cashier : reason; no cash is paid, a store manager must approve a cash refund
     deactivate POS
-    Cashier -> POS : approveCashRefund(managerID, reason)
+    Cashier -> POS : approveCashRefund(managerID, pin, reason)
     activate POS
     POS --> Cashier : refund due in cash (drawer opens), rental return receipt
     deactivate POS
@@ -103,7 +103,7 @@ else rental paid by credit card (9b)
 else rental paid by check (9c, Could)
   POS --> Cashier : a check cannot be refunded; a store manager must approve a cash refund
   deactivate POS
-  Cashier -> POS : approveCashRefund(managerID, reason)
+  Cashier -> POS : approveCashRefund(managerID, pin, reason)
   activate POS
   POS --> Cashier : refund due in cash (drawer opens), rental return receipt
   deactivate POS
