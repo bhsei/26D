@@ -54,9 +54,22 @@ Team: D · Project: NewEra POS / Role: Quality and Requirements
 
 ### W08
 **What I did:** 
-- Consolidated the Team D review for Team E (merged findings from 4 reviewers into 26 unique issues) and published them in the bhsei/26E repository.
-- Responded to 7 review findings from Teams B and C, applying changes to the SRS (new NFR-20, §1.6 Writing rules, §4 Verification updates) and aligning `nfrs.md`, `quality_goals.md`, and `requirements_conventions.md`.
-- Wrote the operation contracts for UC2 (Handle Returns) and UC3 (Process Rental), and updated the UC1 `makePayment` contract to support rentals.
+- Consolidated the Team E review (merged 26 findings from 4 reviewers) and published them in the bhsei/26E repository.
+- Responded to 7 cross-team review findings (Teams B and C) with decisions (Accepted/Partially accepted).
+- Updated the SRS v1.1: split NFR-08 (PINs and encryption), added NFR-20, added measurement conditions to NFR-01/02/03/05/09, and added §1.6 Writing rules.
+- Aligned the informative documents (`nfrs.md`, `quality_goals.md`, `requirements_conventions.md`) with the SRS.
+- Wrote operation contracts for UC2 and UC3.
+**Hours:** 8
+**Problems:** Ensuring the NFR texts were completely identical across all documents without breaking the numbering used by other teammates.
+**Next:** Start the architecture design (W09) and update UC4/UC5 contracts.
+
+### W09
+**What I did:** 
+- Wrote the operation contracts for UC4 (Start Up / Close Session) and UC5 (Return Rental), contracts 16 to 28, and updated Contract 4 (`makePayment`) and Contract 9 (`approveCashRefund`) to cover rental returns (based on Borja's SSDs).
+- Updated `architecture.md`: wrote §5 Correspondences (mapping views to views, and requirements to components) and defined decision record AD-09 (Security of card data and PINs).
+- Reviewed Borja's Data View (§4.5) and published a GitHub Issue with 2 findings about local/store database synchronization.
+- Fixed leftover NFR-08 citations in the SRS (changed to NFR-11 and NFR-20 for masking and encryption).
+- Checked Team E's repository to verify if they published their SRS revision (pending task from W08).
 **Hours:** 7
-**Problems:** Ensuring the NFR texts were consistent across all documents without breaking the numbering used by other team members.
-**Next:** Prepare for the W09 presentation and start the architectural design phase.
+**Problems:** Aligning the operation contracts with the domain model while keeping the strict UPM format (postconditions only describing state changes) and ensuring the architectural components matched the system interfaces.
+**Next:** Prepare for the W10 User Interface Design and continue with the design increment.
