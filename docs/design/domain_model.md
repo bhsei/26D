@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Maintainer** | Borja Nicolás |
-| **Version** | 0.4 (draft for review; one tender for each sale or rental, BR-18) |
+| **Version** | 0.5 (draft for review; names aligned with the contracts of UC2, UC4 and UC5) |
 | **Last updated** | W09 |
 | **Part of** | Increment 2 (Design), input to the SRS section 3.5, the [system sequence diagram](system_sequence_diagrams.md) and the [operation contracts](operation_contracts.md) |
 
@@ -26,7 +26,7 @@ Names follow the glossary. The names used in the [operation contracts](operation
 | **Store** | The store that owns the registers, the catalog and the employees. | `name`, `defaultTaxRate` | BR-02 |
 | **Register** | A physical POS terminal. | `registerID` | UC4 |
 | **Employee** | A person of the HR System. The role decides what he or she may do. A cashier and a store manager are employees with a different `role`. | `employeeID`, `name`, `role`, `isActive` | UC4, BR-04, BR-13 |
-| **CashierSession** | Period in which one employee works at one register; every transaction belongs to a session. | `startTime`, `endTime`, `openingCash` | UC4, BR-13 |
+| **CashierSession** | Period in which one employee works at one register; every transaction belongs to a session. | `startTime`, `endTime`, `openingCash`, `closingCash`, `difference`, `toReview`, `isInterrupted` | UC4, BR-13 |
 | **ProductCatalog** | All product descriptions of the store. | – | glossary |
 | **ProductDescription** | A product type: what the scanned item identifier refers to. It holds the stock level; a rentable product also has its fee per day and deposit. | `itemID`, `name`, `price`, `stockLevel`, `reorderThreshold`, `/needsReorder`, `isRentable`, `rentalFeePerDay`, `deposit` | UC1, BR-03, BR-09, UC3 |
 | **Item** | One physical unit of a rentable product, identified by its serial number. Items that are only sold are not modelled one by one: they are counted by `stockLevel`. | `serialNumber`, `status` | UC3, BR-11 |
@@ -35,12 +35,12 @@ Names follow the glossary. The names used in the [operation contracts](operation
 | **Sale** | The customer buys items (UC1). | `isPaid` | UC1 |
 | **SaleLineItem** | One line of a sale. The price is copied from the product description when the item is entered, so a later price change does not change a completed sale. | `quantity`, `unitPrice`, `/lineSubtotal` | BR-03, BR-04 |
 | **Return** | The customer brings back items of an earlier sale (UC2). | `refundTotal` | UC2, BR-07, BR-08 |
-| **ReturnLineItem** | One returned line of the original sale. | `quantity`, `refundAmount` | UC2 |
-| **Rental** | The customer takes one or more items for a period (UC3). | `rentalDate`, `/depositTotal` | UC3, BR-10 |
+| **ReturnLineItem** | One returned line of the original sale. | `quantity`, `condition`, `refundAmount` | UC2 |
+| **Rental** | The customer takes one or more items for a period (UC3). | `rentalDate`, `isPaid`, `/depositTotal` | UC3, BR-10 |
 | **RentalLineItem** | One rented item with its period, fee, due date and deposit. | `rentalPeriodDays`, `rentalFee`, `dueDate`, `deposit`, `/isOverdue` | UC3, BR-12 |
-| **RentalReturn** | The item of one rental line comes back (UC5), with its condition, the late fee and the amount kept from the deposit. | `returnDate`, `condition`, `damageNote`, `daysLate`, `lateFee`, `lateFeeTax`, `amountKept`, `refundTotal` | UC5, BR-10, BR-11 |
+| **RentalReturn** | The item of one rental line comes back (UC5), with its condition, the late fee and the amount kept from the deposit. | `returnDate`, `condition`, `damageNote`, `daysLate`, `lateFee`, `lateFeeTax`, `amountKept`, `amountDue`, `refundTotal` | UC5, BR-10, BR-11 |
 | **Payment** (abstract) | Money received in one tender: **CashPayment** (`amountTendered`, `changeDue`, BR-06), **CreditCardPayment** (last 4 digits, authorization code and payment reference, BR-05, DR-19) and **CheckPayment** (*Could*, authorized by the Payment Service). | `amount`, `dateTime` | UC1, UC3, BR-05, BR-06 |
-| **Refund** | Money paid back for a return or a rental return, in the tender of the original payment. | `amount`, `tender`, `reference` | BR-08, UC5 |
+| **Refund** | Money paid back for a return or a rental return, in the tender of the original payment. | `amount`, `tender`, `reference`, `isApproved`, `approvalReason` | BR-08, UC5 |
 | **Receipt** | Printed record of a transaction; it can be printed again. | `number`, `printedAt` | FR-16, FR-17 |
 | **AccountingRecord** | The record of a completed transaction sent, or queued to be sent, to the Accounting System. The transaction ID lets the Accounting System ignore a record that arrives twice. | `transactionID`, `status`, `queuedAt`, `sentAt` | BR-14, IR-06, IR-07 |
 
@@ -70,12 +70,15 @@ The four external systems (Payment Service, Tax Calculator, Accounting System, H
 | RentalReturn – RentalLineItem | 0..1 – 1 | A rented line is closed by at most one return. |
 | Transaction – Payment | 1 – 0..1 | One tender for each sale or rental (BR-18, decided in W09); until it is paid, the transaction has no payment. A return has no payment but a refund. A rental return has one only when the customer pays the amount still due (UC5 ext. 7b). |
 | Return / RentalReturn – Refund | 1 – 0..1 | Not every rental return has a refund (damaged item). |
+| RentalReturn – Employee | * – 0..1 | The store manager who confirmed the damage (FR-52, UC5 6a). |
+| Refund – Employee | * – 0..1 | The store manager who approved a cash refund instead of a card or check refund (FR-25, UC2 9b2a, 9c). |
 | Transaction – Receipt | 1 – * | One receipt, reprints possible (FR-17). |
 | Transaction – AccountingRecord | 1 – 0..1 | Created when the transaction is completed (BR-14). |
 
 ## 5. Alignment with the operation contracts and the SRS
 
 - **Contracts of UC1** (Josué): every class and attribute they use exists with the same name: `Sale.isComplete`, `subtotal`, `tax`, `total` (inherited from `Transaction`), `Sale.isPaid`, `SaleLineItem.quantity`, `Payment.amount`, `ProductDescription.stockLevel`. `makePayment(amount, tenderType)` creates a `CashPayment`, `CreditCardPayment` or `CheckPayment` according to the tender type; I propose the contract uses `TenderType` instead of `String`.
+- **Contracts of UC2, UC4 and UC5** (version 0.5, W09): the attributes that Contracts 7, 9, 16 to 28 use and the model did not have are now in the model: `CashierSession.closingCash`, `difference`, `toReview`, `isInterrupted`; `Rental.isPaid`; `RentalReturn.amountDue`; `ReturnLineItem.condition`; `Refund.isApproved` and `approvalReason`. The store manager who confirms a damage or approves a cash refund is an association with `Employee` (as for the price override), so the contracts' `confirmedByID` and `approvedByID` are the `employeeID` at the end of that association. Two names still differ and are proposed to the owner of the contracts: Contracts 26 to 28 write `RentalReturn.refund`, the model has `refundTotal` (as `Return.refundTotal`); and the log entry of the drawer opening (IR-14, Contracts 19 and 20) is an entry of the `EventLog` and is not a domain concept, so it is not modelled here.
 - **SRS**: the glossary terms *customer ID*, *item list*, *rental receipt* and *item condition* are missing (see review of the SRS); here they are `Customer.customerID`, the set of `Item`, `Receipt` of a rental and `RentalReturn.condition`. The SRS section 3.5 is derived from this model.
 
 ## 6. Decisions and open questions

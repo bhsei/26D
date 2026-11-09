@@ -41,10 +41,12 @@ class Return {
 }
 class ReturnLineItem {
   quantity : Integer
+  condition : ItemCondition
   refundAmount : Money
 }
 class Rental {
   rentalDate : Date
+  isPaid : Boolean
   /depositTotal : Money
 }
 class RentalLineItem {
@@ -62,6 +64,7 @@ class RentalReturn {
   lateFee : Money
   lateFeeTax : Money
   amountKept : Money
+  amountDue : Money
   refundTotal : Money
 }
 
@@ -102,6 +105,10 @@ class CashierSession {
   startTime : DateTime
   endTime : DateTime
   openingCash : Money
+  closingCash : Money
+  difference : Money
+  toReview : Boolean
+  isInterrupted : Boolean
 }
 
 abstract class Payment {
@@ -125,6 +132,8 @@ class Refund {
   amount : Money
   tender : TenderType
   reference : String
+  isApproved : Boolean
+  approvalReason : String
 }
 
 class Receipt {
@@ -180,6 +189,8 @@ RentalReturn "0..1" -- "1" RentalLineItem : closes >
 Transaction "1" -- "0..1" Payment : is paid by >
 Return "1" -- "0..1" Refund : is refunded by >
 RentalReturn "1" -- "0..1" Refund : is refunded by >
+RentalReturn "*" -- "0..1" Employee : damage\nconfirmed by >
+Refund "*" -- "0..1" Employee : cash refund\napproved by >
 
 ' Documents and accounting
 Transaction "1" -- "*" Receipt : is documented by >
