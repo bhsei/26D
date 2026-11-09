@@ -107,26 +107,29 @@ An operation contract describes the behavior of a system operation. Postconditio
 **Cross References:** Use Case: UC2 Handle Returns (Steps 8-11)
 **Preconditions:** 
 - The `Return` has at least one `ReturnLineItem`.
-- If the refund requires manager approval (e.g., cash fallback), it has been approved.
+- No manager approval is needed to confirm the return. A refund that needs approval (a declined card refund, or an original payment by check) is approved afterwards with `approveCashRefund` (Contract 9, UC2 ext. 9b2a, 9c).
 **Postconditions:** 
-- `Return.isComplete` was set to true.
-- `ProductDescription.stockLevel` was increased for items with condition `Undamaged` (resellable).
-- A `Refund` instance was created and associated with the `Return`.
-- An `AccountingRecord` instance was created and queued.
-**Responsibilities:** System finalizes the return, updates stock for resellable items, processes the refund, and notifies accounting.
+- If the original sale was paid in cash: a `Refund` instance (cash) was created and associated with the `Return`, and the completion below applies.
+- If the original sale was paid by credit card: a `Refund` instance (credit card) was created, and the Payment Service refund confirmation and its reference were recorded with it (DR-19, IR-03). If the Payment Service confirmed the refund, the completion below applies.
+  - If the refund was declined, or the status of a refund without answer is _failed_: no cash was paid and the `Refund` stayed unpaid, until `approveCashRefund`.
+  - If the Payment Service did not answer and the status cannot be obtained: the `Return` was saved with the refund marked _pending_ and no cash was paid.
+- If the original sale was paid by check: a `Refund` instance was created and stayed unpaid, until `approveCashRefund`.
+- **Completion:** `Return.isComplete` was set to true; `ProductDescription.stockLevel` was increased for items with condition `Undamaged` (resellable); an `AccountingRecord` instance was created and queued.
+**Responsibilities:** System pays the refund with the tender of the original sale, saves the return, updates stock for resellable items and notifies accounting. A refund that is declined or paid by check waits for the manager's approval (Contract 9). A card refund is never paid twice.
 
 ### Contract 9: approveCashRefund (Shared by UC2 and UC5)
-**Operation:** approveCashRefund(managerID: String, reason: String)
+**Operation:** approveCashRefund(managerID: String, pin: String, reason: String)
 **Cross References:** Use Case: UC2 Handle Returns (Step 9b2a, 9c), UC5 Return Rental (Step 9b2a, 9c)
 **Preconditions:**
 - A `Return` or a `RentalReturn` is active, and its `Refund` has not been paid.
 - A card refund was declined, or the original payment (of the `Sale` or the `Rental`) was by check.
-- `managerID` is an active store manager (BR-04).
+- `managerID` is an active store manager and `pin` is correct (HR System or local employee list).
 **Postconditions:**
 - The `Refund` of the `Return` or `RentalReturn` was marked as `isApproved` = true.
-- `Refund.approvedByID` was set to `managerID`.
+- The `Refund` was associated with the `Employee` whose `employeeID` is `managerID`, as the approving store manager (`approvedBy`).
 - `Refund.approvalReason` was set to `reason`.
 - `Refund.tender` was changed to cash.
+- The `pin` was not stored, logged or shown (NFR-08).
 - The `Return` or `RentalReturn` was completed as in `confirmReturn` (Contract 8) or `confirmRentalReturn` (Contract 28): `isComplete` was set to true, stock or item status was updated, and an `AccountingRecord` was created and queued.
 **Responsibilities:** System records the manager's authorization for an exceptional cash refund, for a return or for a rental return, and completes the transaction with the cash refund.
 
@@ -332,8 +335,8 @@ An operation contract describes the behavior of a system operation. Postconditio
 - `RentalReturn.returnDate` was set to the current date.
 - `RentalReturn.daysLate` was set to the number of whole days after the due date (zero if returned on or before it).
 - If `daysLate` > 0: `RentalReturn.lateFee` was set to `daysLate` times the rental fee per day of the item (BR-16), and `RentalReturn.lateFeeTax` to the tax returned by the Tax Calculator. If the Tax Calculator is not available, the default tax rate was used and the rental return was marked _tax to be corrected_ (BR-02, IR-05).
-- If `Undamaged`: `RentalReturn.refund` was set to the deposit minus the late fee minus its tax, and never below zero (BR-10). If the late fee and its tax are larger than the deposit, `RentalReturn.amountDue` was set to the difference (7b).
-- If `Damaged`: the late fee and its tax were only recorded, not charged; the refund is set by `confirmDamage`.
+- If `Undamaged`: `RentalReturn.refundTotal` was set to the deposit minus the late fee minus its tax, and never below zero (BR-10). If the late fee and its tax are larger than the deposit, `RentalReturn.amountDue` was set to the difference (7b).
+- If `Damaged`: the late fee and its tax were only recorded, not charged; `RentalReturn.refundTotal` is set by `confirmDamage`.
 - The status of the `Item` was not changed.
 **Responsibilities:** System checks the due date, calculates the late fee and the refund, and shows each part of the calculation. For a damaged item it asks for a store manager.
 
@@ -345,8 +348,8 @@ An operation contract describes the behavior of a system operation. Postconditio
 - `managerID` is an active store manager and `pin` is correct (checked with the HR System, or with the local employee list when it is not available, UC4 6c4).
 **Postconditions:**
 - The damage of the `RentalReturn` was marked as confirmed.
-- `RentalReturn.confirmedByID` was set to `managerID`.
-- `RentalReturn.amountKept` was set to the whole deposit and `RentalReturn.refund` to zero (BR-10).
+- The `RentalReturn` was associated with the `Employee` whose `employeeID` is `managerID`, as the store manager who confirmed the damage (`confirmedBy`).
+- `RentalReturn.amountKept` was set to the whole deposit and `RentalReturn.refundTotal` to zero (BR-10).
 - `RentalReturn.amountDue` was left at zero: a late fee of a damaged item is not charged (6a.4).
 - The `pin` was not stored, logged or shown (NFR-08).
 **Responsibilities:** System records the manager's confirmation. Without it the item cannot be recorded as damaged (FR-52): if the manager or the PIN is not valid, the condition stays pending and nothing else changes.
@@ -358,7 +361,7 @@ An operation contract describes the behavior of a system operation. Postconditio
 - A `RentalReturn` is active, with a condition recorded (and confirmed, if damaged).
 - If an amount is still due (7b), it has been paid with `makePayment`.
 **Postconditions:**
-- If the refund is zero: no `Refund` instance was created, and the postconditions of the completion below apply.
+- If `RentalReturn.refundTotal` is zero: no `Refund` instance was created, and the postconditions of the completion below apply.
 - If the rental was paid in cash: a `Refund` instance (cash) was created and associated with the `RentalReturn`, and the completion below applies.
 - If the rental was paid by credit card: a `Refund` instance (credit card) was created, and the Payment Service refund confirmation and its reference were recorded with it (DR-19, IR-03). If the Payment Service confirmed the refund, the completion below applies.
   - If the refund was declined, or the status of a refund without answer is _failed_: no cash was paid and the `Refund` stayed unpaid, until `approveCashRefund`.
@@ -367,11 +370,10 @@ An operation contract describes the behavior of a system operation. Postconditio
 - **Completion:** `RentalReturn.isComplete` was set to true; the `Rental` was closed; `Item.status` was changed from `Rented` to `Available` (undamaged) or to `Under maintenance` (damaged); an `AccountingRecord` was created and queued.
 **Responsibilities:** System pays the refund with the tender of the rental, saves the rental return, closes the rental, updates the item status and notifies the accounting system. A card refund is never paid twice.
 
-
 ## Open points of the contracts of UC4 and UC5
 
-1. **`approveCashRefund` and the PIN.** `confirmDamage` has `managerID` and `pin`, but `approveCashRefund(managerID, reason)` has no PIN, although the SRS requires the manager's employee ID and PIN (UC2 9b2a, UC5 9b2a). Proposal: add `pin` to the SSDs of UC2 and UC5 and to Contract 9.
-2. **Order of the approval in Contract 8.** The precondition of Contract 8 (`confirmReturn`) says that the cash approval "has been approved", but in the SSD the approval comes *after* `confirmReturn` (9b2a). Contract 28 follows the SSD. Proposal: change the precondition of Contract 8 and describe the card and check branches as in Contract 28.
+1. Closed in W09: `pin` was added to `approveCashRefund` (Contract 9).
+2. Closed in W09: the precondition of Contract 8 was changed; the manager approval comes after the failed card refund (9b2a), and the card and check branches are described as in Contract 28.
 3. **A receipt with several rented items.** `findRental(code)` and `selectRental(rentalID)` find one `RentalLineItem`. If a rental has several items, the SRS does not say which one is returned (a rental return per line item, as in DR-07, is assumed).
 4. **Cash difference.** BR-17 says "a difference larger than 5.00". Contract 21 uses the absolute value (a surplus and a shortage are both reviewed). Please confirm.
 5. **Pending refund (9b2b).** No system operation completes a refund that was left _pending_ (SSD 6.2); no contract is written for it.
