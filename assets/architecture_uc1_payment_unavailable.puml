@@ -1,0 +1,117 @@
+@startuml
+' NewEra POS - Interaction view: UC1 card payment when the Payment Service does not answer (IR-02), W09
+' Team D - editable source of assets/architecture_uc1_payment_unavailable.png
+' Render with: java -jar plantuml.jar -tpng assets/architecture_uc1_payment_unavailable.puml
+' Operation names follow docs/design/system_interfaces.md (section 3.2), the SSD of UC1 (extension 9b2b)
+' and AD-07 (timeout in the adapter, fallback in the handler) of docs/design/architecture.md.
+
+skinparam shadowing false
+skinparam dpi 130
+skinparam defaultFontName Arial
+skinparam ArrowColor #444444
+skinparam SequenceLifeLineBorderColor #444444
+skinparam ParticipantBorderColor #1F4E79
+skinparam ParticipantBackgroundColor #EAF1FB
+skinparam ActorBorderColor #444444
+skinparam ActorBackgroundColor #FFFFFF
+skinparam BoxPadding 6
+skinparam SequenceGroupBackgroundColor #F4F8FD
+skinparam SequenceGroupBorderColor #1F4E79
+skinparam SequenceDividerBackgroundColor #EAF1FB
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #B8A04A
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 170
+
+title NewEra POS - Interaction view: UC1 card payment when the Payment Service does not answer (IR-02)
+
+actor ":Cashier" as Cashier
+box "UI layer" #F4F8FD
+  participant ":Screens\n(browser)" as Screens
+  participant ":SaleController" as Ctl
+end box
+box "Application / domain layer" #F4F8FD
+  participant ":SaleHandler" as H
+  participant ":Sale" as Sale
+end box
+box "Technical services" #F4F8FD
+  participant ":CardReader\nDriver" as CR
+  participant ":PaymentService\nAdapter" as PayA
+  participant ":EventLog" as Log
+end box
+participant "Payment Service\n(stub)" as PayS <<external>>
+
+note over Cashier, PayS
+  Precondition: the sale is ended and the total is shown (UC1 step 7).
+  The sale has one transaction ID T. T is the same in every attempt to pay it (IR-02, BR-18).
+end note
+
+== First attempt: no answer within 10 s ==
+Cashier -> Screens : choose credit card
+Screens -> Ctl : POST /api/sales/{saleID}/payment (CREDIT_CARD)
+Ctl -> H : makePayment(amount, CREDIT_CARD)
+H -> Sale : getTransactionID()
+Sale --> H : T
+H -> CR : read()
+CR --> H : CardToken
+H -> PayA : authorize(PaymentRequest with T)
+PayA -> PayS : POST /payments/authorizations (T)
+note right of Screens
+  The screen shows a waiting message
+  after 1 s (NFR-18).
+end note
+... no answer for 10 s (the timeout of the adapter, AD-07) ...
+PayA -> Log : log the failed communication\n(no card data, IR-10)
+PayA --> H : PaymentResult NOT_AVAILABLE
+note right of H
+  No Payment is created (contract 4).
+  The fallback is decided here, in the handler (AD-07):
+  the transaction stays open.
+end note
+H --> Ctl : NOT_AVAILABLE
+Ctl --> Screens : NOT_AVAILABLE (retry allowed)
+Screens --> Cashier : "Card payment not available":\nretry, use another tender, or cancel the sale
+
+alt The Cashier retries (IR-02)
+  Cashier -> Screens : retry
+  Screens -> Ctl : POST /api/sales/{saleID}/payment (CREDIT_CARD)
+  Ctl -> H : makePayment(amount, CREDIT_CARD)
+  H -> Sale : getTransactionID()
+  Sale --> H : T (the same)
+  H -> CR : read()
+  CR --> H : CardToken
+  H -> PayA : authorize(PaymentRequest with the same T)
+  PayA -> PayS : POST /payments/authorizations (T)
+  note right of PayS
+    The Payment Service never charges the same
+    transaction ID twice (IR-02).
+  end note
+  PayS --> PayA : APPROVED, authorization code, payment reference, last 4 digits
+  PayA --> H : PaymentResult APPROVED
+  H -> Sale : markPaid(CreditCardPayment)
+  note right of H
+    Continues as in the main diagram (Save and print):
+    save the sale, reduce the stock levels,
+    queue the AccountingRecord, print the receipt.
+  end note
+  H --> Ctl : APPROVED, last 4 digits, authorization code, receipt number
+  Ctl --> Screens : APPROVED, receipt number
+  Screens --> Cashier : payment approved, receipt printed
+else The Cashier uses another tender
+  Cashier -> Screens : choose cash
+  Screens -> Ctl : POST /api/sales/{saleID}/payment (CASH)
+  Ctl -> H : makePayment(amount, CASH)
+  note right of H
+    Continues as UC1 extension 9a (cash payment).
+    Still one payment per sale (BR-18).
+  end note
+else The Cashier cancels the sale
+  Cashier -> Screens : cancel sale
+  Screens -> Ctl : DELETE /api/sales/{saleID}
+  Ctl -> H : cancelSale()
+  H -> Sale : cancel
+  note right of H
+    No change in the stock levels (FR-07).
+  end note
+end
+@enduml
