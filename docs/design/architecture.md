@@ -208,14 +208,64 @@ The **master copy** of a data item is the place where its value is decided; the 
 
 ## 5. Correspondences
 
-How the views are linked (ISO/IEC/IEEE 42010 *correspondences*). *To do (W9).*
+How the views and the other documents are linked (ISO/IEC/IEEE 42010 *correspondences*). §5.1 links the views with each other. §5.2 links the interface requirements, the design constraints and the non-functional requirements with the components of the logical view (§4.2). The functional requirements are traced in the traceability matrix ([requirements_conventions.md](requirements_conventions.md), section 4).
 
-| From | To | Link |
+### 5.1 View to view
+
+| From | To | Correspondence |
 | --- | --- | --- |
-| Context view – external system | Logical view – adapter | One adapter for each external system (DC-02) |
-| Logical view – domain classes | Domain model | Same names as the conceptual classes |
-| Logical view – components | Deployment view – nodes | Where each component runs |
-| Views | SRS requirements | Traceability matrix (requirements_conventions.md) |
+| Context view (§4.1) – Payment Service, Tax Calculator, Accounting System, HR System | Logical view (§4.2) – `application.interfaces` and `technical.external` | One external system, one interface and one adapter: `PaymentService` / `PaymentServiceAdapter`, `TaxCalculator` / `TaxCalculatorAdapter`, `AccountingSystem` / `AccountingSystemAdapter`, `HRSystem` / `HRSystemAdapter` (DC-02, AD-04) |
+| Context view – back-office system (catalog file) | Logical view – `CatalogSource` and `CatalogFileImport` | The catalog import of IR-17 |
+| Context view – barcode scanner, card reader, receipt printer, cash drawer | Logical view – `technical.devices` | `CardReaderDriver`, `ReceiptPrinterDriver` and `CashDrawerDriver`. The scanner works as a keyboard and has no class (AD-10) |
+| Context view – Cashier, Store manager | Logical view – `ui.screens`, `ui.api` | The screens of the cashier and the Manager screens; one controller for each use case and `ManagerController` for the store manager functions |
+| Context view – external systems | Deployment view (§4.4) – External systems, Back-office system | The same four systems (stubs in our project, DC-01) and the back-office file |
+| Logical view – `ui.screens` | Deployment view – Browser | The screens are web pages shown in the browser of the register |
+| Logical view – `ui.api`, `application`, `application.interfaces`, `domain.*`, `technical.*` | Deployment view – POS application | All these packages run in the POS application, on the register computer |
+| Logical view – `technical.storage` | Deployment view – Local database, Store database server | The repositories read and write the local database. The register is a client of the store database server; how the two are synchronised is decided in AD-05 and AD-06 |
+| Logical view – `technical.devices` | Deployment view – Devices | One driver for each device connected to the register computer |
+| Logical view – `technical.external` | Deployment view – External systems | Each adapter talks to the stub (or the real system) of its external system, with its own timeout |
+| Logical view – `TransactionRepository`, `ItemRepository`, `AccountingQueue`, `EmployeeList` | Data view (§4.5) | Transactions, payments and payment references (saved first on the register); catalog, stock levels and item status (copy); queue of records for the Accounting System (only on the register); employee list (copy, PIN only as a salted hash) |
+| Deployment view – Local database, Store database server | Data view – the two columns of the table "Where the data is stored" | The same two stores |
+| Logical view – `domain.*` | Domain model and Data view | The same names as the conceptual classes; the attributes that are stored are those of DR-01 to DR-20 (SRS §3.5) |
+| Logical view – `ui.api`, `application` | SSDs and operation contracts | One controller method for each system operation. One handler for each use case: `SessionHandler` (UC4), `SaleHandler` (UC1), `ReturnHandler` (UC2), `RentalHandler` (UC3), `RentalReturnHandler` (UC5) and `ManagerHandler` (store manager) |
+| Architecture decisions (§6) | Views | AD-01: layers of the logical view. AD-02: browser and local server of the deployment view. AD-03: all packages (Java). AD-04, AD-07: adapters and handlers. AD-05, AD-06: data view and `technical.storage` (open, W10). AD-09: `technical.devices`, `technical.external`, `technical.storage` and `application`. AD-10: `technical.devices` and the Devices node |
+
+### 5.2 Requirement to component
+
+| Requirement | What it asks | Component in the logical view (§4.2) | Decision |
+| --- | --- | --- | --- |
+| IR-01, IR-16 | Authorization of card and check payments; complete the payment only if approved | `PaymentServiceAdapter`; `CreditCardPayment`, `CheckPayment`; the handlers complete the payment only after an approved answer | AD-04 |
+| IR-02 | Timeout of 10 s; retry with the same transaction ID | The adapter applies the timeout and returns `NOT_AVAILABLE`; the handlers of UC1, UC3 and UC5 offer the retry or another tender | AD-07 |
+| IR-03 | Card refund with the payment reference, without the card number | `PaymentServiceAdapter`; `Refund`; the reference is stored by `TransactionRepository` | AD-09 |
+| IR-15 | Store every approved authorization; void it after a crash | `TransactionRepository` stores it with the open transaction; `SessionHandler` sends the void at start-up through `PaymentServiceAdapter`; `EventLog` logs it | AD-07 |
+| IR-04, IR-05 | Tax from the Tax Calculator; default tax rate after 5 s | `TaxCalculatorAdapter` (timeout); the handlers apply the default tax rate and the mark *tax to be corrected*; `ManagerHandler` changes the default rate (store manager only) | AD-07 |
+| IR-06, IR-07 | Queue for the Accounting System, in order and without loss | `AccountingQueue`; `AccountingSystemAdapter` (called only from the queue); `AccountingRecord` | AD-04, AD-06 |
+| IR-08, IR-09 | PIN checked by the HR System; local employee list as fallback | `HRSystemAdapter`; `EmployeeList`; `SessionHandler` | AD-09 |
+| IR-10 | Log of failed communications, without card data | `EventLog`, called by every adapter | AD-04 |
+| IR-11 | Item identifier, serial number or receipt number from scanner or keyboard | `ui.screens` (the scanner works as a keyboard, no class) | AD-10 |
+| IR-12 | Chip and contactless card reader; card data not kept | `CardReaderDriver`, which passes the card data to `PaymentServiceAdapter` only | AD-09, AD-10 |
+| IR-13 | Thermal receipt printer; message when there is no paper | `ReceiptPrinterDriver`; `Receipt`; the handler shows the message | AD-10 |
+| IR-14 | Cash drawer only for the four allowed reasons; every opening logged | `CashDrawerDriver` checks the reason; `EventLog` logs time, cashier and reason | AD-10 |
+| IR-17 | Import of the product catalog | `CatalogFileImport`; `ProductCatalog`; started by `SessionHandler` at start-up or by `ManagerHandler` | AD-04 |
+| DC-01 | Stubs for the four external systems | The adapters of `technical.external`; the configuration chooses the stub or the real system | AD-04 |
+| DC-02 | Each external system behind its own interface | `application.interfaces` and `technical.external` | AD-01, AD-04 |
+| DC-03 | Standard register computer | The POS application and the browser on the register computer (§4.4) | AD-02 |
+| DC-04 | Tools the team already knows | All packages (Java; HTML, CSS and JavaScript for the screens) | AD-03 |
+| DC-05 | Transactions and queue stored locally | `technical.storage`: `TransactionRepository`, `AccountingQueue` | AD-05 |
+| DC-06 | Card data not stored | `CardReaderDriver`, `PaymentServiceAdapter`; `TransactionRepository` keeps only the last 4 digits, the authorization code and the payment reference | AD-09 |
+| DC-07, DC-08 | Team and schedule; documents and UI in English | No component. The packages let the team split the work by layer (AD-01); the texts of `ui.screens` are in English | AD-01 |
+| DC-09 | One store database shared by all registers; local copy and queue on each register | `technical.storage` (`TransactionRepository`, `ItemRepository`, `EmployeeList`, `AccountingQueue`); Store database server node | AD-05 (open) |
+| NFR-01, NFR-02 | Time to register a line; start-up time | `ui.api`, `application`, and `ProductCatalog` / `ItemRepository` work on the local copy, so no external system is called for a line; the waiting records are sent in the background through `AccountingQueue` | AD-01, AD-02 |
+| NFR-03, NFR-04 | Availability; completed sale saved locally | The adapters hide the failures of the external systems; the handlers apply the fallbacks; `TransactionRepository` saves locally first | AD-05, AD-07 |
+| NFR-05, NFR-06, NFR-13 to NFR-18 | Usability | `ui.screens` (NFR-15: availability indicator filled by `application`; NFR-18: waiting message while an adapter request is open) | AD-02 |
+| NFR-07 | Role-based access control | The handlers check the role of the `Employee` (`domain.store`) for every manager action | AD-09 |
+| NFR-08 | PINs only as a salted hash, never shown or logged | `EmployeeList`; `HRSystemAdapter`; `EventLog` never receives a PIN | AD-09 |
+| NFR-09 | New payment method in less than 3 working days | `domain.payments` (one class for each tender); `PaymentServiceAdapter` | AD-08 |
+| NFR-10 | Standard printers and scanners | The interfaces of `technical.devices` | AD-10 |
+| NFR-11 | At most the last 4 digits of a card number | `CreditCardPayment` keeps only these digits; `Receipt`, the screens, `EventLog` and `AccountingSystemAdapter` receive only these digits | AD-09 |
+| NFR-12 | Only the personal data of DR-11 and DR-18 | `Customer` (customer ID only), `EmployeeList`, `Receipt` (no customer data) | AD-09 |
+| NFR-19 | Timeouts of 10 s and 5 s | Each adapter; the values are in the configuration of the POS | AD-07 |
+| NFR-20 | Payment data encrypted when stored or sent | `TransactionRepository` (stored data), `PaymentServiceAdapter` (sent data) | AD-09 |
 
 ## 6. Architecture decisions
 
@@ -231,7 +281,7 @@ First list of the decisions to take in W8–W9. Each decision will be recorded w
 | AD-06 | Accounting System queue | Persistent local queue with acknowledgement and transaction ID (no duplicates) | IR-07, FR-42, BR-14 | Open |
 | AD-07 | Timeouts and fallbacks | Where timeouts (10 s / 5 s) and fallbacks are handled: in each adapter or in a common component | IR-02, IR-05, IR-09, NFR-19 | Proposed (§6.1) |
 | AD-08 | Payment methods | One class per tender behind a common interface, so a new method can be added easily | NFR-09, FR-09 to FR-12 | Open |
-| AD-09 | Security of card data and PINs | Card data only in memory until the Payment Service answers; PINs stored as a salted hash; role check for manager actions | NFR-07, NFR-08, NFR-11, DC-06 | Open |
+| AD-09 | Security of card data and PINs | Card data only in memory until the Payment Service answers; PINs stored as a salted hash; role check for manager actions | NFR-07, NFR-08, NFR-11, DC-06 | Proposed (§6.1) |
 | AD-10 | Device access | Scanner as keyboard input; printer and drawer through a device service | NFR-10, IR-11 to IR-14 | Proposed (§6.1) |
 
 ### 6.1 Decision records
@@ -301,6 +351,22 @@ One subsection per decision, with this template. AD-01 to AD-03 were proposed in
 - Rationale: The timeout belongs to the call, so the adapter that makes the call applies it and returns `NOT_AVAILABLE` instead of an error (system_interfaces.md, business results). The fallback is a business decision: which tender the cashier may use, which transactions get the mark *tax to be corrected*, what the cashier sees. It depends on the use case and its SSD extension, so it belongs to the handler. With option 1 these business rules would sit in the technical layer, and the adapter of the real system would have to repeat them. Option 3 puts everything in one place, but that component would need to know the extensions of every use case.
 - Consequences: Every method of the adapter interfaces returns a result that can be `NOT_AVAILABLE`, and each handler deals with it as its SSD extension says. The timeout values are in the configuration of the POS, with the values of NFR-19 as defaults. The adapter logs the failure (IR-10). For a retry, the handler sends the same transaction ID again (IR-02, IR-15). The screen shows the waiting message while the request is open (NFR-18). The stubs can simulate *timeout* and *not available* (DC-01), so each fallback is tested (NFR-19 verification).
 - Related requirements: NFR-18, NFR-19, IR-02, IR-05, IR-07, IR-09, IR-10, IR-15, DC-01; QA-05, QA-06, QA-07.
+
+#### AD-09 – Security of card data and PINs
+- Context: The POS handles card data (chip and contactless reader, IR-12), the PINs of employees (login and manager approvals, IR-08, IR-09) and functions that only a store manager may use (price override, default tax rate, disabling an employee, cash refund approval, damage confirmation, session review; BR-04). The SRS forbids keeping card data (DC-06, NFR-20), asks for PINs only as a salted hash and never in logs or on screen (NFR-08), for masked card numbers (NFR-11) and for role-based access control (NFR-07). The POS is a local web application (AD-02): the browser shows the screens and talks to the local server, so anything sent through the browser can end up in a URL, a log or the browser history. The register can be offline: the HR System may be down (UC4 6c), and a card payment that is retried needs the card to be read again, because the card data is discarded (UC1 9b2b).
+- Options:
+  1. Card data. (A) The card data stays in memory, from `CardReaderDriver` to `PaymentServiceAdapter` only, and is discarded when the Payment Service answers; a later refund uses the payment reference (DR-19). (B) The card data is stored encrypted in the local database, so that a retry or a refund needs no new card reading.
+  2. PINs. (A) The HR System checks the PIN, and the local employee list keeps it only as a salted hash, for the login when the HR System is not available. (B) The local list keeps the PIN encrypted (reversible). (C) The POS keeps no PIN, so no login is possible without the HR System.
+  3. Manager functions. (A) The UI hides the manager functions from cashiers. (B) Every manager function is checked in the handler on the server side: the role of the employee, and the employee ID and PIN of the store manager entered for that action.
+- Decision (proposal): 1A, 2A and 3B, with these rules:
+  - Card data lives only in memory, goes from `CardReaderDriver` to `PaymentServiceAdapter` and nowhere else (not to the screens, the repositories, the `EventLog` or the `AccountingSystemAdapter`). Only the last 4 digits, the authorization code and the payment reference are stored (DR-05, DR-19).
+  - Payment data that is stored (NFR-20) is encrypted by `TransactionRepository` at field level, with the standard Java cryptography, so the rule does not depend on the database product of AD-05. The key is in the configuration of the register, not in the source code. `PaymentServiceAdapter` talks to the Payment Service through an encrypted connection (TLS) in the real system; the stub may use plain HTTP in our tests (DC-01).
+  - A PIN is stored only as a salted hash (a slow function with a different salt for each employee). It is sent in the body of a request to `localhost`, never in a URL, and is not written to any log. The handler gives it to the `HRSystem` interface, or compares it with `EmployeeList` when the HR System is not available (IR-09), and drops it.
+  - Every manager function is checked in the handler: the employee must be an active store manager, identified with employee ID and PIN for that action (UC2 9b2a, UC5 6a, FR-69, FR-70). The check uses the HR System, or the local list when it is not available (UC4 6c4). Hiding a button in the UI is only a help for the cashier.
+  - `EventLog` only accepts the system, the time and the error (IR-10); no free text from a request is logged.
+- Rationale: The card number is not needed after the authorization, and the payment reference is enough for a refund (IR-03). Option 1B would make the register hold card data, which breaks DC-06 and NFR-20; the price of 1A is that a failed payment needs a new card reading, which the SRS already accepts (UC1 9b2b). For the PIN, the HR System stays the only master (IR-08), and the salted hash is needed for the offline login (IR-09, UC4 6c). It cannot be turned back into the PIN, as an encrypted PIN (2B) could, and 2C would break IR-09. For the manager functions, hiding buttons (3A) protects nothing, because the local server accepts any request from the browser of the register, so the check has to be in the application layer. This is also where the business rules are, so a test with a fake `HRSystem` can check every rule without a browser.
+- Consequences: No interface other than `CardReader` and `PaymentService` may have a parameter with card data (to be checked in system_interfaces.md). `TransactionRepository` needs an encryption step and a key, which the system administrator sets at installation. `EmployeeList` holds only the salt and the hash; at the first start-up without the HR System nobody can log in (UC4 6c2). The cashier needs the manager for every manager function, which means one more PIN entry. The verification is the compliance checklist of SRS §4 (no card number in the screens, the receipt, the log or the database schema) and a test for every manager function, once with a cashier (refused) and once with a store manager (accepted).
+- Related requirements: NFR-07, NFR-08, NFR-11, NFR-12, NFR-20; DC-06; DR-05, DR-11, DR-19; IR-03, IR-08, IR-09, IR-10, IR-12; BR-04; FR-06, FR-44, FR-52, FR-69, FR-70, FR-75; AD-02, AD-04, AD-10.
 
 #### AD-10 – Device access
 - Context: Each register has a barcode scanner, a card reader, a thermal receipt printer and a cash drawer (SRS §3.1.2). The POS runs as a local web application (AD-02): the browser shows the screens but cannot reach the printer or the cash drawer, and the card data must not be kept (IR-12, DC-06). The device models are not fixed and must be standard devices (NFR-10, QA-15). The register must go on when a device fails (SRS §3.1.2).
