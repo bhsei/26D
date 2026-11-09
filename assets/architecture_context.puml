@@ -1,0 +1,62 @@
+@startuml
+' NewEra POS - Context view (the system, its users, its devices and the external systems), W09
+' Team D - editable source of assets/architecture_context.png
+' Render with: java -jar plantuml.jar -tpng assets/architecture_context.puml
+' Names follow docs/architecture.md section 4.1, the SRS (IR-01 to IR-17) and docs/design/system_interfaces.md.
+
+!pragma layout smetana
+set separator none
+left to right direction
+skinparam shadowing false
+skinparam dpi 130
+skinparam defaultFontName Arial
+skinparam ArrowColor #444444
+skinparam ArrowFontSize 11
+skinparam ActorBorderColor #444444
+skinparam ActorBackgroundColor #FFFFFF
+skinparam PackageBorderColor #1F4E79
+skinparam PackageBackgroundColor #F4F8FD
+skinparam RectangleBorderColor #888888
+skinparam RectangleBackgroundColor #FFFFFF
+skinparam RectangleFontSize 11
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #B8A04A
+
+title NewEra POS - Context view
+
+package "People" as people {
+  actor "Cashier" as Cashier
+  actor "Store manager" as Manager
+}
+
+rectangle "NewEra POS\n(on each register of the store)" as POS #EAF1FB
+
+package "Devices of the register (AD-10)" as devices {
+  rectangle "Barcode scanner" as Scanner
+  rectangle "Card reader" as Reader
+  rectangle "Receipt printer" as Printer
+  rectangle "Cash drawer" as Drawer
+}
+
+package "External systems (stubs in our project, DC-01)" as external {
+  rectangle "Payment Service" as Pay
+  rectangle "Tax Calculator" as Tax
+  rectangle "Accounting System" as Acc
+  rectangle "HR System" as HR
+  rectangle "Back-office system" as Back
+}
+
+Cashier --> POS : sale, return, rental,\nrental return, start up
+Manager --> POS : approvals (price, cash refund,\ndamage), reports, settings
+
+Scanner --> POS : item ID, serial number,\nreceipt number (IR-11)
+Reader --> POS : card token (IR-12)
+POS --> Printer : receipts (IR-13)
+POS --> Drawer : open, every opening\nlogged (IR-14)
+
+POS --> Pay : authorize, refund, refund status,\nvoid (IR-01 to IR-03, IR-15, IR-16)
+POS --> Tax : tax of each transaction\n(IR-04, IR-05)
+POS --> Acc : accounting records,\nsent from a queue (IR-06, IR-07)
+POS --> HR : employee check, employee list\n(IR-08, IR-09)
+Back --> POS : catalog file (IR-17)
+@enduml
