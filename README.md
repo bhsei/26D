@@ -50,20 +50,36 @@ Roles were confirmed by the team in W05 (see the [W05 report](weekly-reports/W05
 
 ### Key documents
 
-| Document                                                                                                      | Content                                                                                                                                                                                                             |
-| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [SRS](docs/requirements/SRS.md)                                                                               | Software Requirements Specification (ISO/IEC/IEEE 29148), draft towards v1.0 (W07); UC1, UC3, UC4 and UC5 fully dressed (UC2 pending), FR-01 to FR-59, IR-01 to IR-14, section 3.5 data requirements DR-01 to DR-18 |
-| [Use case model](docs/requirements/use_case_model.md)                                                         | Use case diagram (`assets/use_case_diagram.png`) and one-paragraph description of UC1–UC5                                                                                                                           |
-| [Glossary and business rules](docs/requirements/glossary.md)                                                  | Domain terms and BR-01 to BR-14                                                                                                                                                                                     |
-| [External interfaces](docs/requirements/external_interfaces.md)                                               | The 4 external systems and IR-01 to IR-10                                                                                                                                                                           |
-| [Non-functional requirements](docs/requirements/nfrs.md), [quality goals](docs/requirements/quality_goals.md) | NFR-01 to NFR-12 (ISO/IEC 25010)                                                                                                                                                                                    |
-| [Requirement conventions](docs/requirements/requirements_conventions.md)                                      | ID scheme, MoSCoW priority and traceability matrix                                                                                                                                                                  |
-| [Stakeholders](docs/requirements/stakeholders.md), [elicitation plan](docs/requirements/elicitation_plan.md)  | Stakeholder list, cashier persona and interview questions                                                                                                                                                           |
-| [Domain model](docs/design/domain_model.md)                                                                   | Concepts of the store (23 classes), attributes and multiplicities for UC1–UC5 (`assets/domain_model.png`)                                                                                                           |
-| [System sequence diagrams](docs/design/system_sequence_diagrams.md)                                           | System operations of UC1 Process Sale (`assets/ssd_uc1.png`)                                                                                                                                                        |
-| [Operation contracts](docs/design/operation_contracts.md)                                                     | Contracts of the UC1 system operations                                                                                                                                                                              |
-| [Architecture description](docs/design/architecture.md), [UI prototype](docs/design/ui_prototype.md)          | Architecture skeleton (ISO/IEC/IEEE 42010) and clickable prototype                                                                                                                                                  |
-| [Project plan](plans/project_plan.md), [process model](plans/process_model.md)                                | Iterative-incremental life cycle (3 increments + release) and schedule                                                                                                                                              |
+**Increment 1 – Requirements**
+
+| Document | Content |
+| --- | --- |
+| [SRS](docs/requirements/SRS.md) | Software Requirements Specification (ISO/IEC/IEEE 29148), v1.1: baseline after the cross-team review of W08. UC1 to UC5 fully dressed, FR-01 to FR-75, NFR-01 to NFR-20, IR-01 to IR-17, DR-01 to DR-20, DC-01 to DC-09 |
+| [Use case model](docs/requirements/use_case_model.md) | Use case diagram (`assets/use_case_diagram.png`) and one-paragraph description of UC1–UC5 |
+| [Glossary and business rules](docs/requirements/glossary.md) | Domain terms and BR-01 to BR-18 |
+| [External interfaces](docs/requirements/external_interfaces.md) | The 4 external systems, first draft of IR-01 to IR-10 and the open questions (decided in W09) |
+| [Non-functional requirements](docs/requirements/nfrs.md), [quality goals](docs/requirements/quality_goals.md) | NFRs (ISO/IEC 25010) and quality goals |
+| [Requirement conventions](docs/requirements/requirements_conventions.md) | ID scheme, MoSCoW priority and traceability matrix |
+| [Stakeholders](docs/requirements/stakeholders.md), [elicitation plan](docs/requirements/elicitation_plan.md) | Stakeholder list, cashier persona and interview questions |
+
+**Increment 2 – Design** (milestone W11)
+
+| Document | Content |
+| --- | --- |
+| [Domain model](docs/design/domain_model.md) | Concepts of the store, attributes and multiplicities for UC1–UC5 (`assets/domain_model.png`), and state diagrams of the item status and the rental |
+| [System sequence diagrams](docs/design/system_sequence_diagrams.md) | System operations of UC1 to UC5 (`assets/ssd_uc1.png` to `ssd_uc5.png`) |
+| [Operation contracts](docs/design/operation_contracts.md) | Contracts 1 to 28 for the system operations of UC1 to UC5 |
+| [Architecture drivers](docs/design/architecture_drivers.md) | Functional drivers, quality attributes with the utility tree, constraints and trade-offs |
+| [System interfaces](docs/design/system_interfaces.md) | System API used by the screens and the Java interfaces of the external systems and devices |
+| [Architecture description](docs/design/architecture.md) | ISO/IEC/IEEE 42010: context, logical, interaction, deployment and data views, correspondences and architecture decisions AD-01 to AD-10 |
+| [UI prototype](docs/design/ui_prototype.md) | Clickable prototype of the cashier screens (`docs/design/prototype/`) |
+
+**Planning**
+
+| Document | Content |
+| --- | --- |
+| [Project plan](plans/project_plan.md), [process model](plans/process_model.md) | Iterative-incremental life cycle (3 increments + release) and schedule |
+| [Weekly task plans](plans/) | Tasks, owners and deadlines of each week |
 
 ## Progress
 
@@ -72,6 +88,8 @@ Roles were confirmed by the team in W05 (see the [W05 report](weekly-reports/W05
 | W01  | [Weekly_Report_W01.pptx](weekly-reports/W01/Weekly_Report_W01.pptx) | Found the idea, researched feasibility, discussed roles                                                                                                                                                                                                                                                   |
 | W05  | [Weekly_Report_W05.pptx](weekly-reports/W05/Weekly_Report_W05.pptx) | Foundations: use case diagram and scope, quality goals, process model chosen (iterative-incremental: 3 increments + release), requirements classification, roles and Gantt schedule                                                                                                                       |
 | W06  | [Weekly_Report_W06.pptx](weekly-reports/W06/Weekly_Report_W06.pptx) | Increment 1 (Requirements) started: UC1 Process Sale fully dressed in SRS v0.3; scope corrected to 5 use cases, 3 payment methods and Customer as stakeholder; 51 requirements identified (17 FR, 10 NFR, 14 BR, 10 IR) with a traceability matrix; clickable UI prototype; peer reviews in GitHub Issues |
+| W07  | [Weekly_Report_W07.pptx](weekly-reports/W07/Weekly_Report_W07.pptx) | SRS v1.0 milestone: five fully dressed use cases and 132 requirements, each with an ID, a priority, a source and a verification method. Increment 2 (Design) started: domain model, SSD of UC1, first operation contracts, architecture drivers and architecture skeleton |
+| W08  | [Weekly_Report_W08.pptx](weekly-reports/W08/Weekly_Report_W08.pptx) | Cross-team reviews: 45 findings received from Teams B and C and answered, SRS v1.1; SRS of Teams E and F reviewed (26 and 13 findings). First architecture decisions proposed (AD-01 to AD-03) |
 
 ## Working rules
 
