@@ -119,7 +119,7 @@ One payment per sale (BR-18): after `DECLINED` or `NOT_AVAILABLE` no payment is 
 | Change the default tax rate (`managerID`, `pin`) | `PUT /api/settings/default-tax-rate` `{"rate", "manager"}` | New rate, who changed it and when | FR-69, IR-05 |
 | Disable an employee in the local list (`managerID`, `pin`) | `PUT /api/employees/{employeeID}/local-status` `{"active": false, "manager"}` | Employee disabled, who did it and when | FR-70, IR-09 |
 | `listSessionsToReview()` | `GET /api/sessions?toReview=true&limit=20&offset=0` | Sessions with a cash difference larger than 5.00 | FR-74 |
-| `confirmSessionReview(sessionID, reason, managerID, pin)` | `POST /api/sessions/{sessionID}/review` `{"reason", "manager"}` | Review recorded | FR-75 |
+| `confirmSessionReview(sessionID, managerID, pin, reason)` | `POST /api/sessions/{sessionID}/review` `{"reason", "manager"}` | Review recorded (Contract 29) | FR-75 |
 | Import the catalog (`managerID`, `pin`) | `POST /api/catalog/imports` (file + `"manager"`) | Number of products imported, or the fields that are missing or not valid (the previous catalog is kept) | IR-17 |
 
 ### 3.7 Card refund results (UC2 and UC5)
