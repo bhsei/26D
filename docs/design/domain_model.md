@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Maintainer** | Borja Nicolás |
-| **Version** | 0.6 (draft for review; review #54: state diagram of the rental) |
+| **Version** | 0.7 (draft for review; attributes of the session review for Contract 29) |
 | **Last updated** | W09 |
 | **Part of** | Increment 2 (Design), input to the SRS section 3.5, the [system sequence diagram](system_sequence_diagrams.md) and the [operation contracts](operation_contracts.md) |
 
@@ -26,7 +26,7 @@ Names follow the glossary. The names used in the [operation contracts](operation
 | **Store** | The store that owns the registers, the catalog and the employees. | `name`, `defaultTaxRate` | BR-02 |
 | **Register** | A physical POS terminal. | `registerID` | UC4 |
 | **Employee** | A person of the HR System. The role decides what he or she may do. A cashier and a store manager are employees with a different `role`. | `employeeID`, `name`, `role`, `isActive` | UC4, BR-04, BR-13 |
-| **CashierSession** | Period in which one employee works at one register; every transaction belongs to a session. | `startTime`, `endTime`, `openingCash`, `closingCash`, `difference`, `toReview`, `isInterrupted` | UC4, BR-13 |
+| **CashierSession** | Period in which one employee works at one register; every transaction belongs to a session. | `sessionID`, `startTime`, `endTime`, `openingCash`, `closingCash`, `difference`, `toReview`, `isInterrupted`, `reviewedAt`, `reviewReason` | UC4, BR-13 |
 | **ProductCatalog** | All product descriptions of the store. | – | glossary |
 | **ProductDescription** | A product type: what the scanned item identifier refers to. It holds the stock level; a rentable product also has its fee per day and deposit. | `itemID`, `name`, `price`, `stockLevel`, `reorderThreshold`, `/needsReorder`, `isRentable`, `rentalFeePerDay`, `deposit` | UC1, BR-03, BR-09, UC3 |
 | **Item** | One physical unit of a rentable product, identified by its serial number. Items that are only sold are not modelled one by one: they are counted by `stockLevel`. | `serialNumber`, `status` | UC3, BR-11 |
@@ -56,6 +56,7 @@ The four external systems (Payment Service, Tax Calculator, Accounting System, H
 | Store – ProductCatalog, Store – Employee | 1 – 1, 1 – * | One catalog; the store employs many people. |
 | Register – CashierSession | 1 – * | A register has many sessions, one after the other (UC4 precondition: only one open at a time). |
 | Employee – CashierSession | 1 – * | A session belongs to exactly one cashier (BR-13). |
+| CashierSession – Employee | * – 0..1 | The store manager who reviewed a session marked as to review (FR-75, with `reviewedAt` and `reviewReason`). |
 | CashierSession – Transaction | 1 – * | Every transaction is made inside one session (FR-01, FR-30, FR-50). |
 | ProductCatalog – ProductDescription | 1 – * | The catalog contains the descriptions. |
 | ProductDescription – Item | 1 – * | Many units (serial numbers) share one description. |
@@ -79,6 +80,7 @@ The four external systems (Payment Service, Tax Calculator, Accounting System, H
 
 - **Contracts of UC1** (Josué): every class and attribute they use exists with the same name: `Sale.isComplete`, `subtotal`, `tax`, `total` (inherited from `Transaction`), `Sale.isPaid`, `SaleLineItem.quantity`, `Payment.amount`, `ProductDescription.stockLevel`. `makePayment(amount, tenderType)` creates a `CashPayment`, `CreditCardPayment` or `CheckPayment` according to the tender type; I propose the contract uses `TenderType` instead of `String`.
 - **Contracts of UC2, UC4 and UC5** (version 0.5, W09): the attributes that Contracts 7, 9, 16 to 28 use and the model did not have are now in the model: `CashierSession.closingCash`, `difference`, `toReview`, `isInterrupted`; `Rental.isPaid`; `RentalReturn.amountDue`; `ReturnLineItem.condition`; `Refund.isApproved` and `approvalReason`. The store manager who confirms a damage or approves a cash refund is an association with `Employee` (as for the price override), so the contracts' `confirmedByID` and `approvedByID` are the `employeeID` at the end of that association. Two names still differ and are proposed to the owner of the contracts: Contracts 26 to 28 write `RentalReturn.refund`, the model has `refundTotal` (as `Return.refundTotal`); and the log entry of the drawer opening (IR-14, Contracts 19 and 20) is an entry of the `EventLog` and is not a domain concept, so it is not modelled here.
+- **Review of a session (version 0.7, W09):** for `confirmSessionReview(sessionID, managerID, pin, reason)` (FR-74, FR-75; Contract 29 of Josué) the model has `CashierSession.sessionID`, `reviewedAt` and `reviewReason`, and the association *reviewed by* with `Employee` (so `managerID` is the `employeeID` at its end). The PIN is only checked and never stored (NFR-08, AD-09).
 - **SRS**: the glossary terms *customer ID*, *item list*, *rental receipt* and *item condition* are missing (see review of the SRS); here they are `Customer.customerID`, the set of `Item`, `Receipt` of a rental and `RentalReturn.condition`. The SRS section 3.5 is derived from this model.
 
 ## 6. Decisions and open questions

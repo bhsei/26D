@@ -102,6 +102,7 @@ class Employee {
   isActive : Boolean
 }
 class CashierSession {
+  sessionID : String
   startTime : DateTime
   endTime : DateTime
   openingCash : Money
@@ -109,6 +110,8 @@ class CashierSession {
   difference : Money
   toReview : Boolean
   isInterrupted : Boolean
+  reviewedAt : DateTime
+  reviewReason : String
 }
 
 abstract class Payment {
@@ -163,6 +166,7 @@ Store "1" -- "1" ProductCatalog : has >
 Store "1" -- "*" Employee : employs >
 Register "1" -- "*" CashierSession : used in >
 Employee "1" -- "*" CashierSession : opens >
+CashierSession "*" -- "0..1" Employee : reviewed by >
 CashierSession "1" -- "*" Transaction : records >
 
 ' Catalog and items
