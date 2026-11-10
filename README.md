@@ -54,7 +54,7 @@ Roles were confirmed by the team in W05 (see the [W05 report](weekly-reports/W05
 
 | Document | Content |
 | --- | --- |
-| [SRS](docs/requirements/SRS.md) | Software Requirements Specification (ISO/IEC/IEEE 29148), v1.1: baseline after the cross-team review of W08. UC1 to UC5 fully dressed, FR-01 to FR-75, NFR-01 to NFR-20, IR-01 to IR-17, DR-01 to DR-20, DC-01 to DC-09 |
+| [SRS](docs/requirements/SRS.md) | Software Requirements Specification (ISO/IEC/IEEE 29148), v1.2: baseline for the design, with the open questions 1–4, 7 and 9 decided in W09 (v1.1 was the baseline after the cross-team review of W08). UC1 to UC5 fully dressed, FR-01 to FR-75, NFR-01 to NFR-20, IR-01 to IR-17, DR-01 to DR-20, DC-01 to DC-09, BR-01 to BR-18 |
 | [Use case model](docs/requirements/use_case_model.md) | Use case diagram (`assets/use_case_diagram.png`) and one-paragraph description of UC1–UC5 |
 | [Glossary and business rules](docs/requirements/glossary.md) | Domain terms and BR-01 to BR-18 |
 | [External interfaces](docs/requirements/external_interfaces.md) | The 4 external systems, first draft of IR-01 to IR-10 and the open questions (decided in W09) |
@@ -90,6 +90,7 @@ Roles were confirmed by the team in W05 (see the [W05 report](weekly-reports/W05
 | W06  | [Weekly_Report_W06.pptx](weekly-reports/W06/Weekly_Report_W06.pptx) | Increment 1 (Requirements) started: UC1 Process Sale fully dressed in SRS v0.3; scope corrected to 5 use cases, 3 payment methods and Customer as stakeholder; 51 requirements identified (17 FR, 10 NFR, 14 BR, 10 IR) with a traceability matrix; clickable UI prototype; peer reviews in GitHub Issues |
 | W07  | [Weekly_Report_W07.pptx](weekly-reports/W07/Weekly_Report_W07.pptx) | SRS v1.0 milestone: five fully dressed use cases and 132 requirements, each with an ID, a priority, a source and a verification method. Increment 2 (Design) started: domain model, SSD of UC1, first operation contracts, architecture drivers and architecture skeleton |
 | W08  | [Weekly_Report_W08.pptx](weekly-reports/W08/Weekly_Report_W08.pptx) | Cross-team reviews: 45 findings received from Teams B and C and answered, SRS v1.1; SRS of Teams E and F reviewed (26 and 13 findings). First architecture decisions proposed (AD-01 to AD-03) |
+| W09  | Weekly_Report_W09.pptx | Architecture design: AD-01 to AD-03 accepted (layers on each register, local web application, Java); context, logical, interaction, deployment and data views with their correspondences; AD-04, AD-07, AD-09 and AD-10; system interfaces; SSDs and contracts of UC4 and UC5, state diagrams; open questions 1–4, 7 and 9 decided (SRS v1.2); internal reviews #51 to #56 |
 
 ## Working rules
 
