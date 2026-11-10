@@ -29,9 +29,10 @@ Creating --> [*] : cancelled before payment (FR-36),\nnot paid, or crash:\nnothi
 Creating --> Open : payment accepted\n(UC3 step 15, FR-38)
 
 Open --> Overdue : the due date has passed\n(calculated, not stored, DR-06)
-Open --> Returning : makeNewRentalReturn()\n(UC5 steps 2-5)
-Overdue --> Returning : makeNewRentalReturn()\n(UC5 steps 2-5)
-Returning --> Open : cancelled (UC5 ext. 8a, FR-56)\nor crash: the rental stays as it was
+Open --> Returning : findRental(code) or selectRental(rentalID)\n(UC5 step 5)
+Overdue --> Returning : findRental(code) or selectRental(rentalID)\n(UC5 step 5)
+Returning --> Open : cancelled (UC5 ext. 8a, FR-56) or crash,\ndue date not passed: the rental stays as it was
+Returning --> Overdue : cancelled (UC5 ext. 8a, FR-56) or crash,\ndue date passed: the rental stays as it was
 Returning --> Closed : rental return confirmed and\nrefund paid or card refund made\n(UC5 steps 9-10, FR-57)
 Returning --> Pending : confirmed, but the Payment Service\ngives no answer and the refund status\nis not known (UC5 ext. 9b2b)
 Pending --> Closed : a store manager completes the refund

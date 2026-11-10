@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Maintainer** | Borja Nicolás |
-| **Version** | 0.5 (draft for review; names aligned with the contracts of UC2, UC4 and UC5) |
+| **Version** | 0.6 (draft for review; review #54: state diagram of the rental) |
 | **Last updated** | W09 |
 | **Part of** | Increment 2 (Design), input to the SRS section 3.5, the [system sequence diagram](system_sequence_diagrams.md) and the [operation contracts](operation_contracts.md) |
 
@@ -116,7 +116,7 @@ The state diagrams show how the **status of an item** and the **life of a rental
 
 *Editable source: [`assets/state_rental.puml`](../../assets/state_rental.puml) (PlantUML).*
 
-A rental is **not saved** while it is being created: it exists from the payment (UC3 step 15). *Overdue* is **calculated** from the due date and the current date and is not stored (DR-06); a customer with an overdue rental cannot start a new rental (BR-12). A rental return that is cancelled or interrupted by a failure leaves the rental as it was (UC5 ext. 8a and \*a). When the Payment Service does not answer and the refund status is not known, the rental return is saved and the rental is closed with the refund *pending* (UC5 ext. 9b2b).
+A rental is **not saved** while it is being created: it exists from the payment (UC3 step 15). *Overdue* is **calculated** from the due date and the current date and is not stored (DR-06); a customer with an overdue rental cannot start a new rental (BR-12). The rental changes to *Return in progress* when the Cashier identifies it in UC5 step 5 (`findRental` or `selectRental`), not at `makeNewRentalReturn()`, when no rental is known yet. A rental return that is cancelled or interrupted by a failure leaves the rental as it was (UC5 ext. 8a and \*a): *Open*, or *Overdue* if the due date has passed (BR-12 still applies). When the Payment Service does not answer and the refund status is not known, the rental return is saved and the rental is closed with the refund *pending* (UC5 ext. 9b2b).
 
 ### 7.3 Gaps found in the SRS
 
