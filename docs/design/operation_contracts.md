@@ -280,6 +280,20 @@ An operation contract describes the behavior of a system operation. Postconditio
 - If the difference is not larger than 5.00: `CashierSession.toReview` was left false.
 **Responsibilities:** System closes the session, records the end time, the closing cash and the difference, warns the Cashier when the session is to be reviewed, and shows the login screen.
 
+### Contract 29: confirmSessionReview
+**Operation:** confirmSessionReview(sessionID: String, managerID: String, pin: String, reason: String)
+**Cross References:** Use Case: UC4 Start Up (Close session extension 4b), FR-74, FR-75
+**Preconditions:**
+- The `CashierSession` with `sessionID` exists and has `toReview` set to true.
+- `managerID` is an active store manager and `pin` is correct (HR System or local employee list).
+- `reason` is not empty.
+**Postconditions:**
+- `CashierSession.toReview` was set to false.
+- The `CashierSession` was associated with the `Employee` whose `employeeID` is `managerID`, as the reviewer (`reviewedBy`).
+- `CashierSession.reviewReason` was set to `reason`.
+- `CashierSession.reviewedAt` was set to the current timestamp.
+- The `pin` was not stored, logged or shown (NFR-08).
+**Responsibilities:** System records the store manager's review of the flagged session, clears the review flag, and logs the action.
 
 ## UC5 Return Rental
 
@@ -370,6 +384,8 @@ An operation contract describes the behavior of a system operation. Postconditio
 - **Completion:** `RentalReturn.isComplete` was set to true; the `Rental` was closed; `Item.status` was changed from `Rented` to `Available` (undamaged) or to `Under maintenance` (damaged); an `AccountingRecord` was created and queued.
 **Responsibilities:** System pays the refund with the tender of the rental, saves the rental return, closes the rental, updates the item status and notifies the accounting system. A card refund is never paid twice.
 
+
+
 ## Open points of the contracts of UC4 and UC5
 
 1. Closed in W09: `pin` was added to `approveCashRefund` (Contract 9).
@@ -378,3 +394,5 @@ An operation contract describes the behavior of a system operation. Postconditio
 4. **Cash difference.** BR-17 says "a difference larger than 5.00". Contract 21 uses the absolute value (a surplus and a shortage are both reviewed). Please confirm.
 5. **Pending refund (9b2b).** No system operation completes a refund that was left _pending_ (SSD 6.2); no contract is written for it.
 6. **Names.** The attribute names of `CashierSession`, `RentalReturn` and `Refund`, and the log entry of the drawer opening (IR-14), have to be aligned with `domain_model.md`.
+7. **Clearing `toReview`.** Contract 29 sets `toReview` to false after the review, so that FR-74 shows only unreviewed sessions. Please confirm if this is the preferred behavior, or if `toReview` should remain a permanent mark and the list should filter by `reviewedAt`.
+
