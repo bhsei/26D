@@ -21,7 +21,7 @@ title NewEra POS - Data view: what is stored where
 
 rectangle "Store database server (one for the store, shared by all registers, DC-09)" as SDB {
   card "Product catalog, prices, rental fee and deposit\n(DR-01, DR-20)" as S1
-  card "Stock levels (DR-01)" as S2
+  card "Stock levels (DR-01): changed by the quantity\nof each sale and return of every register" as S2
   card "Item list and item status (DR-02)" as S3
   card "Customers: customer ID only (DR-18)" as S4
   card "Transactions of all registers, with payments,\nrefunds and payment references\n(DR-03 to DR-08, DR-19)" as S5
@@ -33,6 +33,7 @@ rectangle "Register computer (one for each register)" as REG {
   rectangle "Local database (survives a restart or a network failure, DC-05, DR-13)" as LDB {
     card "Local copy of the data that the register needs:\ncatalog, prices, stock levels, item status, customers,\ndefault tax rate" as L1
     card "Transactions of this register, saved here first,\nwith the open sale and the approved authorizations\n(DR-03 to DR-08, FR-48, IR-15)" as L2
+    card "Transactions waiting for the store database:\nonly here, in the order made, each with its transaction ID,\nmarked as sent after the acknowledgement (DC-09)" as L7
     card "Data of the last receipt (DR-14)" as L3
     card "Cashier session of this register (DR-09)" as L4
     card "Local employee list: PIN only as salted hash\n(DR-11)" as L5
@@ -58,7 +59,8 @@ S4 -[hidden]down- S5
 S5 -[hidden]down- S6
 S6 -[hidden]down- S7
 L1 -[hidden]down- L2
-L2 -[hidden]down- L3
+L2 -[hidden]down- L7
+L7 -[hidden]down- L3
 L3 -[hidden]down- L4
 L4 -[hidden]down- L5
 L5 -[hidden]down- L6
@@ -72,6 +74,7 @@ BO --> SDB : catalog file, import\n(IR-17)
 
 note bottom of SDB
   The store database holds the master copy of the shared data.
-  The queue and the open transaction stay on the register only.
+  The two queues (Accounting System and store database) and the open transaction stay on the register only.
+  The local stock level is an estimate; the master changes by quantities.
 end note
 @enduml
