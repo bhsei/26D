@@ -53,11 +53,20 @@ else wrong PIN (6b)
   POS --> Cashier : error; the Cashier enters the PIN again
 else HR System not available (6c)
   POS --> Cashier : warning with the date of the local employee list;\nID and PIN checked against the local copy (salted hash)
+  alt employee in the local copy and PIN correct
+    POS --> Cashier : name of the cashier; asks for the opening cash
+  else employee not in the local copy (6c1)
+    POS --> Cashier : rejected as in 6a
+  else PIN does not match the local copy (6c3)
+    POS --> Cashier : rejected as in 6b; the Cashier enters the PIN again
+  else no local employee list (6c2, first start-up)
+    POS --> Cashier : "HR System not available and no local employee list:\nthe register cannot be started for sales"; no session is opened
+  end
 end
 deactivate POS
 note right of POS
-  Without a local employee list (6c2) the register cannot be
-  started for sales. The PIN is never shown, logged or stored in plain text.
+  The PIN is never shown, logged or stored in plain text.
+  The same check applies to the approvals of a store manager (FR-45).
 end note
 
 == Open the session (steps 8-10) ==
@@ -75,19 +84,22 @@ deactivate POS
 == Close the session (section 3.2.4.1, steps 1-6) ==
 Cashier -> POS : closeSession()
 activate POS
-alt no sale, return or rental is open
+alt no sale, return, rental or rental return is open
   POS --> Cashier : cash drawer opened for the closing count
-else a sale, return or rental is still open (2a)
+else a sale, return, rental or rental return is still open (2a)
   POS --> Cashier : refused; finish or cancel it first
 end
 deactivate POS
 Cashier -> POS : enterClosingCash(amount)
 activate POS
-POS --> Cashier : expected cash and difference with the closing cash
+alt amount valid
+  POS --> Cashier : expected cash and difference with the closing cash
+else empty, not a number or negative (3a)
+  POS --> Cashier : amount rejected; asks for it again
+end
 deactivate POS
 note right of POS
   Expected cash = opening cash + cash payments - cash refunds of the session.
-  An amount that is not valid is rejected (3a).
 end note
 Cashier -> POS : confirmCloseSession()
 activate POS

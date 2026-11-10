@@ -60,6 +60,12 @@ alt undamaged, on time
   POS --> Cashier : no late fee; refund = the full deposit
 else undamaged, after the due date (7a)
   POS --> Cashier : days late, late fee, tax of the late fee;\nrefund = deposit - late fee - tax (never below zero)
+else undamaged, late fee and tax larger than the deposit (7b)
+  POS --> Cashier : days late, late fee, tax of the late fee;\nrefund = 0 and the amount still due (late fee + tax - deposit)
+  Cashier -> POS : makePayment(amount, tenderType)
+  activate POS
+  POS --> Cashier : payment accepted, as in UC1 (9a-9c);\nthe Cashier then confirms the rental return
+  deactivate POS
 else damaged (6a)
   POS --> Cashier : a store manager must confirm the damage
   Cashier -> POS : confirmDamage(managerID, pin)
@@ -71,14 +77,17 @@ deactivate POS
 note right of POS
   The tax of the late fee comes from the Tax Calculator (default rate if it is not available,
   7a1). When the item is damaged and late, the late fee is only recorded (6a4).
-  Late fee and tax larger than the deposit (7b): refund = 0 and the Customer pays
-  the difference with makePayment(amount, tenderType), as in UC1.
+  makePayment is sent only in 7b, before confirmRentalReturn; a failed payment
+  (declined card, no answer) is handled as in UC1 (BR-18: the Cashier can use another tender).
 end note
 
 == Confirm and refund (steps 8-11) ==
 Cashier -> POS : confirmRentalReturn()
 activate POS
-alt rental paid in cash (9a)
+alt refund is zero (damaged item, or 7b already paid)
+  POS --> Cashier : no refund is paid; rental return receipt
+  deactivate POS
+else rental paid in cash (9a)
   POS --> Cashier : refund due in cash (drawer opens), rental return receipt
   deactivate POS
 else rental paid by credit card (9b)
