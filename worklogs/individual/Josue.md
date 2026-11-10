@@ -66,10 +66,11 @@ Team: D · Project: NewEra POS / Role: Quality and Requirements
 ### W09
 **What I did:** 
 - Wrote the operation contracts for UC4 (Start Up / Close Session) and UC5 (Return Rental), contracts 16 to 28. Updated Contract 4 (`makePayment`) and Contract 9 (`approveCashRefund`) to cover rental returns.
+- Added Contract 29 (`confirmSessionReview`) for the store manager's review of flagged sessions (FR-74, FR-75).
 - Updated `architecture.md`: wrote §5 Correspondences (mapping views to views, and requirements to components) and defined decision record AD-09 (Security of card data and PINs).
 - Reviewed Borja's Data View (§4.5) and published a GitHub Issue with 2 findings about local/store database synchronization.
-- Resolved peer review feedback: applied Alfonso's Issue #56 (added system_interfaces traceability, fixed AD-09 text, updated header/status), applied Haifa's rename (`CatalogSourceAdapter`), and applied Borja's domain model alignments (added `pin` to Contract 9, fixed Contract 8 flow, updated Contracts 26-28 with `refundTotal` and `Employee` associations).
+- Resolved peer review feedback: applied Alfonso's Issue #56, Haifa's rename (`CatalogSourceAdapter`), and Borja's domain model alignments (added `pin` to Contract 9, fixed Contract 8 flow, updated Contracts 26-28 with `refundTotal` and `Employee` associations).
 - Checked Team E's repository to verify their SRS revision (still pending, they haven't uploaded v1.5).
-**Hours:** 8
+**Hours:** 9
 **Problems:** Aligning the operation contracts with the updated domain model and ensuring the architectural components matched the system interfaces without causing merge conflicts while everyone edited the same files.
 **Next:** Prepare for the W10 User Interface Design and continue with the design increment.
