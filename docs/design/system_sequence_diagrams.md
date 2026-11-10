@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Maintainer** | Borja Nicolás |
-| **Version** | 0.8 (draft for review; review #54: outcomes of 6c, 3a, 7b and rental return in `closeSession`) |
+| **Version** | 0.9 (draft for review; PIN in `overridePrice`) |
 | **Last updated** | W09 |
 | **Part of** | Increment 2 (Design); input to the [operation contracts](operation_contracts.md) |
 
@@ -38,7 +38,7 @@ The extensions of UC1 that are not part of the main scenario are mentioned in th
 | --- | --- |
 | 4c Remove a line item | `removeItem(lineNumber)` |
 | 6a Complete a sale with no line items | none (the System refuses `endSale()`; see the precondition of Contract 3) |
-| 4d Price override by the store manager | `overridePrice(lineNumber, newPrice, managerID)` |
+| 4d Price override by the store manager | `overridePrice(lineNumber, newPrice, managerID, pin)` (employee ID and PIN of the store manager, FR-45, AD-09; as in `system_interfaces.md`) |
 | \*b Cancel the sale at any time before payment | `cancelSale()` |
 | 12a Reprint the receipt (FR-17) | `reprintReceipt()` |
 
