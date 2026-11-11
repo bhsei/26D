@@ -68,7 +68,7 @@ Roles were confirmed by the team in W05 (see the [W05 report](weekly-reports/W05
 | --- | --- |
 | [Domain model](docs/design/domain_model.md) | Concepts of the store, attributes and multiplicities for UC1–UC5 (`assets/domain_model.png`), and state diagrams of the item status and the rental |
 | [System sequence diagrams](docs/design/system_sequence_diagrams.md) | System operations of UC1 to UC5 (`assets/ssd_uc1.png` to `ssd_uc5.png`) |
-| [Operation contracts](docs/design/operation_contracts.md) | Contracts 1 to 28 for the system operations of UC1 to UC5 |
+| [Operation contracts](docs/design/operation_contracts.md) | Contracts 1 to 29 for the system operations of UC1 to UC5 |
 | [Architecture drivers](docs/design/architecture_drivers.md) | Functional drivers, quality attributes with the utility tree, constraints and trade-offs |
 | [System interfaces](docs/design/system_interfaces.md) | System API used by the screens and the Java interfaces of the external systems and devices |
 | [Architecture description](docs/design/architecture.md) | ISO/IEC/IEEE 42010: context, logical, interaction, deployment and data views, correspondences and architecture decisions AD-01 to AD-10 |
