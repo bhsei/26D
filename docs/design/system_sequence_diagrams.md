@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Maintainer** | Borja Nicolás |
-| **Version** | 0.9 (draft for review; PIN in `overridePrice`) |
+| **Version** | 0.10 (draft for review; Contract 29 for `confirmSessionReview`) |
 | **Last updated** | W09 |
 | **Part of** | Increment 2 (Design); input to the [operation contracts](operation_contracts.md) |
 
@@ -142,7 +142,7 @@ The diagram shows the **main success scenario** of the start-up (UC4 steps 1–1
 | Item | Possible operation |
 | --- | --- |
 | Failure of the register (\*a) | none: at the next `startUp()` the System ends the interrupted session (end time = restart time, marked interrupted) and the Cashier logs in again (FR-63) |
-| Review of a session by the store manager (FR-75) | `listSessionsToReview()` and `confirmSessionReview(sessionID, managerID, pin, reason)`, sent by the store manager (FR-75 records who reviewed the session and when). They are a later step of ext. 4b (step 2, FR-74, FR-75), after the session is closed, and have no contract yet, like the other candidates in this table |
+| Review of a session by the store manager (FR-75) | `listSessionsToReview()` and `confirmSessionReview(sessionID, managerID, pin, reason)`, sent by the store manager (FR-75 records who reviewed the session and when). They are a later step of ext. 4b (step 2, FR-74, FR-75), after the session is closed. `confirmSessionReview` is Contract 29 and `listSessionsToReview()` only reads, so it has no contract. The other candidates in this table have no contract yet |
 | Disabling an employee or changing the default tax rate while the HR System is not available (6c4) | functions of the store manager; no system operation yet |
 
 ### 5.3 Open points
@@ -193,5 +193,5 @@ The diagram shows the **main success scenario** (UC5 steps 1–12), the four res
 | UC1 Process Sale | `makeNewSale`, `enterItem`, `endSale`, `makePayment` (contracts 1 to 4) |
 | UC2 Handle Returns | `makeNewReturn`, `findSale`, `enterReturnItem`, `confirmReturn`, `approveCashRefund` (contracts 5 to 9) |
 | UC3 Process Rental | `makeNewRental`, `enterCustomerID`, `registerCustomer`, `enterRentalItem`, `selectRentalPeriod`, `endRental`, `makePayment` (shared with UC1) (contracts 10 to 15) |
-| UC4 Start Up (with Close session) | `startUp`, `logIn`, `enterOpeningCash`, `closeSession`, `enterClosingCash`, `confirmCloseSession` (contracts 16 to 21) |
+| UC4 Start Up (with Close session) | `startUp`, `logIn`, `enterOpeningCash`, `closeSession`, `enterClosingCash`, `confirmCloseSession` (contracts 16 to 21), `confirmSessionReview` (Contract 29, store manager, after the session is closed) |
 | UC5 Return Rental | `makeNewRentalReturn`, `findRental`, `findRentalsOfCustomer`, `selectRental`, `recordCondition`, `confirmDamage`, `confirmRentalReturn` (contracts 22 to 28), `approveCashRefund` (shared with UC2, Contract 9), `makePayment` (shared, only in 7b, Contract 4) |
