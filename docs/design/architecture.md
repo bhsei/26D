@@ -24,7 +24,7 @@ NewEra POS is the application a cashier uses at a store register to process sale
 
 | Input                                  | Document                                                                                                                                         |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Requirements (FR, NFR, IR, BR)         | [SRS.md](../requirements/SRS.md) v1.1                                                                                                            |
+| Requirements (FR, NFR, IR, BR)         | [SRS.md](../requirements/SRS.md) v1.2                                                                                                            |
 | External interfaces                    | [external_interfaces.md](../requirements/external_interfaces.md)                                                                                 |
 | Design constraints                     | SRS §3.6 (DC-01 to DC-09)                                                                                                                        |
 | Architecture drivers                   | [architecture_drivers.md](architecture_drivers.md) v0.2 (Alfonso)                                                                                |
