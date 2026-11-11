@@ -53,6 +53,6 @@
 
 ## W09
 - **What I did:** Planned W09 (`plans/task_plan_W09.md`): architecture views, the W08 revision items and the new rules for answering reviews (no rejected or partially accepted findings). Wrote the system interfaces (`docs/design/system_interfaces.md`, step 2 of the architecture process): the system API from the SSDs and the contracts, the Java interfaces of the adapters and the devices, and the protocol with the stubs; aligned it with Borja's SSDs of UC4 and UC5 and fixed the 8 findings of Yasmine's review (#55) in v0.3. Updated `architecture_drivers.md` to v0.2 (SRS v1.1, C-09 shared store database, C-08 decided). Decided open questions 3 and 7 of the SRS (one tender per sale or rental, BR-18; no discounts or promotions) and the glossary. Reviewed the correspondences and AD-09 (Josué), the context and interaction views (Yasmine) and the consistency of `architecture.md` (#56, 6 findings). Integrated SRS v1.2 and updated the README.
-- **Hours:** 
+- **Hours:** 5
 - **Problems:** Several people edited `architecture.md` and the SRS on the same days, so I had to pull again before pushing. Borja's SSDs of UC4 and UC5 came after my first version of the interfaces, so I changed my operation names to match his.
 - **Next:** W10 User Interface Design, and AD-05 and AD-06 (storage and the Accounting queue) with Borja, so that the storage interfaces can be added to `system_interfaces.md` before the design milestone (W11).
