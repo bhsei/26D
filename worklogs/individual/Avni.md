@@ -76,3 +76,17 @@
   - Several people edited SRS.md at the same time, so I pulled before every change and made separate commits, without merge commits.
   - Teams B and C reported some of the same problems (offline PIN, ending the session), so both answers had to be consistent.
 - **Next:** In W09, check the answers of Team E to our review and the SRS v1.1; start Increment 2 (Design) with the tasks of the W09 plan; and answer open question 5 (how customers are identified) before the design is closed (W11).
+
+## W09
+- **What I did:**
+  - Wrote the deployment view of the architecture document (section 4.4) with a deployment diagram of the register computer, the devices, the store database server, the stubs of the external systems and the network links, and the decision record AD-10 on device access.
+  - Decided the open questions 1 and 9 of SRS section 5.3: refund period of 30 days, rental periods of 1, 3 or 7 days, a late fee of one day's rental fee for each day late, no tax on the deposit, and a limit of 5.00 for the cash difference at the end of a session with a review by the store manager. I wrote BR-15 to BR-17, FR-74 and FR-75, updated UC2, UC3, UC4, UC5, section 3.10 and the glossary (v0.5), and corrected FR-60 so that the rental return also blocks the close session.
+  - Reviewed Borja's system sequence diagrams of UC4 and UC5 and his state diagrams in Issue #54 (8 findings); he fixed them in the diagrams v0.8 and the domain model v0.6.
+  - Answered Haifa's review of the deployment view (5 findings, all accepted): the scanner reaches the POS application through the browser, numbered links in the diagram, a row for the Accounting System, the medium of the catalog file as an open point, and the wording of IR-02.
+  - Wrote the team work log W09.
+- **Hours:** 7 h
+- **Problems:**
+  - The labels of my first deployment diagram were far from their arrows; after the review I redrew it with numbered links and a table.
+  - The case does not give values for the open questions, so I chose them as proposals and the rules stay Proposed until the full case study is checked.
+  - Several people edited the SRS and the architecture document at the same time, so I pulled before every change and made separate commits, without merge commits.
+- **Next:** In W10, take my part of the user interface design from the W10 plan, check the architecture decisions AD-05 and AD-06 for my deployment view, and answer open question 5 (how customers are identified) before the design milestone in W11.
