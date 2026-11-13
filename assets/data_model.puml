@@ -1,0 +1,277 @@
+@startuml
+' NewEra POS - Data model (E/R) of the store database and of the local database, W10
+' Team D - editable source of assets/data_model.png
+' Render with: java -jar plantuml.jar -tpng assets/data_model.puml
+' Sources: SRS section 3.5 (DR-01 to DR-20), DC-05, DC-09, AD-05, AD-06, domain model v0.7.
+' Colours: blue = table in the store database and in the local database; green = store database only; orange = local database only.
+
+skinparam shadowing false
+skinparam dpi 100
+skinparam defaultFontName Arial
+skinparam ArrowColor #444444
+skinparam nodesep 40
+skinparam ranksep 55
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #B8A04A
+hide circle
+hide methods
+
+title NewEra POS - Data model (20 tables, all shown)\nblue: store database and local database · green: store database only · orange: local database only
+
+' ---------- catalog ----------
+entity "product" as product <<both>> #F4F8FD;line:1F4E79 {
+  * item_id : text <<PK>>
+  --
+  * name : text
+  * price_cents : integer
+  * stock_level : integer
+  * reorder_threshold : integer
+  * is_rentable : boolean
+  rental_fee_per_day_cents : integer
+  deposit_cents : integer
+  * is_active : boolean
+}
+
+entity "item" as item <<both>> #F4F8FD;line:1F4E79 {
+  * serial_number : text <<PK>>
+  --
+  * item_id : text <<FK>>
+  * status : text
+  * is_active : boolean
+}
+
+entity "item_hold" as item_hold <<store>> #EAF6EA;line:2E7D32 {
+  * serial_number : text <<PK, FK>>
+  --
+  * register_id : text <<FK>>
+  * held_since : timestamp
+}
+
+entity "stock_difference" as stock_difference <<both>> #F4F8FD;line:1F4E79 {
+  * difference_id : text <<PK>>
+  --
+  * item_id : text <<FK>>
+  * transaction_id : text <<FK>>
+  * missing_quantity : integer
+  * recorded_at : timestamp
+  * is_checked : boolean
+}
+
+' ---------- store ----------
+entity "register" as register <<both>> #F4F8FD;line:1F4E79 {
+  * register_id : text <<PK>>
+}
+
+entity "customer" as customer <<both>> #F4F8FD;line:1F4E79 {
+  * customer_id : text <<PK>>
+}
+
+entity "settings" as settings <<both>> #F4F8FD;line:1F4E79 {
+  * setting_key : text <<PK>>
+  --
+  * setting_value : text
+  * updated_at : timestamp
+}
+
+entity "cashier_session" as cashier_session <<both>> #F4F8FD;line:1F4E79 {
+  * session_id : text <<PK>>
+  --
+  * register_id : text <<FK>>
+  * employee_id : text
+  * start_time : timestamp
+  end_time : timestamp
+  * opening_cash_cents : integer
+  closing_cash_cents : integer
+  difference_cents : integer
+  * to_review : boolean
+  * is_interrupted : boolean
+  reviewed_by : text
+  reviewed_at : timestamp
+  review_reason : text
+}
+
+' ---------- transactions ----------
+entity "pos_transaction" as txn <<both>> #F4F8FD;line:1F4E79 {
+  * transaction_id : text <<PK>>
+  --
+  * type : text
+  * session_id : text <<FK>>
+  customer_id : text <<FK>>
+  * created_at : timestamp
+  * subtotal_cents : integer
+  * tax_cents : integer
+  * total_cents : integer
+  * is_complete : boolean
+  * tax_to_correct : boolean
+  original_transaction_id : text <<FK>>
+  corrects_transaction_id : text <<FK>>
+}
+
+entity "sale_line" as sale_line <<both>> #F4F8FD;line:1F4E79 {
+  * transaction_id : text <<PK, FK>>
+  * line_no : integer <<PK>>
+  --
+  * item_id : text <<FK>>
+  * quantity : integer
+  * unit_price_cents : integer
+  * tax_cents : integer
+  price_overridden_by : text
+}
+
+entity "return_line" as return_line <<both>> #F4F8FD;line:1F4E79 {
+  * transaction_id : text <<PK, FK>>
+  * line_no : integer <<PK>>
+  --
+  * original_transaction_id : text <<FK>>
+  * original_line_no : integer <<FK>>
+  * quantity : integer
+  * condition : text
+  * price_paid_cents : integer
+  * refund_cents : integer
+  * refund_tax_cents : integer
+}
+
+entity "rental_line" as rental_line <<both>> #F4F8FD;line:1F4E79 {
+  * transaction_id : text <<PK, FK>>
+  * line_no : integer <<PK>>
+  --
+  * serial_number : text <<FK>>
+  * rental_period_days : integer
+  * rental_fee_cents : integer
+  * fee_tax_cents : integer
+  * due_date : date
+  * deposit_cents : integer
+}
+
+entity "rental_return_line" as rental_return_line <<both>> #F4F8FD;line:1F4E79 {
+  * transaction_id : text <<PK, FK>>
+  * line_no : integer <<PK>>
+  --
+  * rental_transaction_id : text <<FK>>
+  * rental_line_no : integer <<FK>>
+  * returned_at : timestamp
+  * condition : text
+  damage_note : text
+  * days_late : integer
+  * late_fee_cents : integer
+  * late_fee_tax_cents : integer
+  * amount_kept_cents : integer
+  * amount_due_cents : integer
+  * refund_total_cents : integer
+  confirmed_by : text
+}
+
+entity "payment" as payment <<both>> #F4F8FD;line:1F4E79 {
+  * payment_id : text <<PK>>
+  --
+  * transaction_id : text <<FK>>
+  * tender : text
+  * amount_cents : integer
+  * paid_at : timestamp
+  cash_tendered_cents : integer
+  change_due_cents : integer
+  card_last4 : text
+  authorization_code : text
+  payment_service_transaction_id : text
+  payment_reference : text
+}
+
+entity "refund" as refund <<both>> #F4F8FD;line:1F4E79 {
+  * refund_id : text <<PK>>
+  --
+  * transaction_id : text <<FK>>
+  * amount_cents : integer
+  * tender : text
+  reference : text
+  * is_approved : boolean
+  approved_by : text
+  approval_reason : text
+}
+
+entity "sync_conflict" as sync_conflict <<store>> #EAF6EA;line:2E7D32 {
+  * conflict_id : text <<PK>>
+  --
+  * kind : text
+  * serial_number : text <<FK>>
+  * transaction_id : text <<FK>>
+  * other_transaction_id : text <<FK>>
+  * found_at : timestamp
+  * is_resolved : boolean
+}
+
+' ---------- local only ----------
+entity "accounting_queue" as accounting_queue <<local>> #FFF1E0;line:C26A00 {
+  * seq : integer <<PK>>
+  --
+  * transaction_id : text <<FK, unique>>
+  * payload : text
+  * queued_at : timestamp
+  * attempts : integer
+  last_attempt_at : timestamp
+}
+
+entity "store_sync_list" as store_sync_list <<local>> #FFF1E0;line:C26A00 {
+  * seq : integer <<PK>>
+  --
+  * transaction_id : text <<FK, unique>>
+  * queued_at : timestamp
+  sent_at : timestamp
+}
+
+entity "employee_copy" as employee_copy <<local>> #FFF1E0;line:C26A00 {
+  * employee_id : text <<PK>>
+  --
+  * name : text
+  * role : text
+  * is_active : boolean
+  * pin_hash : text
+  * pin_salt : text
+  * updated_at : timestamp
+}
+
+entity "register_state" as register_state <<local>> #FFF1E0;line:C26A00 {
+  * register_id : text <<PK, FK>>
+  --
+  * transaction_counter : integer
+  * customer_counter : integer
+  last_transaction_id : text <<FK>>
+  last_synced_at : timestamp
+  employee_list_updated_at : timestamp
+}
+
+' ---------- relations ----------
+product ||--o{ item
+product ||--o{ sale_line
+product ||--o{ stock_difference
+item ||--o| item_hold
+item ||--o{ rental_line
+register ||--o{ cashier_session
+register ||--o{ item_hold
+register ||--|| register_state
+cashier_session ||--o{ txn
+customer |o--o{ txn
+txn ||--o{ sale_line
+txn ||--o{ return_line
+txn ||--o{ rental_line
+txn ||--o{ rental_return_line
+txn ||--o{ payment
+txn ||--o{ refund
+txn |o--o{ txn
+txn ||--o{ stock_difference
+sale_line ||--o{ return_line
+rental_line ||--o| rental_return_line
+txn ||--o| accounting_queue
+txn ||--o| store_sync_list
+txn ||--o{ sync_conflict
+item ||--o{ sync_conflict
+
+note bottom of txn
+  type: SALE, RETURN, RENTAL, RENTAL_RETURN.
+  transaction_id = receipt number = register ID + counter.
+  Money in whole cents (DR-17). Completed rows are never changed (DR-04).
+end note
+note bottom of cashier_session
+  employee_id, reviewed_by, approved_by and confirmed_by
+  are employee IDs of the HR System (no foreign key, DR-11).
+end note
+@enduml
