@@ -58,3 +58,10 @@
 - **Hours:** **[10]**
 - **Problems:** A merge conflict in the review file and a broken FR table in SRS.md, both caused by editing the same files as other teammates; I fixed them by redoing the edits from the latest version. Some answers depend on decisions that are still open (days before a check can be refunded in cash, what to do with items that are not resellable).
 - **Next:** Check my sections in SRS v1.1, and take the next tasks of the W09 plan.
+
+## W09
+
+- **What I did:** Drew the context view (§4.1) and two sequence diagrams of the interaction view (§4.3) of the architecture: UC1 paid by credit card through the layers, and the Payment Service not answering, with a retry that reuses the same transaction ID (IR-02). Reviewed the system interfaces (v0.2) and posted 8 findings in a GitHub Issue (#55). Answered the two findings of review #56 about my views: I added the void when the cashier gives up the card payment (AD-07, IR-15) and the store database server in the context view (DC-09).
+- **Hours:** **[9]**
+- **Problems:** I started the views late, so Alfonso could review them only on the same day. The first version of my second diagram missed the void when the cashier gives up the card payment, and Alfonso found it in review #56.
+- **Next:** W10: write the screens and navigation of the UI design (`ui_design.md`) and review Alfonso's storage interfaces.
