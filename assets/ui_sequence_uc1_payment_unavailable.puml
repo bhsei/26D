@@ -1,0 +1,103 @@
+@startuml
+' NewEra POS - Navigation sequence diagram of UC1 Process Sale - extension 9b2b "Card payment not available", W10
+' Team D - editable source of assets/ui_sequence_uc1_payment_unavailable.png
+' Render with: java -jar plantuml.jar -tpng assets/ui_sequence_uc1_payment_unavailable.puml
+' Screen IDs and controllers follow docs/design/ui_design.md section 1 (A1); operations and answers follow
+' docs/design/system_interfaces.md section 3.2, the SSD of UC1 and SRS UC1 (extensions 4a, 9a, 9b, 9b2b).
+
+skinparam shadowing false
+skinparam dpi 130
+skinparam defaultFontName Arial
+skinparam ArrowColor #444444
+skinparam SequenceLifeLineBorderColor #444444
+skinparam ParticipantBorderColor #1F4E79
+skinparam ParticipantBackgroundColor #EAF1FB
+skinparam BoundaryBorderColor #1F4E79
+skinparam BoundaryBackgroundColor #EAF1FB
+skinparam ControlBorderColor #1F4E79
+skinparam ControlBackgroundColor #EAF1FB
+skinparam ActorBorderColor #444444
+skinparam ActorBackgroundColor #FFFFFF
+skinparam BoxPadding 6
+skinparam SequenceGroupBackgroundColor #F4F8FD
+skinparam SequenceGroupBorderColor #1F4E79
+skinparam SequenceDividerBackgroundColor #EAF1FB
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #B8A04A
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 190
+
+title NewEra POS - Navigation sequence diagram: UC1 card payment not available (9b2b)
+
+actor ":Cashier" as Cashier
+box "ui.screens (browser)" #F4F8FD
+  boundary "S-02\n:Menu" as Menu
+  boundary "S-04\n:Sale" as SaleS
+  boundary "S-05\n:Payment" as PayS
+  boundary "S-06\n:Receipt" as RecS
+end box
+box "ui.api (POS application)" #F4F8FD
+  control ":SaleController" as Ctl
+end box
+
+note over Cashier, Ctl
+  Precondition: a cashier session is open (UC4), the sale is ended and S-05 shows the total (UC1 step 7). The sale keeps one transaction ID
+  for every attempt to pay it (IR-02, BR-18).
+end note
+
+activate PayS
+Cashier -> PayS : choose credit card
+PayS -> Ctl : makePayment(amount, CREDIT_CARD)
+PayS --> Cashier : waiting message after 1 s (NFR-18)
+... the Payment Service does not answer within 10 s (AD-07) ...
+Ctl --> PayS : NOT_AVAILABLE (retry allowed)
+PayS --> Cashier : "Card payment not available":\nRetry, Other tender or Cancel sale
+note right of PayS
+  No payment is created and the sale stays open
+  (BR-18). The failure is logged by the POS
+  application (IR-10), not by the screen.
+end note
+
+alt Retry (IR-02)
+  Cashier -> PayS : "Retry"
+  PayS -> Ctl : makePayment(amount, CREDIT_CARD)
+  note right of Ctl
+    Same transaction ID: the customer is never
+    charged twice. The card is read again (AD-09).
+  end note
+  Ctl --> PayS : APPROVED, last 4 digits,\nauthorization code, receipt number
+  PayS -> RecS : open (receipt number)
+  note right of RecS
+    Continues as in the main scenario
+    (ui_sequence_uc1.png, Receipt).
+    If there is still no answer, S-05 shows
+    "Card payment not available" again.
+  end note
+else Other tender
+  Cashier -> PayS : choose cash, enter the amount tendered
+  PayS -> Ctl : makePayment(amount, CASH)
+  note right of Ctl
+    Before the cash payment the POS application
+    voids the card request with the same
+    transaction ID (voidAuthorization, IR-15, AD-07).
+    The screen does not see this step.
+  end note
+  Ctl --> PayS : APPROVED, change due, receipt number
+  PayS -> RecS : open (receipt number)
+else Cancel sale (*b)
+  Cashier -> PayS : "Cancel sale"
+  PayS -> SaleS : back to the sale
+  deactivate PayS
+  activate SaleS
+  SaleS -> Ctl : cancelSale()
+  note right of Ctl
+    The card request is voided first, as for
+    Other tender (IR-15). The stock levels
+    do not change (FR-07).
+  end note
+  Ctl --> SaleS : sale cancelled
+  SaleS -> Menu : open
+  deactivate SaleS
+  Menu --> Cashier : menu (the session stays open)
+end
+@enduml
