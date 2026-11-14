@@ -1,0 +1,117 @@
+@startuml
+' NewEra POS - Navigation sequence diagram of UC1 Process Sale (main scenario), W10
+' Team D - editable source of assets/ui_sequence_uc1.png
+' Render with: java -jar plantuml.jar -tpng assets/ui_sequence_uc1.puml
+' Screen IDs and controllers follow docs/design/ui_design.md section 1 (A1); operations and answers follow
+' docs/design/system_interfaces.md section 3.2, the SSD of UC1 and SRS UC1 (extensions 4a, 9a, 9b, 9b2b).
+
+skinparam shadowing false
+skinparam dpi 130
+skinparam defaultFontName Arial
+skinparam ArrowColor #444444
+skinparam SequenceLifeLineBorderColor #444444
+skinparam ParticipantBorderColor #1F4E79
+skinparam ParticipantBackgroundColor #EAF1FB
+skinparam BoundaryBorderColor #1F4E79
+skinparam BoundaryBackgroundColor #EAF1FB
+skinparam ControlBorderColor #1F4E79
+skinparam ControlBackgroundColor #EAF1FB
+skinparam ActorBorderColor #444444
+skinparam ActorBackgroundColor #FFFFFF
+skinparam BoxPadding 6
+skinparam SequenceGroupBackgroundColor #F4F8FD
+skinparam SequenceGroupBorderColor #1F4E79
+skinparam SequenceDividerBackgroundColor #EAF1FB
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #B8A04A
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 190
+
+title NewEra POS - Navigation sequence diagram: UC1 Process Sale (main scenario)
+
+actor ":Cashier" as Cashier
+box "ui.screens (browser)" #F4F8FD
+  boundary "S-02\n:Menu" as Menu
+  boundary "S-04\n:Sale" as SaleS
+  boundary "S-05\n:Payment" as PayS
+  boundary "S-06\n:Receipt" as RecS
+end box
+box "ui.api (POS application)" #F4F8FD
+  control ":SaleController" as Ctl
+end box
+
+note over Cashier, Ctl
+  Precondition: a cashier session is open (UC4). The Customer takes part only through the Cashier.
+  Each arrow to :SaleController is one request of system_interfaces.md section 3.2. The controller passes it
+  to SaleHandler (architecture.md section 4.3); the screens contain no business rule (AD-01).
+end note
+
+
+group Start the sale (UC1 steps 1-3)
+  Cashier -> Menu : choose "Sale"
+  Menu -> SaleS : open
+  activate SaleS
+  SaleS -> Ctl : makeNewSale()
+  Ctl --> SaleS : sale ID
+  SaleS --> Cashier : empty sale, cursor in the item identifier field
+end
+
+group Enter items (steps 4-5)
+  loop for each item
+    Cashier -> SaleS : scan or type the item identifier (and the quantity, 4b)
+    SaleS -> Ctl : enterItem(itemID, quantity)
+    Ctl --> SaleS : line number, description, unit price,\nline subtotal, running subtotal
+    SaleS --> Cashier : new line shown, cursor back in the item identifier field
+  end
+  note right of SaleS
+    4a: unknown item identifier (404): the message
+    is shown on S-04 and no line is added (FR-03).
+    4c remove a line, 4d price override with the
+    dialog D-01, *b cancel the sale: also on S-04.
+  end note
+end
+
+group End the sale (steps 6-7)
+  Cashier -> SaleS : "End sale"
+  SaleS -> Ctl : endSale()
+  Ctl --> SaleS : subtotal, tax, total\n(taxToBeCorrected when the default tax rate is used, 7a)
+  SaleS -> PayS : open (sale ID, total)
+  deactivate SaleS
+  activate PayS
+  PayS --> Cashier : total due and the tenders: cash, credit card, check
+end
+
+group Pay (steps 8-10)
+  alt cash (9a)
+    Cashier -> PayS : choose cash, enter the amount tendered
+    PayS -> Ctl : makePayment(amount, CASH)
+    Ctl --> PayS : APPROVED, change due, receipt number
+  else credit card (9b)
+    Cashier -> PayS : choose credit card
+    PayS -> Ctl : makePayment(amount, CREDIT_CARD)
+    note right of PayS
+      The Customer inserts or taps the card on the
+      card reader. The screen never sends or receives
+      card data (IR-12); it shows a waiting message
+      after 1 s (NFR-18).
+    end note
+    Ctl --> PayS : APPROVED, last 4 digits,\nauthorization code, receipt number
+  end
+  note right of PayS
+    Check (9c, Could) works like cash with
+    tenderType CHECK. DECLINED (9b2a): the reason
+    is shown on S-05 and the Cashier chooses
+    another tender (BR-18).
+  end note
+end
+
+group Receipt (steps 11-12)
+  PayS -> RecS : open (receipt number)
+  deactivate PayS
+  activate RecS
+  RecS --> Cashier : "Payment approved", change due (cash),\nreceipt printed
+  Cashier -> RecS : "New sale"
+  RecS -> SaleS : open (a new sale starts with makeNewSale())
+  deactivate RecS
+end
+@enduml
