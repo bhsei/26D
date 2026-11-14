@@ -82,4 +82,37 @@ These are the "Manager screens" of the logical view. Each operation carries the 
 
 ## 5. Navigation sequence diagram of UC1
 
-*To do (W10) – Avni (A4): Cashier → screens → controller, for the main scenario and *Card payment not available* (`assets/ui_sequence_uc1.puml`).*
+Owner: Avni (A4). The navigation sequence diagram shows how the Cashier moves through the screens of UC1 Process Sale and which request each screen sends to its controller. It stops at the controller of `ui.api`: what happens behind the controller (handler, adapters, external systems) is in the interaction view of [`architecture.md`](architecture.md) §4.3. The screens are those of section 1, the operations and answers those of [`system_interfaces.md`](system_interfaces.md) §3.2, and the steps those of SRS UC1 and its SSD.
+
+### 5.1 Main scenario
+
+![Navigation sequence diagram of UC1 Process Sale, main scenario](../../assets/ui_sequence_uc1.png)
+
+_Editable source: [`assets/ui_sequence_uc1.puml`](../../assets/ui_sequence_uc1.puml) (PlantUML)._
+
+What the diagram shows:
+
+- **Screens used.** S-02 Menu → S-04 Sale → S-05 Payment → S-06 Receipt, and back to S-04 for the next sale. All requests go to `SaleController`.
+- **Start and items (steps 1–5).** S-04 sends `makeNewSale()` when it opens and `enterItem(itemID, quantity)` for each scanned or typed item. After each line the cursor goes back to the item identifier field, so the Cashier can scan item after item (SRS §3.1.1). An unknown item (4a) is shown on S-04, in plain words, and adds no line (FR-03, NFR-14). Remove a line (4c), price override with the dialog D-01 (4d) and cancel the sale (\*b) also stay on S-04.
+- **End of the sale (steps 6–7).** S-04 sends `endSale()` and receives the subtotal, the tax and the total, with `taxToBeCorrected` when the default tax rate was used (7a). Then S-05 opens with the total and its parts before the Cashier confirms the payment (NFR-17).
+- **Payment (steps 8–10).** S-05 sends one `makePayment(amount, tenderType)`. For a card the screen only sends the tender: the card is read by the card reader and the screen never sends or receives card data (IR-12); it shows a waiting message after 1 s (NFR-18). A declined card (9b2a) is shown on S-05 and the Cashier chooses another tender (BR-18).
+- **Receipt (steps 11–12).** After `APPROVED`, S-06 shows the result and the change due (cash). The receipt is printed by the POS application. *New sale* opens S-04 again. After the items, the Cashier needs three actions: *End sale*, the tender and the confirmation of the amount (NFR-06).
+
+### 5.2 Card payment not available (UC1 extension 9b2b)
+
+![Navigation sequence diagram of UC1, card payment not available](../../assets/ui_sequence_uc1_payment_unavailable.png)
+
+_Editable source: [`assets/ui_sequence_uc1_payment_unavailable.puml`](../../assets/ui_sequence_uc1_payment_unavailable.puml) (PlantUML)._
+
+What the diagram shows:
+
+- **Waiting and message.** S-05 shows a waiting message after 1 s (NFR-18). When the Payment Service does not answer within 10 s (AD-07), `makePayment` returns `NOT_AVAILABLE` and S-05 shows *"Card payment not available"* with three choices: *Retry*, *Other tender* and *Cancel sale* (NFR-14). The failure is logged by the POS application (IR-10), not by the screen. No payment is created and the sale stays open (BR-18).
+- **Retry (IR-02).** S-05 sends the same `makePayment(amount, CREDIT_CARD)` again. The sale keeps its transaction ID, so the customer is never charged twice; the card is read again (AD-09).
+- **Other tender.** S-05 sends `makePayment` with the new tender. The POS application first voids the card request (`voidAuthorization`, IR-15); the screen does not see this step.
+- **Cancel sale (\*b).** S-05 goes back to S-04, which sends `cancelSale()` (the operation belongs to S-04 in section 1.2). The card request is voided first, the stock levels do not change (FR-07) and the Menu S-02 opens; the cashier session stays open.
+
+### 5.3 Open points
+
+1. **Where the total is shown.** The diagram shows the total on S-04 after `endSale()` and then opens S-05. To align with the navigation diagram of section 2.
+2. **Cancel from S-05.** *Cancel sale* goes back to S-04, because `cancelSale()` is an operation of S-04 (section 1.2). If S-05 should send it directly, section 1.2 and the diagram change together.
+3. **Screen after a cancelled sale.** The diagram opens the Menu S-02. Opening an empty S-04 for the next customer is also possible. To align with section 2.
