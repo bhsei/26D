@@ -34,7 +34,8 @@
               <button class="btn" onclick="scanItem()">&#9783; Scan</button>
             </div>
           </div>
-          <div id="not-found" class="msg msg-error hidden">Item not found. Check the ID or type it again.</div>
+          <div id="not-found" class="msg msg-error hidden">This item is not in the catalog. Check the code and type it again.</div>
+          <div id="price-ok" class="msg msg-ok hidden"></div>
         </div>
 
         <div class="panel grow">
@@ -57,7 +58,7 @@
 
       <div class="right">
         <div id="tax-warn" class="msg msg-warn hidden">
-          Tax Calculator not available. Default tax rate used, the sale will be corrected later.
+          The Tax Calculator does not answer. The default tax rate is used and the sale will be corrected later.
         </div>
 
         <div class="panel totals">
@@ -76,8 +77,8 @@
 
     <div class="demo">
       <strong>Prototype:</strong>
-      <span>Item IDs: 1001 to 1005 (try 9999 for "not found"). Use Scan to simulate the barcode scanner.</span>
-      <a href="menu.html">Back to menu</a>
+      <span>Item IDs: 1001 to 1005 (try 9999 for "not found"). Use Scan to simulate the barcode scanner. "Price" opens the manager approval.</span>
+      <span>Screen S-04</span>
     </div>
   </div>
 
@@ -130,6 +131,26 @@
       render();
     }
 
+    // UC1 ext. 4d, FR-06: a price change needs a store manager (D-01)
+    function changePrice(i) {
+      var l = tx.lines[i];
+      managerApproval({
+        title: "Change price: " + l.name,
+        text: "Current price " + money(l.price) + ". A store manager approves the new price.",
+        extra: "New price (€)",
+        reason: true
+      }, function (m) {
+        var p = parseAmount(m.extra);
+        if (p <= 0) return;
+        l.price = p;
+        l.overriddenBy = m.id;
+        var ok = document.getElementById("price-ok");
+        ok.textContent = "New price " + money(p) + " for " + l.name + ", approved by " + m.name + ".";
+        ok.classList.remove("hidden");
+        render();
+      });
+    }
+
     function render() {
       var body = document.getElementById("lines");
       body.innerHTML = "";
@@ -139,9 +160,10 @@
           "<td>" + l.id + "</td>" +
           "<td>" + l.name + "</td>" +
           "<td class='num'>" + l.qty + "</td>" +
-          "<td class='num'>" + money(l.price) + "</td>" +
+          "<td class='num'>" + money(l.price) + (l.overriddenBy ? " *" : "") + "</td>" +
           "<td class='num'>" + money(l.price * l.qty) + "</td>" +
-          "<td class='num'><button class='remove' onclick='removeLine(" + i + ")'>✕</button></td>";
+          "<td class='num'><button class='btn btn-small' onclick='changePrice(" + i + ")'>Price</button> " +
+          "<button class='remove' onclick='removeLine(" + i + ")'>✕</button></td>";
         body.appendChild(tr);
       });
 
