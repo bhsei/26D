@@ -65,3 +65,10 @@
 - **Hours:** **[9]**
 - **Problems:** I started the views late, so Alfonso could review them only on the same day. The first version of my second diagram missed the void when the cashier gives up the card payment, and Alfonso found it in review #56.
 - **Next:** W10: write the screens and navigation of the UI design (`ui_design.md`) and review Alfonso's storage interfaces.
+
+## W10
+
+- **What I did:** Wrote the user interface design (`ui_design.md`, v0.2): the screens of the cashier and of the store manager with their system operations (§1), the navigation diagram of UC1 to UC5 with 17 error and fallback messages (§2), and 12 UI rules taken from the usability requirements NFR-05, NFR-06 and NFR-13 to NFR-18 (§3). Reviewed Alfonso's system interfaces (v0.4, §3.6 to §3.9 and the storage interfaces of §4.3) and posted 10 findings in a GitHub Issue (#60). Answered the 6 findings of Borja's review of my UI design (#57): I accepted all of them, split the screen M-03 into three screens (M-03, M-05, M-06), added the missing menu entries, and corrected the rows of S-01, S-06 and D-01.
+- **Hours:** **[5]**
+- **Problems:**The documents changed while I worked: Alfonso's system interfaces v0.4 and Avni's change of S-05 came on Monday, so some rows of my screen table were out of date and I had to correct them after Borja's review. I also wrote the screen list from the interface table without checking the menu entries, so S-03 and the manager screens had no way to be opened; I found this only in the review.
+- **Next:** W11: check that Josué's class diagram and Alfonso's screen table follow my changes, and take my tasks from the W11 plan.
