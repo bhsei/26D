@@ -32,7 +32,6 @@ title NewEra POS - Navigation sequence diagram: UC1 card payment not available (
 actor ":Cashier" as Cashier
 box "ui.screens (browser)" #F4F8FD
   boundary "S-02\n:Menu" as Menu
-  boundary "S-04\n:Sale" as SaleS
   boundary "S-05\n:Payment" as PayS
   boundary "S-06\n:Receipt" as RecS
 end box
@@ -86,18 +85,15 @@ else Other tender
   PayS -> RecS : open (receipt number)
 else Cancel sale (*b)
   Cashier -> PayS : "Cancel sale"
-  PayS -> SaleS : back to the sale
-  deactivate PayS
-  activate SaleS
-  SaleS -> Ctl : cancelSale()
+  PayS -> Ctl : cancelSale()
   note right of Ctl
     The card request is voided first, as for
     Other tender (IR-15). The stock levels
     do not change (FR-07).
   end note
-  Ctl --> SaleS : sale cancelled
-  SaleS -> Menu : open
-  deactivate SaleS
+  Ctl --> PayS : sale cancelled
+  PayS -> Menu : open
+  deactivate PayS
   Menu --> Cashier : menu (the session stays open)
 end
 @enduml
