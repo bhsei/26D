@@ -24,14 +24,20 @@
 
       <div class="right no-print">
         <div class="msg msg-ok" id="done"></div>
+        <div id="paper" class="msg msg-warn hidden">
+          The printer is out of paper. Load a new roll, then press Reprint receipt. The transaction is already saved.
+        </div>
+        <div id="pending-note" class="msg msg-warn hidden">
+          The card refund is not confirmed yet. Nothing was paid. Ask again later from the menu.
+        </div>
         <div class="panel totals" id="cash-box">
-          <div><span>Amount tendered</span><span id="paid"></span></div>
-          <div class="total"><span>Change due</span><span id="change"></span></div>
+          <div><span id="paid-label">Amount tendered</span><span id="paid"></span></div>
+          <div class="total"><span id="change-label">Change due</span><span id="change"></span></div>
         </div>
 
         <div style="flex:1"></div>
 
-        <button class="btn btn-primary btn-big" onclick="window.print()">Print receipt</button>
+        <button class="btn btn-primary btn-big" id="print" onclick="reprint()">Reprint receipt</button>
         <a class="btn btn-ok btn-big" id="again" href="sale.html" onclick="clearTx()">New sale</a>
         <a class="btn btn-big" href="menu.html" onclick="clearTx()">Main menu</a>
       </div>
@@ -39,73 +45,141 @@
 
     <div class="demo">
       <strong>Prototype:</strong>
+      <label><input type="checkbox" id="paper-toggle" onchange="setFlag('no_paper', this.checked)"> Printer out of paper</label>
       <span>Stock levels and the Accounting System are updated in the background (not shown).</span>
+      <span>Screen S-06</span>
     </div>
   </div>
 
   <script src="app.js"></script>
   <script>
     var tx = loadTx() || {
-      type: "Sale", tender: "cash", paid: 20, change: 4.39, number: "S-10234",
+      type: "Sale", tender: "cash", paid: 20, change: 4.39, number: "R03-000153",
       date: new Date().toLocaleString("en-GB"),
       lines: [{ id: "1001", name: "Hammer 500 g", price: 12.90, qty: 1 }]
     };
-    var t = computeTotals(tx);
-    var TENDER_NAMES = { cash: "Cash", card: "Credit card", check: "Check" };
+    var NEXT = { "Sale": "sale.html", "Rental": "rental.html", "Return": "return.html", "Rental return": "return-rental.html" };
 
     function line(left, right, cls) {
-      return "<div class='line " + (cls || "") + "'><span>" + left + "</span><span>" + right + "</span></div>";
+      return "<div class='line " + (cls || "") + "'><span>" + left + "</span><span>" + (right || "") + "</span></div>";
     }
 
+    function tenderLine(t) {
+      return TENDER_NAMES[t.tender] + (t.last4 ? " **** " + t.last4 : "");
+    }
+
+    // FR-71: store, register, date and time, cashier, transaction ID, tender, change, last 4 digits only
     var html = "";
     html += "<h3>NewEra Store</h3>";
     html += "<div class='center-text'>Calle Mayor 12, Madrid</div>";
     html += "<hr>";
-    html += line(tx.type + " " + (tx.number || ""), "");
-    html += line(tx.date || "", "");
+    html += line(tx.type + " " + (tx.number || ""));
+    html += line(tx.date || "");
     html += line("Register 03", "Cashier: " + getSetting("cashier", "Li Wei"));
     html += "<hr>";
 
-    tx.lines.forEach(function (l) {
-      html += "<div>" + l.name + (l.serial ? " (" + l.serial + ")" : "") + "</div>";
-      html += line("  " + l.qty + " x " + money(l.price), money(l.price * l.qty));
-    });
-
-    html += "<hr>";
-    html += line("Subtotal", money(t.subtotal));
-    html += line("Tax 21%" + (taxOffline() ? " *" : ""), money(t.tax));
-    if (t.deposit > 0) html += line("Deposit (refundable)", money(t.deposit));
-    html += line("TOTAL", money(t.total), "bold");
-    html += "<hr>";
-    html += line(TENDER_NAMES[tx.tender] || "Cash", money(tx.paid || t.total));
-    if (tx.tender === "cash") html += line("Change", money(tx.change || 0));
-    if (tx.auth) html += line("Auth. code", tx.auth);
-    if (tx.checkNo) html += line("Check no.", tx.checkNo);
-
-    if (tx.type === "Rental") {
+    if (tx.type === "Sale" || tx.type === "Rental") {
+      var t = computeTotals(tx);
+      tx.lines.forEach(function (l) {
+        html += "<div>" + l.name + (l.serial ? " (" + l.serial + ")" : "") + "</div>";
+        html += line("  " + l.qty + " x " + money(l.price) + (l.overriddenBy ? " *" : ""), money(l.price * l.qty));
+      });
       html += "<hr>";
-      html += line("Due date", tx.dueDate || "");
-      html += "<div>Return the item by the due date to get the deposit back.</div>";
-    }
-    if (taxOffline()) {
-      html += "<hr><div>* default tax rate, may be corrected later</div>";
+      html += line("Subtotal", money(t.subtotal));
+      html += line("Tax 21%" + (tx.taxToCorrect ? " **" : ""), money(t.tax));
+      if (t.deposit > 0) html += line("Deposit (refundable)", money(t.deposit));
+      html += line("TOTAL", money(t.total), "bold");
+      html += "<hr>";
+      html += line(tenderLine(tx), money(tx.paid || t.total));
+      if (tx.tender === "cash") html += line("Change", money(tx.change || 0));
+      if (tx.auth) html += line("Auth. code", tx.auth);
+      if (tx.checkNo) html += line("Check no.", tx.checkNo);
+      if (tx.type === "Rental") {
+        html += "<hr>";
+        html += line("Customer", tx.customer);
+        html += line("Due date", tx.dueDate);
+        html += "<div>Return the item by the due date to get the deposit back.</div>";
+      }
+      if (tx.lines.some(function (l) { return l.overriddenBy; })) html += "<hr><div>* price changed by a store manager</div>";
     }
 
+    // FR-29: return receipt
+    if (tx.type === "Return") {
+      html += line("Original sale", tx.original);
+      html += "<hr>";
+      tx.lines.forEach(function (l) {
+        html += "<div>" + l.name + " (" + l.condition + ")</div>";
+        html += line("  " + l.qty + " x " + money(l.price), money(l.price * l.qty));
+      });
+      html += "<hr>";
+      html += line("Returned items", money(tx.refundSub));
+      html += line("Tax refunded", money(tx.refundTax));
+      html += line("REFUND", money(tx.refund), "bold");
+      html += line("Refund to", tx.refundTo);
+      if (tx.refundStatus === "PENDING") html += line("Status", "pending");
+      if (tx.approvedBy) html += line("Cash approved by", tx.approvedBy);
+    }
+
+    // FR-59: rental return receipt
+    if (tx.type === "Rental return") {
+      html += "<div>" + tx.item + " (" + tx.serial + ")</div>";
+      html += line("Rental", tx.rentalNo);
+      html += line("Rented on", tx.start);
+      html += line("Due date", tx.due);
+      html += line("Returned on", tx.returned);
+      html += line("Condition", tx.condition);
+      if (tx.damageNote) html += "<div>  " + tx.damageNote + "</div>";
+      html += "<hr>";
+      html += line("Deposit", money(tx.deposit));
+      html += line("Late fee (" + tx.daysLate + " d)", money(tx.lateFee));
+      html += line("Tax on late fee", money(tx.lateTax));
+      if (tx.kept > 0) html += line("Kept (damage)", money(tx.kept));
+      html += line("REFUND", money(tx.refund), "bold");
+      if (tx.refund > 0) html += line("Refund to", tx.refundTo);
+      if (tx.refundStatus === "PENDING") html += line("Status", "pending");
+      if (tx.approvedBy) html += line("Approved by", tx.approvedBy);
+      if (tx.amountDue) {
+        html += line("PAID (amount due)", money(tx.amountDue), "bold");
+        html += line(tenderLine(tx), money(tx.paid || tx.amountDue));
+        if (tx.tender === "cash") html += line("Change", money(tx.change || 0));
+      }
+    }
+
+    if (tx.taxToCorrect) html += "<hr><div>** default tax rate, may be corrected later</div>";
     html += "<hr>";
     html += "<div class='center-text'>Keep this receipt for returns.<br>Thank you!</div>";
     document.getElementById("receipt").innerHTML = html;
 
-    document.getElementById("done").textContent = tx.type + " completed.";
-    if (tx.tender === "cash") {
-      document.getElementById("paid").textContent = money(tx.paid || t.total);
+    document.getElementById("done").textContent = tx.type + " " + (tx.number || "") + " completed.";
+    document.getElementById("pending-note").classList.toggle("hidden", tx.refundStatus !== "PENDING");
+
+    // right panel: cash given and change, or cash refunded
+    var showCash = tx.tender === "cash" && (tx.paid || 0) > 0;
+    if (showCash) {
+      document.getElementById("paid").textContent = money(tx.paid);
       document.getElementById("change").textContent = money(tx.change || 0);
+    } else if (tx.refundStatus === "CASH_PAID") {
+      document.getElementById("paid-label").textContent = "Drawer open";
+      document.getElementById("paid").textContent = "";
+      document.getElementById("change-label").textContent = "Cash refund";
+      document.getElementById("change").textContent = money(tx.refund);
     } else {
       document.getElementById("cash-box").classList.add("hidden");
     }
-    if (tx.type === "Rental") {
-      document.getElementById("again").textContent = "New rental";
-      document.getElementById("again").href = "rental.html";
+
+    var again = document.getElementById("again");
+    again.href = NEXT[tx.type] || "sale.html";
+    again.textContent = "New " + tx.type.toLowerCase();
+
+    // IR-13, FR-17: the receipt is printed by the POS; without paper the cashier reprints it
+    function reprint() {
+      var noPaper = flag("no_paper");
+      document.getElementById("paper").classList.toggle("hidden", !noPaper);
+      if (!noPaper) window.print();
     }
+
+    document.getElementById("paper-toggle").checked = flag("no_paper");
+    document.getElementById("paper").classList.toggle("hidden", !flag("no_paper"));
   </script>
 </body>
 </html>
