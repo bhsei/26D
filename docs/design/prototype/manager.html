@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NewEra POS - Manager functions</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="screen">
+    <div class="topbar">
+      <span class="logo">NewEra POS</span>
+      <span class="title">Manager functions</span>
+      <span class="info">Register 03</span>
+      <span class="info" id="manager"></span>
+      <span class="info" id="clock"></span>
+    </div>
+
+    <div class="main">
+      <div class="left">
+        <div class="tabs">
+          <button class="tab selected" id="tab-1" onclick="show(1)">Reorder and stock check</button>
+          <button class="tab" id="tab-2" onclick="show(2)">Sessions to review</button>
+          <button class="tab" id="tab-3" onclick="show(3)">Settings</button>
+          <button class="tab" id="tab-4" onclick="show(4)">Catalog import</button>
+        </div>
+
+        <!-- M-01: FR-68, FR-19, BR-09 -->
+        <div class="panel grow" id="m-1">
+          <h2>Products to reorder or to check</h2>
+          <table>
+            <thead>
+              <tr><th>Item ID</th><th>Description</th><th class="num">Stock</th><th class="num">Threshold</th><th>Why</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>1003</td><td>Wood screws 4x40 (box 200)</td><td class="num">8</td><td class="num">10</td><td>Below the reorder threshold</td></tr>
+              <tr><td>1005</td><td>Work gloves</td><td class="num">0</td><td class="num">10</td><td>Stock check: 3 sold that were not in stock</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- M-02: FR-74, FR-75, BR-17 -->
+        <div class="panel grow hidden" id="m-2">
+          <h2>Sessions with a cash difference larger than 5,00 €</h2>
+          <div id="sessions"></div>
+          <div id="review-msg" class="msg msg-ok hidden" style="margin-top:12px"></div>
+        </div>
+
+        <!-- M-03: FR-69, FR-70, IR-05, IR-09 -->
+        <div class="panel grow hidden" id="m-3">
+          <h2>Default tax rate</h2>
+          <div class="row">
+            <div class="field"><label for="rate">Default tax rate (%)</label><input id="rate" type="text" value="21"></div>
+            <div class="field" style="flex:0"><button class="btn btn-primary" onclick="saveRate()">Save</button></div>
+          </div>
+          <div id="rate-msg" class="msg hidden"></div>
+
+          <h2 style="margin-top:24px">Disable an employee in the local list</h2>
+          <div class="row">
+            <div class="field"><label for="emp">Employee ID</label><input id="emp" type="text" placeholder="E-1055"></div>
+            <div class="field" style="flex:0"><button class="btn btn-danger" onclick="disableEmployee()">Disable</button></div>
+          </div>
+          <div id="emp-msg" class="msg hidden"></div>
+        </div>
+
+        <!-- M-04: IR-17 -->
+        <div class="panel grow hidden" id="m-4">
+          <h2>Import the product catalog</h2>
+          <div class="field">
+            <label for="file">Catalog file from the back-office system</label>
+            <select id="file">
+              <option value="ok">catalog_2026-11-16.csv</option>
+              <option value="bad">catalog_2026-11-15.csv</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="importCatalog()">Import</button>
+          <div id="import-msg" class="msg hidden" style="margin-top:16px"></div>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="panel">
+          <h2>Accounting System queue</h2>
+          <div class="status-list">
+            <div><span>Records waiting</span><strong>3</strong></div>
+            <div><span>Oldest record waiting for</span><strong>12 min</strong></div>
+          </div>
+          <p style="font-size:13px; color:#52606d; margin-top:8px">A warning is shown when the oldest record waits longer than 1 hour (FR-76).</p>
+        </div>
+
+        <div id="db-warn" class="msg msg-warn hidden">
+          Store database not available. Settings and the catalog can be changed only when the register is connected.
+        </div>
+
+        <div style="flex:1"></div>
+
+        <a class="btn btn-big" href="menu.html" onclick="setSetting('manager', '')">Back to menu</a>
+      </div>
+    </div>
+
+    <div class="demo">
+      <strong>Prototype:</strong>
+      <label><input type="checkbox" id="db-toggle" onchange="setFlag('db_offline', this.checked); render()"> Store database offline</label>
+      <span>Screens M-01 to M-04, opened after D-01. Each action uses the manager ID and PIN given in D-01.</span>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    var manager = getSetting("manager", "");
+    if (!manager) window.location.href = "menu.html";   // opened without D-01
+    document.getElementById("manager").textContent = "Store manager: " + manager;
+
+    function show(n) {
+      [1, 2, 3, 4].forEach(function (i) {
+        document.getElementById("tab-" + i).classList.toggle("selected", i === n);
+        document.getElementById("m-" + i).classList.toggle("hidden", i !== n);
+      });
+    }
+
+    function message(id, kind, text) {
+      var el = document.getElementById(id);
+      el.className = "msg msg-" + kind;
+      el.textContent = text;
+    }
+
+    function now() {
+      return new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    // listSessionsToReview(), confirmSessionReview(sessionID, managerID, pin, reason)
+    function sessionList() {
+      var list = getList("sessions_review");
+      if (!list) {
+        list = [{ who: "Marta Ruiz", when: "yesterday 21:10", diff: -7.40 }];
+        setList("sessions_review", list);
+      }
+      return list;
+    }
+
+    function drawSessions() {
+      var list = sessionList();
+      var box = document.getElementById("sessions");
+      if (list.length === 0) {
+        box.innerHTML = "<p style='color:#7b8794'>No session to review.</p>";
+        return;
+      }
+      box.innerHTML = list.map(function (s, i) {
+        return "<div class='panel' style='margin-bottom:10px'>" +
+          "<div class='row' style='align-items:center'><strong style='flex:1'>" + s.who + ", closed " + s.when + "</strong>" +
+          "<span>Difference " + money(s.diff) + "</span></div>" +
+          "<div class='row' style='margin-top:10px'><div class='field' style='margin:0'><input id='reason-" + i + "' type='text' placeholder='Reason (for example: change given twice)'></div>" +
+          "<div class='field' style='flex:0; margin:0'><button class='btn btn-primary' onclick='confirmReview(" + i + ")'>Confirm review</button></div></div></div>";
+      }).join("");
+    }
+
+    function confirmReview(i) {
+      var reason = document.getElementById("reason-" + i).value.trim();
+      if (reason === "") {
+        message("review-msg", "error", "Enter the reason before you confirm the review.");
+        return;
+      }
+      var list = sessionList();
+      var s = list.splice(i, 1)[0];
+      setList("sessions_review", list);
+      message("review-msg", "ok", "Session of " + s.who + " reviewed by " + manager + " at " + now() + ".");
+      drawSessions();
+    }
+
+    // changeDefaultTaxRate(): only while the store database is reachable (AD-05, 409)
+    function saveRate() {
+      var r = parseAmount(document.getElementById("rate").value);
+      if (flag("db_offline")) return message("rate-msg", "error", "Store database not available. Try again when the register is connected.");
+      if (r <= 0 || r >= 100) return message("rate-msg", "error", "The rate must be a number between 0 and 100.");
+      message("rate-msg", "ok", "Default tax rate set to " + String(r).replace(".", ",") + " % by " + manager + " at " + now() + ".");
+    }
+
+    // disableEmployee(): FR-70
+    function disableEmployee() {
+      var id = document.getElementById("emp").value.trim().toUpperCase();
+      var known = { "E-1042": "Li Wei", "E-1055": "Marta Ruiz" };
+      if (!known[id]) return message("emp-msg", "error", "Employee " + (id || "ID") + " is not in the local employee list.");
+      message("emp-msg", "ok", known[id] + " (" + id + ") disabled in the local employee list by " + manager + " at " + now() + ".");
+    }
+
+    // importCatalog(): IR-17, the previous catalog is kept when the file is not valid
+    function importCatalog() {
+      if (flag("db_offline")) return message("import-msg", "error", "Store database not available. The previous catalog is kept.");
+      if (document.getElementById("file").value === "bad") {
+        return message("import-msg", "error", "The file is not valid: row 14 has no price, row 27 has a negative stock level. Nothing was imported and the previous catalog is kept.");
+      }
+      message("import-msg", "ok", "Catalog imported: 1 248 products. The other registers get it at their next update.");
+    }
+
+    function render() {
+      document.getElementById("db-warn").classList.toggle("hidden", !flag("db_offline"));
+    }
+
+    document.getElementById("db-toggle").checked = flag("db_offline");
+    drawSessions();
+    render();
+  </script>
+</body>
+</html>
