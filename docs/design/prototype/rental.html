@@ -33,8 +33,13 @@
             </div>
           </div>
           <div id="overdue" class="msg msg-error hidden">
-            This customer has an overdue rental and cannot start a new one (BR-12).
+            This customer has an overdue rental and cannot start a new one.
           </div>
+          <div id="unknown" class="msg msg-error hidden">
+            Customer ID not found. Check the ID, or register a new customer.
+            <div class="btn-group"><button class="btn btn-primary" onclick="registerCustomer()">Register new customer</button></div>
+          </div>
+          <div id="new-cust" class="msg msg-ok hidden"></div>
         </div>
 
         <div class="panel grow">
@@ -61,15 +66,18 @@
       </div>
 
       <div class="right">
+        <div id="tax-warn" class="msg msg-warn hidden">
+          The Tax Calculator does not answer. The default tax rate is used and the rental will be corrected later.
+        </div>
         <div class="panel totals">
           <div><span>Item</span><span id="sel-name">-</span></div>
           <div><span>Due date</span><span id="due"></span></div>
           <div><span>Rental fee</span><span id="fee"></span></div>
           <div><span>Tax (21%)</span><span id="tax"></span></div>
-          <div><span>Deposit</span><span id="deposit"></span></div>
+          <div><span>Deposit (no tax)</span><span id="deposit"></span></div>
           <div class="total"><span>Total</span><span id="total"></span></div>
         </div>
-        <p style="font-size:13px; color:#52606d">The deposit is refunded when the item comes back undamaged (BR-10).</p>
+        <p style="font-size:13px; color:#52606d">The deposit is refunded when the item comes back undamaged, less any late fee (BR-10, BR-16).</p>
 
         <div style="flex:1"></div>
 
@@ -80,13 +88,14 @@
 
     <div class="demo">
       <strong>Prototype:</strong>
-      <span>Customer C-200 has an overdue rental. Fee, deposit and rental period are examples (still open questions).</span>
+      <span>Customers C-105 (OK), C-200 (overdue), any other ID is unknown. SN-2002-01 is on hold at Register 01. Fees and deposits are examples.</span>
+      <span>Screen S-08</span>
     </div>
   </div>
 
   <script src="app.js"></script>
   <script>
-    var OVERDUE_CUSTOMERS = ["C-200"];
+    var CUSTOMERS = { "C-105": "ok", "C-200": "overdue" };
     var selected = null;
 
     function badge(status) {
@@ -122,33 +131,47 @@
       });
       codes.push({ code: "SN-9999-99", label: "Unknown barcode" });
       openScanner("Scan rental item", codes, function (sn) {
-        var err = document.getElementById("scan-err");
-        var item = RENTAL_ITEMS[sn];
-        if (!item) {
-          err.textContent = "Item " + sn + " not found.";
-        } else if (item.status !== "Available") {
-          err.textContent = "Item " + sn + " cannot be rented: " + item.status + " (BR-11).";
-        } else {
-          err.classList.add("hidden");
-          pick(sn);
-          drawItems();
-          return;
-        }
-        err.classList.remove("hidden");
+        pick(sn);
       });
     }
 
+    // enterRentalItem(serialNumber): FR-32, FR-33, and the hold of AD-05 (UC3 ext. 7b)
     function pick(sn) {
-      selected = sn;
+      var err = document.getElementById("scan-err");
+      var item = RENTAL_ITEMS[sn];
+      var problem = "";
+      if (!item) problem = "Item " + sn + " not found. Check the serial number.";
+      else if (item.status !== "Available") problem = "This item is " + item.status.toLowerCase() + ". Choose another item.";
+      else if (item.heldBy) problem = "Item " + sn + " is being rented at " + item.heldBy + " right now. Choose another item.";
+      err.textContent = problem;
+      err.classList.toggle("hidden", problem === "");
+      selected = problem ? null : sn;
+      drawItems();
       update();
     }
 
+    // FR-31: overdue check and unknown customer
     function checkCustomer() {
       var c = document.getElementById("customer").value.trim().toUpperCase();
-      var blocked = OVERDUE_CUSTOMERS.indexOf(c) >= 0;
-      document.getElementById("overdue").classList.toggle("hidden", !blocked);
+      var state = CUSTOMERS[c];
+      document.getElementById("overdue").classList.toggle("hidden", state !== "overdue");
+      document.getElementById("unknown").classList.toggle("hidden", !!state || c === "");
+      if (state !== "new") document.getElementById("new-cust").classList.add("hidden");
       update();
-      return !blocked;
+      return state === "ok" || state === "new";
+    }
+
+    // registerCustomer(): new customer ID from the register ID and a counter (AD-05); no personal data (DR-18)
+    function registerCustomer() {
+      var n = parseInt(getSetting("customer_counter", "11"), 10) + 1;
+      setSetting("customer_counter", String(n));
+      var id = "C-" + REGISTER + "-" + ("0000" + n).slice(-4);
+      CUSTOMERS[id] = "new";
+      document.getElementById("customer").value = id;
+      checkCustomer();
+      var msg = document.getElementById("new-cust");
+      msg.textContent = "New customer " + id + ". Give the customer this ID; it is printed on the rental receipt.";
+      msg.classList.remove("hidden");
     }
 
     function dueDate(days) {
@@ -180,9 +203,11 @@
       document.getElementById("tax").textContent = money(t.tax);
       document.getElementById("deposit").textContent = money(t.deposit);
       document.getElementById("total").textContent = money(t.total);
+      document.getElementById("tax-warn").classList.toggle("hidden", !taxOffline());
 
-      var blocked = !document.getElementById("overdue").classList.contains("hidden");
-      document.getElementById("pay").disabled = !tx || blocked;
+      var c = document.getElementById("customer").value.trim().toUpperCase();
+      var okCustomer = CUSTOMERS[c] === "ok" || CUSTOMERS[c] === "new";
+      document.getElementById("pay").disabled = !tx || !okCustomer;
     }
 
     function pay() {
