@@ -18,12 +18,14 @@
     <div class="main">
       <div class="left">
         <div class="panel">
-          <h2>Tender</h2>
+          <h2>Tender (one per transaction)</h2>
+          <!-- the buttons are the tenders of getAvailableTenders() (AD-08) -->
           <div class="tenders">
             <button class="tender selected" id="t-cash" onclick="choose('cash')">Cash</button>
             <button class="tender" id="t-card" onclick="choose('card')">Credit card</button>
             <button class="tender" id="t-check" onclick="choose('check')">Check<small>optional (Could)</small></button>
           </div>
+          <div id="voided" class="msg msg-info hidden">The card request was cancelled, so the customer is not charged twice.</div>
         </div>
 
         <!-- cash -->
@@ -51,10 +53,17 @@
         <div class="panel grow hidden" id="p-card">
           <h2>Credit card payment</h2>
           <div id="card-wait" class="msg msg-info">Ask the customer to insert or tap the card, then press Authorize.</div>
-          <div id="card-busy" class="msg msg-info hidden">Authorizing… please wait.</div>
-          <div id="card-ok" class="msg msg-ok hidden">Payment approved. Authorization code: <strong id="auth"></strong></div>
-          <div id="card-declined" class="msg msg-error hidden">Card declined (insufficient funds). Ask the customer for another tender.</div>
-          <div id="card-down" class="msg msg-error hidden">Card payment not available. Offer another tender (cash).</div>
+          <div id="card-busy" class="msg msg-info hidden">Waiting for the Payment Service… please wait.</div>
+          <div id="card-ok" class="msg msg-ok hidden">Payment approved. Card **** 4821, authorization code <strong id="auth"></strong></div>
+          <div id="card-declined" class="msg msg-error hidden">The card was declined (insufficient funds). Choose another way to pay.</div>
+          <div id="card-down" class="msg msg-error hidden">
+            The Payment Service does not answer. Nothing was charged. Try again, choose another way to pay, or cancel the sale.
+            <div class="btn-group">
+              <button class="btn btn-primary" onclick="authorize('card')">Retry</button>
+              <button class="btn" onclick="otherTender()">Other tender</button>
+              <button class="btn btn-danger" id="cancel-tx" onclick="cancelTx()">Cancel sale</button>
+            </div>
+          </div>
           <div style="margin-top:20px">
             <button class="btn btn-primary" id="card-authorize" onclick="authorize('card')">Authorize</button>
           </div>
@@ -87,15 +96,16 @@
 
       <div class="right">
         <div id="tax-warn" class="msg msg-warn hidden">
-          Default tax rate used (Tax Calculator not available).
+          The Tax Calculator does not answer. The default tax rate is used and the sale will be corrected later.
         </div>
 
         <div class="panel totals">
-          <div><span>Subtotal</span><span id="subtotal"></span></div>
-          <div><span>Tax (21%)</span><span id="tax"></span></div>
-          <div id="dep-row" class="hidden"><span>Deposit</span><span id="deposit"></span></div>
-          <div class="total"><span>Total</span><span id="total"></span></div>
+          <div id="sub-row"><span id="sub-label">Subtotal</span><span id="subtotal"></span></div>
+          <div id="tax-row"><span>Tax (21%)</span><span id="tax"></span></div>
+          <div id="dep-row" class="hidden"><span>Deposit (no tax)</span><span id="deposit"></span></div>
+          <div class="total"><span id="total-label">Total</span><span id="total"></span></div>
         </div>
+        <p style="font-size:13px; color:#52606d">Check the amount with the customer before you complete the payment.</p>
 
         <div style="flex:1"></div>
 
@@ -109,7 +119,8 @@
       <span>Payment Service result (card and check):</span>
       <label><input type="radio" name="cardres" value="ok" checked> approved</label>
       <label><input type="radio" name="cardres" value="declined"> declined</label>
-      <label><input type="radio" name="cardres" value="down"> service down</label>
+      <label><input type="radio" name="cardres" value="down"> no answer (after 10 s)</label>
+      <span>Screen S-05</span>
     </div>
   </div>
 
@@ -123,9 +134,11 @@
     var totals = computeTotals(tx);
     var tender = "cash";
     var authCode = { card: "", check: "" };
+    var BACK = { "Sale": "sale.html", "Rental": "rental.html", "Rental return": "return-rental.html" };
 
     document.getElementById("title").textContent = tx.type + " - payment";
-    document.getElementById("back").href = tx.type === "Rental" ? "rental.html" : "sale.html";
+    document.getElementById("back").href = BACK[tx.type] || "sale.html";
+    document.getElementById("cancel-tx").textContent = "Cancel " + tx.type.toLowerCase();
     document.getElementById("subtotal").textContent = money(totals.subtotal);
     document.getElementById("tax").textContent = money(totals.tax);
     document.getElementById("total").textContent = money(totals.total);
@@ -133,6 +146,12 @@
     if (totals.deposit > 0) {
       document.getElementById("dep-row").classList.remove("hidden");
       document.getElementById("deposit").textContent = money(totals.deposit);
+    }
+    if (tx.amountDue) {
+      // UC5 ext. 7b: late fee and tax larger than the deposit (FR-73)
+      document.getElementById("sub-label").textContent = "Late fee and tax not covered by the deposit";
+      document.getElementById("tax-row").classList.add("hidden");
+      document.getElementById("total-label").textContent = "Amount still due";
     }
 
     function choose(t) {
@@ -146,10 +165,6 @@
       if (t === "check") updateCheck();
     }
 
-    function parseAmount(s) {
-      return parseFloat(String(s).replace(",", ".")) || 0;
-    }
-
     function setAmount(n) {
       var value = n === 0 ? totals.total : n;
       document.getElementById("tendered").value = value.toFixed(2).replace(".", ",");
@@ -159,7 +174,7 @@
     // BR-06: amount tendered must cover the total, change = tendered - total
     function updateCash() {
       var given = parseAmount(document.getElementById("tendered").value);
-      var enough = given >= totals.total;
+      var enough = given >= totals.total - 0.001;
       var change = enough ? given - totals.total : 0;
       document.getElementById("change").textContent = money(change);
       document.getElementById("cash-error").classList.toggle("hidden", enough || given === 0);
@@ -175,7 +190,8 @@
       document.getElementById("complete").disabled = authCode.check === "";
     }
 
-    // BR-05, FR-10, FR-12: a card or check payment is completed only after authorization
+    // BR-05, FR-10, FR-12: a card or check payment is completed only after authorization.
+    // A retry sends the same transaction ID again (IR-02).
     function authorize(kind) {
       ["wait", "ok", "declined", "down"].forEach(function (s) {
         document.getElementById(kind + "-" + s).classList.add("hidden");
@@ -199,20 +215,40 @@
       }, 1500);
     }
 
+    // UC1 ext. 9b2b: the cashier gives up the card; the POS voids the request (IR-15)
+    function otherTender() {
+      document.getElementById("card-down").classList.add("hidden");
+      document.getElementById("card-wait").classList.remove("hidden");
+      document.getElementById("voided").classList.remove("hidden");
+      choose("cash");
+    }
+
+    function cancelTx() {
+      clearTx();
+      window.location.href = "menu.html";
+    }
+
     function complete() {
       tx.tender = tender;
       tx.total = totals.total;
       if (tender === "cash") {
         tx.paid = parseAmount(document.getElementById("tendered").value);
         tx.change = tx.paid - totals.total;
+        recordCash(totals.total);
+      } else {
+        recordCash(0);
       }
-      if (tender === "card") tx.auth = authCode.card;
+      if (tender === "card") {
+        tx.auth = authCode.card;
+        tx.last4 = "4821";
+      }
       if (tender === "check") {
         tx.checkNo = document.getElementById("check-no").value;
         tx.auth = authCode.check;
       }
-      tx.number = (tx.type === "Rental" ? "L-" : "S-") + Math.floor(10000 + Math.random() * 90000);
+      tx.number = tx.number || nextTxId();
       tx.date = new Date().toLocaleString("en-GB");
+      tx.taxToCorrect = tx.amountDue ? tx.taxToCorrect : taxOffline();
       saveTx(tx);
       window.location.href = "receipt.html";
     }
