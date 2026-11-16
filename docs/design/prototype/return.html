@@ -21,7 +21,7 @@
           <div class="row">
             <div class="field">
               <label for="receipt">Receipt number (scan or type)</label>
-              <input id="receipt" type="text" placeholder="e.g. S-10234" autofocus>
+              <input id="receipt" type="text" placeholder="e.g. R03-000120" autofocus>
             </div>
             <div class="field" style="flex:0">
               <button class="btn btn-primary" onclick="findSale()">Find sale</button>
@@ -30,24 +30,25 @@
               <button class="btn" onclick="scanReceipt()">&#9783; Scan</button>
             </div>
           </div>
-          <div id="r-notfound" class="msg msg-error hidden">No sale found with this receipt number.</div>
+          <div id="r-notfound" class="msg msg-error hidden">No sale found with this receipt number. Check the number and enter it again.</div>
           <div id="r-late" class="msg msg-error hidden">
-            This sale is older than the refund period (30 days, example value). A refund is not possible (BR-07).
+            This sale is older than the refund period (30 days). No refund is possible.
           </div>
         </div>
 
         <div class="panel grow hidden" id="sale-box">
           <h2 id="sale-title"></h2>
-          <p style="color:#52606d; margin-bottom:12px">Select the items the customer brings back.</p>
+          <p style="color:#52606d; margin-bottom:12px">Select the items the customer brings back and their condition.</p>
           <table>
             <thead>
               <tr>
                 <th></th>
-                <th>Item ID</th>
                 <th>Description</th>
                 <th class="num">Bought</th>
-                <th class="num">Returned</th>
-                <th class="num">Price</th>
+                <th class="num">Already returned</th>
+                <th class="num">Return</th>
+                <th>Condition</th>
+                <th class="num">Price paid</th>
               </tr>
             </thead>
             <tbody id="lines"></tbody>
@@ -58,7 +59,7 @@
       <div class="right">
         <div class="panel totals">
           <div><span>Returned items</span><span id="r-sub"></span></div>
-          <div><span>Tax (21%)</span><span id="r-tax"></span></div>
+          <div><span>Tax of the sale</span><span id="r-tax"></span></div>
           <div class="total"><span>Refund</span><span id="r-total"></span></div>
         </div>
 
@@ -68,49 +69,71 @@
           <p style="font-size:13px; color:#52606d; margin-top:8px">Same tender as the original sale (BR-08).</p>
         </div>
 
-        <div id="r-done" class="msg msg-ok hidden">Return completed. Return receipt printed.</div>
+        <div id="r-busy" class="msg msg-info hidden">Sending the card refund to the Payment Service… please wait.</div>
+        <div id="r-declined" class="msg msg-error hidden">
+          Card refund declined by the Payment Service. You can pay the refund in cash with the approval of a store manager.
+          <div class="btn-group"><button class="btn btn-primary" onclick="cashWithApproval('card refund declined')">Pay in cash</button></div>
+        </div>
+        <div id="r-check" class="msg msg-warn hidden">
+          This sale was paid by check. The refund is paid in cash with the approval of a store manager.
+        </div>
 
         <div style="flex:1"></div>
 
         <button id="confirm" class="btn btn-ok btn-big" onclick="confirmReturn()" disabled>Confirm refund</button>
-        <a class="btn btn-big" href="menu.html">Back to menu</a>
+        <a class="btn btn-big" href="menu.html" onclick="clearTx()">Cancel return</a>
       </div>
     </div>
 
     <div class="demo">
       <strong>Prototype:</strong>
-      <span>Receipts: S-10234 (OK, paid by card), S-10180 (OK, paid cash), S-09001 (too old). The refund period of 30 days is only an example (open question).</span>
+      <span>R03-000120 card · R03-000098 cash · R03-000077 check · R01-000045 too old</span>
+      <span>Card refund:</span>
+      <label><input type="radio" name="refres" value="ok" checked> refunded</label>
+      <label><input type="radio" name="refres" value="declined"> declined</label>
+      <label><input type="radio" name="refres" value="down"> no answer</label>
+      <span>Screen S-07</span>
     </div>
   </div>
 
   <script src="app.js"></script>
   <script>
-    // past sales (fake)
+    // past sales (fake). returned = quantity already returned before (FR-21)
     var SALES = {
-      "S-10234": {
-        date: "3 days ago", tender: "Credit card **** 4821",
+      "R03-000120": {
+        date: "3 days ago", tender: "card", last4: "4821",
         lines: [
-          { id: "1002", name: "Screwdriver set (6 pcs)", price: 18.50, qty: 1 },
-          { id: "1005", name: "Work gloves", price: 4.20, qty: 2 }
+          { id: "1002", name: "Screwdriver set (6 pcs)", price: 18.50, qty: 1, returned: 0 },
+          { id: "1005", name: "Work gloves", price: 4.20, qty: 2, returned: 1 }
         ]
       },
-      "S-10180": {
-        date: "12 days ago", tender: "Cash",
+      "R03-000098": {
+        date: "12 days ago", tender: "cash",
         lines: [
-          { id: "1004", name: "Measuring tape 5 m", price: 9.90, qty: 1 },
-          { id: "1003", name: "Wood screws 4x40 (box 200)", price: 6.75, qty: 3 }
+          { id: "1004", name: "Measuring tape 5 m", price: 9.90, qty: 1, returned: 0 },
+          { id: "1003", name: "Wood screws 4x40 (box 200)", price: 6.75, qty: 3, returned: 0 }
         ]
       },
-      "S-09001": { date: "45 days ago", tender: "Cash", tooOld: true, lines: [] }
+      "R03-000077": {
+        date: "20 days ago", tender: "check",
+        lines: [{ id: "1001", name: "Hammer 500 g", price: 12.90, qty: 1, returned: 0 }]
+      },
+      "R01-000045": { date: "45 days ago", tender: "cash", tooOld: true, lines: [] }
     };
     var sale = null;
+    var saleNo = "";
+    var totals = { sub: 0, tax: 0 };
+
+    function tenderText(s) {
+      return TENDER_NAMES[s.tender] + (s.last4 ? " **** " + s.last4 : "");
+    }
 
     function findSale() {
-      var no = document.getElementById("receipt").value.trim().toUpperCase();
-      sale = SALES[no];
+      saleNo = document.getElementById("receipt").value.trim().toUpperCase();
+      sale = SALES[saleNo];
       document.getElementById("r-notfound").classList.toggle("hidden", !!sale);
       document.getElementById("r-late").classList.toggle("hidden", !(sale && sale.tooOld));
-      document.getElementById("r-done").classList.add("hidden");
+      hideMessages();
 
       if (!sale || sale.tooOld) {
         sale = null;
@@ -120,19 +143,23 @@
         return;
       }
 
-      document.getElementById("sale-title").textContent = "Sale " + no + " - " + sale.date;
-      document.getElementById("refund-to").textContent = sale.tender;
+      document.getElementById("sale-title").textContent = "Sale " + saleNo + " - " + sale.date;
+      document.getElementById("refund-to").textContent = sale.tender === "check" ? "Cash (sale paid by check)" : tenderText(sale);
+      document.getElementById("r-check").classList.toggle("hidden", sale.tender !== "check");
       var body = document.getElementById("lines");
       body.innerHTML = "";
       sale.lines.forEach(function (l, i) {
+        var left = l.qty - l.returned;
         var tr = document.createElement("tr");
+        if (left === 0) tr.style.color = "#9aa5b1";
         tr.innerHTML =
-          "<td><input type='checkbox' id='c" + i + "' style='width:22px;height:22px' onchange='update()'></td>" +
-          "<td>" + l.id + "</td>" +
+          "<td><input type='checkbox' id='c" + i + "' style='width:22px;height:22px' onchange='update()'" + (left === 0 ? " disabled" : "") + "></td>" +
           "<td>" + l.name + "</td>" +
           "<td class='num'>" + l.qty + "</td>" +
-          "<td class='num'><input type='number' id='q" + i + "' value='" + l.qty + "' min='1' max='" + l.qty +
-          "' style='width:80px;height:40px;font-size:16px' oninput='update()'></td>" +
+          "<td class='num'>" + l.returned + "</td>" +
+          "<td class='num'><input type='number' id='q" + i + "' value='" + left + "' min='1' max='" + left +
+          "' style='width:70px;height:40px;font-size:16px' oninput='update()'" + (left === 0 ? " disabled" : "") + "></td>" +
+          "<td><select id='k" + i + "' style='width:150px'><option>Resellable</option><option>Not resellable</option></select></td>" +
           "<td class='num'>" + money(l.price) + "</td>";
         body.appendChild(tr);
       });
@@ -142,35 +169,81 @@
 
     function scanReceipt() {
       var codes = Object.keys(SALES).map(function (no) {
-        return { code: no, label: SALES[no].date + ", " + SALES[no].tender };
+        return { code: no, label: SALES[no].date + ", " + TENDER_NAMES[SALES[no].tender] };
       });
-      codes.push({ code: "S-99999", label: "Unknown receipt" });
+      codes.push({ code: "R02-000999", label: "Unknown receipt" });
       openScanner("Scan receipt", codes, function (code) {
         document.getElementById("receipt").value = code;
         findSale();
       });
     }
 
+    function chosenLines() {
+      var out = [];
+      if (!sale) return out;
+      sale.lines.forEach(function (l, i) {
+        if (document.getElementById("c" + i).checked) {
+          var q = Math.min(parseInt(document.getElementById("q" + i).value, 10) || 0, l.qty - l.returned);
+          if (q > 0) out.push({ name: l.name, price: l.price, qty: q, condition: document.getElementById("k" + i).value });
+        }
+      });
+      return out;
+    }
+
+    // FR-23: price paid plus the tax charged in the original sale; no new tax is asked
     function update() {
       var sub = 0;
-      if (sale) {
-        sale.lines.forEach(function (l, i) {
-          if (document.getElementById("c" + i).checked) {
-            var q = Math.min(parseInt(document.getElementById("q" + i).value, 10) || 0, l.qty);
-            sub += q * l.price;
-          }
-        });
-      }
-      var tax = Math.round(sub * TAX_RATE * 100) / 100;
+      chosenLines().forEach(function (l) { sub += l.qty * l.price; });
+      totals = { sub: sub, tax: round2(sub * TAX_RATE) };
       document.getElementById("r-sub").textContent = money(sub);
-      document.getElementById("r-tax").textContent = money(tax);
-      document.getElementById("r-total").textContent = money(sub + tax);
+      document.getElementById("r-tax").textContent = money(totals.tax);
+      document.getElementById("r-total").textContent = money(sub + totals.tax);
       document.getElementById("confirm").disabled = sub === 0;
     }
 
+    function hideMessages() {
+      ["r-busy", "r-declined", "r-check"].forEach(function (id) {
+        document.getElementById(id).classList.add("hidden");
+      });
+    }
+
+    function finish(status, refundTo, approvedBy) {
+      var refund = totals.sub + totals.tax;
+      var tx = {
+        type: "Return", number: nextTxId(), date: new Date().toLocaleString("en-GB"),
+        original: saleNo, lines: chosenLines(), refundSub: totals.sub, refundTax: totals.tax,
+        refund: refund, refundTo: refundTo, refundStatus: status, approvedBy: approvedBy || ""
+      };
+      if (status === "CASH_PAID") recordCash(-refund); else recordCash(0);
+      if (status === "PENDING") addPendingRefund({ id: tx.number, type: "Return", amount: refund });
+      saveTx(tx);
+      window.location.href = "receipt.html";
+    }
+
+    // FR-25: cash instead of a failed card refund, or for a check sale, needs a store manager (D-01)
+    function cashWithApproval(why) {
+      managerApproval({ title: "Approve cash refund", text: "Refund " + money(totals.sub + totals.tax) + " in cash (" + why + ").", reason: true }, function (m) {
+        finish("CASH_PAID", "Cash", m.name + " (" + m.reason + ")");
+      });
+    }
+
+    // confirmReturn(): CASH_PAID, CARD_REFUNDED, NEEDS_APPROVAL or PENDING (system_interfaces.md §3.7)
     function confirmReturn() {
-      document.getElementById("r-done").classList.remove("hidden");
+      hideMessages();
+      if (sale.tender === "cash") return finish("CASH_PAID", "Cash");
+      if (sale.tender === "check") return cashWithApproval("sale paid by check");
+
       document.getElementById("confirm").disabled = true;
+      document.getElementById("r-busy").classList.remove("hidden");
+      var result = document.querySelector("input[name=refres]:checked").value;
+      setTimeout(function () {
+        document.getElementById("r-busy").classList.add("hidden");
+        document.getElementById("confirm").disabled = false;
+        if (result === "ok") finish("CARD_REFUNDED", tenderText(sale));
+        if (result === "declined") document.getElementById("r-declined").classList.remove("hidden");
+        // FR-26: no answer, and the status is still unknown: keep it pending, pay no cash
+        if (result === "down") finish("PENDING", tenderText(sale));
+      }, 1500);
     }
 
     document.getElementById("receipt").addEventListener("keydown", function (e) {
