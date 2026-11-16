@@ -74,3 +74,12 @@ Team: D · Project: NewEra POS / Role: Quality and Requirements
 **Hours:** 9
 **Problems:** Aligning the operation contracts with the updated domain model and ensuring the architectural components matched the system interfaces without causing merge conflicts while everyone edited the same files.
 **Next:** Prepare for the W10 User Interface Design and continue with the design increment.
+
+### W10
+**What I did:** 
+- Created the UI Class Diagram (`ui_classes.puml` and `.png`) for the User Interface Design. It contains 20 classes: 14 screens (S-01 to S-09, D-01, M-01 to M-04) and 6 controllers.
+- Wrote Section 4 of `ui_design.md`, detailing the screens, controllers, and the system operations they call.
+- Mapped all usability Non-Functional Requirements (NFR-05, NFR-06, NFR-13 to NFR-18) to specific elements in the class diagram and defined the UI rules for each.
+**Hours:** 6
+**Problems:** The PlantUML diagram was too large to be rendered by the standard online viewer, so I had to use an alternative renderer to generate the final image.
+**Next:** Review Avni's Navigation sequence diagram (Part D) and prepare for the W11 design milestone.
