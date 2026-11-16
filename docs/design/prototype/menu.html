@@ -17,22 +17,30 @@
 
     <div class="main">
       <div class="left">
-        <div class="tiles">
+        <div class="tiles tiles-6">
           <a class="tile" href="sale.html" onclick="clearTx()">
             <span class="tile-title">New sale</span>
             <span class="tile-text">Scan items and take the payment</span>
           </a>
-          <a class="tile" href="return.html">
+          <a class="tile" href="return.html" onclick="clearTx()">
             <span class="tile-title">Return</span>
             <span class="tile-text">Customer brings back a purchased item</span>
           </a>
           <a class="tile" href="rental.html" onclick="clearTx()">
             <span class="tile-title">Rental</span>
-            <span class="tile-text">Rent equipment for a few days</span>
+            <span class="tile-text">Rent equipment for 1, 3 or 7 days</span>
           </a>
-          <a class="tile" href="return-rental.html">
+          <a class="tile" href="return-rental.html" onclick="clearTx()">
             <span class="tile-title">Return rental</span>
             <span class="tile-text">Rented item comes back, refund the deposit</span>
+          </a>
+          <a class="tile" href="close.html">
+            <span class="tile-title">Close session</span>
+            <span class="tile-text">Count the drawer at the end of the shift</span>
+          </a>
+          <a class="tile tile-manager" href="#" onclick="openManager(); return false;">
+            <span class="tile-title">Manager functions</span>
+            <span class="tile-text">Store manager only: ID and PIN</span>
           </a>
         </div>
       </div>
@@ -43,18 +51,27 @@
           <div class="status-list">
             <div><span>Cashier</span><strong id="s-cashier"></strong></div>
             <div><span>Opening cash</span><strong id="s-cash"></strong></div>
-            <div><span>Transactions</span><strong>0</strong></div>
+            <div><span>Transactions</span><strong id="s-count"></strong></div>
           </div>
         </div>
 
-        <div class="panel grow">
+        <div class="panel">
           <h2>External systems</h2>
           <div class="status-list">
-            <div><span>Payment Service</span><span class="dot dot-on">● online</span></div>
+            <div><span>Payment Service</span><span class="dot" id="s-pay"></span></div>
             <div><span>Tax Calculator</span><span class="dot" id="s-tax"></span></div>
             <div><span>Accounting System</span><span class="dot dot-on">● online</span></div>
             <div><span>HR System</span><span class="dot" id="s-hr"></span></div>
           </div>
+          <div id="tax-warn" class="msg msg-warn hidden" style="margin-top:10px">
+            Default tax rate in use. Transactions are marked to be corrected.
+          </div>
+        </div>
+
+        <div class="panel grow" id="pending-box">
+          <h2>Card refunds pending</h2>
+          <div id="pending"></div>
+          <div id="pending-msg" class="msg hidden" style="margin-top:10px"></div>
         </div>
 
         <a class="btn btn-big" href="index.html">Log out</a>
@@ -63,7 +80,9 @@
 
     <div class="demo">
       <strong>Prototype:</strong>
-      <label><input type="checkbox" id="tax-toggle" onchange="toggleTax()"> Tax Calculator offline</label>
+      <label><input type="checkbox" id="tax-toggle" onchange="toggle('tax_offline', this.checked)"> Tax Calculator offline</label>
+      <label><input type="checkbox" id="pay-toggle" onchange="toggle('pay_offline', this.checked)"> Payment Service offline</label>
+      <span>Screen S-02</span>
     </div>
   </div>
 
@@ -75,17 +94,67 @@
       el.className = "dot " + (off ? "dot-off" : "dot-on");
     }
 
-    function toggleTax() {
-      var off = document.getElementById("tax-toggle").checked;
-      setSetting("tax_offline", off ? "yes" : "no");
-      showStatus("s-tax", off);
+    // NFR-15: the status of the external systems is always visible here
+    function render() {
+      showStatus("s-tax", taxOffline());
+      showStatus("s-pay", flag("pay_offline"));
+      showStatus("s-hr", flag("hr_offline"));
+      document.getElementById("tax-warn").classList.toggle("hidden", !taxOffline());
+      drawPending();
+    }
+
+    function toggle(key, on) {
+      setFlag(key, on);
+      render();
+    }
+
+    // FR-77: returns and rental returns whose card refund is still pending
+    function drawPending() {
+      var list = getList("pending_refunds") || [];
+      var box = document.getElementById("pending");
+      if (list.length === 0) {
+        box.innerHTML = "<p style='color:#7b8794'>None.</p>";
+        return;
+      }
+      box.innerHTML = list.map(function (p, i) {
+        return "<div class='row' style='align-items:center; margin-bottom:8px'>" +
+          "<span style='flex:1'>" + p.id + " · " + p.type + " · " + money(p.amount) + "</span>" +
+          "<button class='btn btn-small' onclick='checkStatus(" + i + ")'>Check status</button></div>";
+      }).join("");
+    }
+
+    // checkRefundStatus(): asks the Payment Service again with the same transaction ID
+    function checkStatus(i) {
+      var list = getList("pending_refunds") || [];
+      var p = list[i];
+      var msg = document.getElementById("pending-msg");
+      msg.classList.remove("hidden");
+      if (flag("pay_offline")) {
+        msg.className = "msg msg-warn";
+        msg.textContent = "Payment Service not available. The refund of " + p.id + " is still pending. Do not pay cash.";
+        return;
+      }
+      list.splice(i, 1);
+      setList("pending_refunds", list);
+      msg.className = "msg msg-ok";
+      msg.textContent = "Card refund of " + p.id + " confirmed by the Payment Service (" + money(p.amount) + ").";
+      drawPending();
+    }
+
+    // D-01, then the manager screens M-01 to M-04
+    function openManager() {
+      managerApproval({ title: "Manager functions", text: "A store manager enters the employee ID and the PIN." }, function (m) {
+        setSetting("manager", m.name);
+        window.location.href = "manager.html";
+      });
     }
 
     document.getElementById("s-cashier").textContent = getSetting("cashier", "Li Wei");
     document.getElementById("s-cash").textContent = getSetting("opening_cash", "150,00") + " €";
+    document.getElementById("s-count").textContent = getSetting("session_count", "0");
     document.getElementById("tax-toggle").checked = taxOffline();
-    showStatus("s-tax", taxOffline());
-    showStatus("s-hr", getSetting("hr_offline", "no") === "yes");
+    document.getElementById("pay-toggle").checked = flag("pay_offline");
+    render();
   </script>
 </body>
 </html>
