@@ -615,3 +615,64 @@ td {
   color: #52606d;
   font-size: 12px;
 }
+
+/* ---------- W10: menu with six tiles, manager screens, small buttons ---------- */
+
+.tiles-6 {
+  grid-template-rows: repeat(3, 1fr);
+}
+
+.tiles-6 .tile .tile-title {
+  font-size: 26px;
+}
+
+.tile-manager {
+  border-style: dashed;
+}
+
+.btn-small {
+  height: 40px;
+  padding: 0 14px;
+  font-size: 15px;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.tab {
+  flex: 1;
+  height: 52px;
+  font-size: 16px;
+  font-weight: bold;
+  border: 2px solid #b8c0ca;
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.tab.selected {
+  border-color: #2f6fb3;
+  background: #e3eefa;
+  color: #1e3a5f;
+}
+
+textarea {
+  width: 100%;
+  min-height: 70px;
+  font-size: 17px;
+  font-family: inherit;
+  padding: 10px 14px;
+  border: 2px solid #b8c0ca;
+  border-radius: 6px;
+}
+
+td select {
+  height: 40px;
+  font-size: 15px;
+}
+
+.msg .btn-group {
+  margin-top: 10px;
+}
