@@ -1,0 +1,318 @@
+@startuml ui_classes
+title UI class diagram - NewEra POS (ui.screens and ui.api)
+
+set separator none
+skinparam shadowing false
+skinparam nodesep 25
+skinparam ranksep 70
+skinparam classAttributeIconSize 0
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam packageStyle rectangle
+skinparam ArrowFontSize 10
+skinparam class {
+  BackgroundColor<<screen>> #FFFFFF
+  BorderColor<<screen>> #2F5D8A
+  BackgroundColor<<dialog>> #FFF7E0
+  BorderColor<<dialog>> #B7791F
+  BackgroundColor<<controller>> #EAF2E3
+  BorderColor<<controller>> #3F7D2E
+}
+hide circle
+hide empty methods
+
+legend left
+  <b>Reading the diagram</b>
+  ..> <<calls>>: the screen sends the listed system operations to the controller (system_interfaces.md §3).
+  --> <<opens>>: navigation between screens, as in ui_design.md §1 and §5 (the full navigation is in §2).
+  Attributes of a screen: <i>input</i> = typed or chosen by the user; <i>shown</i> = data of the answers.
+  A screen contains no business rule (AD-01); a controller only calls the application layer.
+endlegend
+
+package "ui.screens (web pages in the browser of the register)" {
+
+  class "S-01 Login" as S01 <<screen>> {
+    -- input --
+    employeeID: String
+    pin: String (masked)
+    openingCash: Money
+    -- shown --
+    registerID: String
+    cashierName: String
+    localListWarning: Boolean
+    errorMessage: String
+    waitingMessage: Boolean
+  }
+
+  class "S-02 Menu" as S02 <<screen>> {
+    -- shown --
+    cashierName: String
+    registerID: String
+    externalSystemStatus: 4 × Boolean
+    defaultTaxRateInUse: Boolean
+  }
+
+  class "S-03 Close session" as S03 <<screen>> {
+    -- input --
+    closingCash: Money
+    -- shown --
+    expectedCash: Money
+    difference: Money
+    toReview: Boolean
+    errorMessage: String
+  }
+
+  class "S-04 Sale" as S04 <<screen>> {
+    -- input --
+    itemID: String
+    quantity: Integer
+    -- shown --
+    saleID: String
+    lines: lineNumber, description,\n unitPrice, lineSubtotal
+    runningSubtotal: Money
+    tax: Money
+    total: Money
+    taxToBeCorrected: Boolean
+    stockWarning: Boolean
+    errorMessage: String
+    waitingMessage: Boolean
+  }
+
+  class "S-05 Payment" as S05 <<screen>> {
+    -- input --
+    tenderType: CASH | CREDIT_CARD | CHECK
+    amount: Money
+    -- shown --
+    total: Money (with its parts)
+    amountDue: Money (rental return)
+    changeDue: Money
+    result: APPROVED | DECLINED | NOT_AVAILABLE
+    last4: String
+    taxToBeCorrected: Boolean
+    waitingMessage: Boolean
+    errorMessage: String
+  }
+
+  class "S-06 Receipt" as S06 <<screen>> {
+    -- shown --
+    receiptNumber: String
+    changeDue: Money
+    last4: String
+    printerStatus: String
+  }
+
+  class "S-07 Return" as S07 <<screen>> {
+    -- input --
+    receiptNumber: String
+    itemID: String
+    quantity: Integer
+    condition: RESELLABLE | NOT_RESELLABLE
+    -- shown --
+    returnID: String
+    saleLines: bought, already returned
+    refundTotal: Money
+    refundState: CASH_PAID | CARD_REFUNDED |\n NEEDS_APPROVAL | PENDING
+    errorMessage: String
+    waitingMessage: Boolean
+  }
+
+  class "S-08 Rental" as S08 <<screen>> {
+    -- input --
+    customerID: String
+    serialNumber: String
+    days: 1 | 3 | 7
+    -- shown --
+    rentalID: String
+    itemStatus: String
+    feePerDay: Money
+    rentalFee: Money
+    deposit: Money
+    dueDate: Date
+    tax: Money
+    total: Money
+    errorMessage: String
+    waitingMessage: Boolean
+  }
+
+  class "S-09 Rental return" as S09 <<screen>> {
+    -- input --
+    code: String
+    customerID: String
+    condition: UNDAMAGED | DAMAGED
+    damageNote: String
+    -- shown --
+    rentalReturnID: String
+    dueDate: Date
+    deposit: Money
+    daysLate: Integer
+    lateFee: Money
+    lateFeeTax: Money
+    refundTotal: Money
+    amountDue: Money
+    refundState: CASH_PAID | CARD_REFUNDED |\n NEEDS_APPROVAL | PENDING
+    errorMessage: String
+    waitingMessage: Boolean
+  }
+
+  class "D-01 Manager approval" as D01 <<dialog>> {
+    -- input --
+    managerID: String
+    pin: String (masked)
+    reason: String
+    -- shown --
+    errorMessage: String
+  }
+
+  class "M-01 Reorder and\nstock-check list" as M01 <<screen>> {
+    -- shown --
+    flaggedProducts: product, stockLevel,\n threshold
+    limit, offset: Integer
+  }
+
+  class "M-02 Sessions to review" as M02 <<screen>> {
+    -- input --
+    managerID, pin: String
+    reason: String
+    -- shown --
+    sessions: sessionID, difference
+    errorMessage: String
+  }
+
+  class "M-03 Settings" as M03 <<screen>> {
+    -- input --
+    managerID, pin: String
+    rate: Decimal
+    employeeID: String
+    -- shown --
+    changedBy, changedAt
+    errorMessage: String
+  }
+
+  class "M-04 Catalog import" as M04 <<screen>> {
+    -- input --
+    managerID, pin: String
+    file: File
+    -- shown --
+    importedCount: Integer
+    errors: missing or invalid fields
+    errorMessage: String
+  }
+}
+
+package "ui.api (controllers of the POS application)" {
+
+  class SessionController <<controller>> {
+    startUp()
+    logIn(employeeID: String, pin: String)
+    enterOpeningCash(amount: Money)
+    closeSession()
+    enterClosingCash(amount: Money)
+    confirmCloseSession()
+  }
+
+  class SaleController <<controller>> {
+    makeNewSale()
+    enterItem(itemID: String, quantity: Integer)
+    removeItem(lineNumber: Integer)
+    overridePrice(lineNumber: Integer, newPrice: Money,\n managerID: String, pin: String)
+    endSale()
+    makePayment(amount: Money, tenderType: TenderType)
+    cancelSale()
+    reprintReceipt()
+  }
+
+  class ReturnController <<controller>> {
+    makeNewReturn()
+    findSale(receiptNumber: String)
+    enterReturnItem(itemID: String, quantity: Integer,\n condition: ItemCondition)
+    removeReturnItem(lineNumber: Integer)
+    confirmReturn()
+    approveCashRefund(managerID: String, pin: String,\n reason: String)
+    checkRefundStatus()
+    cancelReturn()
+  }
+
+  class RentalController <<controller>> {
+    makeNewRental()
+    enterCustomerID(customerID: String)
+    registerCustomer()
+    enterRentalItem(serialNumber: String)
+    selectRentalPeriod(days: Integer)
+    endRental()
+    makePayment(amount: Money, tenderType: TenderType)
+    cancelRental()
+  }
+
+  class RentalReturnController <<controller>> {
+    makeNewRentalReturn()
+    findRental(code: String)
+    findRentalsOfCustomer(customerID: String)
+    selectRental(rentalID: String)
+    recordCondition(condition: ItemCondition, damageNote: String)
+    confirmDamage(managerID: String, pin: String)
+    makePayment(amount: Money, tenderType: TenderType)
+    confirmRentalReturn()
+    approveCashRefund(managerID: String, pin: String,\n reason: String)
+    checkRefundStatus()
+    cancelRentalReturn()
+  }
+
+  class ManagerController <<controller>> {
+    listFlaggedProducts(limit: Integer, offset: Integer)
+    listSessionsToReview(limit: Integer, offset: Integer)
+    confirmSessionReview(sessionID: String, managerID: String,\n pin: String, reason: String)
+    changeDefaultTaxRate(rate: Decimal, managerID: String, pin: String)
+    disableEmployee(employeeID: String, managerID: String, pin: String)
+    importCatalog(file: File, managerID: String, pin: String)
+  }
+}
+
+' ---------- screens call controllers ----------
+S01 ..> SessionController : <<calls>>\nlogIn(), enterOpeningCash()
+S03 ..> SessionController : <<calls>>\ncloseSession(), enterClosingCash(),\nconfirmCloseSession()
+
+S04 ..> SaleController : <<calls>>\nmakeNewSale(), enterItem(), removeItem(),\noverridePrice(), endSale(), cancelSale()
+S05 ..> SaleController : <<calls>>\nmakePayment() (sale)
+S05 ..> RentalController : <<calls>>\nmakePayment() (rental)
+S05 ..> RentalReturnController : <<calls>>\nmakePayment() (amount still due)
+S06 ..> SaleController : <<calls>>\nreprintReceipt()
+
+S07 ..> ReturnController : <<calls>>\nmakeNewReturn(), findSale(), enterReturnItem(),\nremoveReturnItem(), confirmReturn(),\ncheckRefundStatus(), approveCashRefund(),\ncancelReturn()
+S08 ..> RentalController : <<calls>>\nmakeNewRental(), enterCustomerID(),\nregisterCustomer(), enterRentalItem(),\nselectRentalPeriod(), endRental(),\ncancelRental()
+S09 ..> RentalReturnController : <<calls>>\nmakeNewRentalReturn(), findRental(),\nfindRentalsOfCustomer(), selectRental(),\nrecordCondition(), confirmDamage(),\nconfirmRentalReturn(), checkRefundStatus(),\napproveCashRefund(), cancelRentalReturn()
+
+M01 ..> ManagerController : <<calls>>\nlistFlaggedProducts()
+M02 ..> ManagerController : <<calls>>\nlistSessionsToReview(),\nconfirmSessionReview()
+M03 ..> ManagerController : <<calls>>\nchangeDefaultTaxRate(), disableEmployee()
+M04 ..> ManagerController : <<calls>>\nimportCatalog()
+
+' ---------- navigation between screens ----------
+S01 --> S02 : <<opens>>
+S02 --> S03 : <<opens>>
+S02 --> S04 : <<opens>>
+S02 --> S07 : <<opens>>
+S02 --> S08 : <<opens>>
+S02 --> S09 : <<opens>>
+S04 --> S05 : <<opens>>
+S08 --> S05 : <<opens>>
+S09 --> S05 : <<opens>>
+S05 --> S06 : <<opens>>
+S07 --> S06 : <<opens>>
+S08 --> S06 : <<opens>>
+S09 --> S06 : <<opens>>
+S04 --> D01 : <<opens>>\nprice change
+S07 --> D01 : <<opens>>\ncash refund
+S09 --> D01 : <<opens>>\ndamage, cash refund
+
+note bottom of ManagerController
+  The operations of the store manager functions have no name in
+  system_interfaces.md §3.6; the names above are proposed here.
+  The operations that change data carry managerID and pin (BR-04).
+end note
+
+note bottom of SessionController
+  startUp() is sent by the POS program when it starts, before any session
+  (system_interfaces.md §3.1); S-01 only shows its result.
+end note
+
+@enduml
