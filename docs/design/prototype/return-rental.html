@@ -20,34 +20,39 @@
         <div class="panel">
           <div class="row">
             <div class="field">
-              <label for="serial">Serial number of the item (scan or type)</label>
-              <input id="serial" type="text" placeholder="e.g. SN-2001-02" autofocus>
+              <label for="code">Serial number, rental receipt or customer ID (scan or type)</label>
+              <input id="code" type="text" placeholder="e.g. SN-2001-02" autofocus>
             </div>
             <div class="field" style="flex:0">
-              <button class="btn btn-primary" onclick="findRental()">Find rental</button>
+              <button class="btn btn-primary" onclick="findRental()">Find</button>
             </div>
             <div class="field" style="flex:0">
-              <button class="btn" onclick="scanSerial()">&#9783; Scan</button>
+              <button class="btn" onclick="scanCode()">&#9783; Scan</button>
             </div>
           </div>
-          <div id="notfound" class="msg msg-error hidden">No open rental for this serial number.</div>
+          <div id="notfound" class="msg msg-error hidden">No open rental for this item. Check the number, or search with the customer ID.</div>
+          <div id="choose" class="hidden"></div>
         </div>
 
         <div class="panel grow hidden" id="rental-box">
           <h2 id="r-title"></h2>
-          <div class="status-list" style="font-size:17px">
-            <div><span>Customer</span><strong id="r-customer"></strong></div>
-            <div><span>Rented on</span><strong id="r-start"></strong></div>
-            <div><span>Due date</span><strong id="r-due"></strong></div>
+          <div class="status-list" style="font-size:16px">
+            <div><span>Customer · rental</span><strong id="r-customer"></strong></div>
+            <div><span>Rented on · due date</span><strong id="r-dates"></strong></div>
             <div><span>Returned today</span><strong id="r-today"></strong></div>
           </div>
-          <div id="r-ontime" class="msg msg-ok hidden" style="margin-top:16px">Returned on time.</div>
-          <div id="r-late" class="msg msg-warn hidden" style="margin-top:16px"></div>
+          <div id="r-ontime" class="msg msg-ok hidden" style="margin-top:12px">Returned on time.</div>
+          <div id="r-late" class="msg msg-warn hidden" style="margin-top:12px"></div>
 
-          <h2 style="margin-top:24px">Condition of the item</h2>
+          <h2 style="margin-top:18px">Condition of the item</h2>
           <div class="btn-group">
             <button class="btn" id="b-ok" onclick="setCondition(true)">Undamaged</button>
             <button class="btn" id="b-bad" onclick="setCondition(false)">Damaged</button>
+          </div>
+          <div id="damage-box" class="hidden" style="margin-top:12px">
+            <label for="damage">Description of the damage</label>
+            <textarea id="damage" oninput="update()"></textarea>
+            <div id="damage-ok" class="msg msg-ok hidden" style="margin-top:8px"></div>
           </div>
         </div>
       </div>
@@ -55,9 +60,10 @@
       <div class="right">
         <div class="panel totals">
           <div><span>Deposit paid</span><span id="dep"></span></div>
-          <div><span>Late fee</span><span id="late"></span></div>
+          <div><span id="late-label">Late fee</span><span id="late"></span></div>
+          <div><span>Tax on late fee</span><span id="late-tax"></span></div>
           <div><span>Kept for damage</span><span id="kept"></span></div>
-          <div class="total"><span>Refund</span><span id="refund"></span></div>
+          <div class="total"><span id="result-label">Refund</span><span id="refund"></span></div>
         </div>
 
         <div class="panel">
@@ -66,111 +72,239 @@
           <p style="font-size:13px; color:#52606d; margin-top:8px">Same tender as the rental payment.</p>
         </div>
 
-        <div id="done" class="msg msg-ok hidden">Return completed. Item status is now Available.</div>
+        <div id="r-busy" class="msg msg-info hidden">Sending the card refund to the Payment Service… please wait.</div>
+        <div id="r-declined" class="msg msg-error hidden">
+          Card refund declined. You can pay the refund in cash with the approval of a store manager.
+          <div class="btn-group"><button class="btn btn-primary" onclick="cashWithApproval()">Pay in cash</button></div>
+        </div>
 
         <div style="flex:1"></div>
 
         <button id="confirm" class="btn btn-ok btn-big" onclick="confirmReturn()" disabled>Confirm return</button>
-        <a class="btn btn-big" href="menu.html">Back to menu</a>
+        <a class="btn btn-big" href="menu.html" onclick="clearTx()">Cancel</a>
       </div>
     </div>
 
     <div class="demo">
       <strong>Prototype:</strong>
-      <span>Serials: SN-2001-02 (2 days late), SN-2002-05 (on time). Late fee of 5 €/day is only an example (open question).</span>
+      <span>SN-2001-02 late · SN-2002-05 card · SN-2003-03 fee above deposit · C-105 two rentals</span>
+      <span>Card refund:</span>
+      <label><input type="radio" name="refres" value="ok" checked> refunded</label>
+      <label><input type="radio" name="refres" value="declined"> declined</label>
+      <label><input type="radio" name="refres" value="down"> no answer</label>
+      <span>Screen S-09</span>
     </div>
   </div>
 
   <script src="app.js"></script>
   <script>
-    var LATE_FEE_PER_DAY = 5.00;
-
     function daysFromToday(n) {
       var d = new Date();
+      d.setHours(0, 0, 0, 0);
       d.setDate(d.getDate() + n);
       return d;
     }
 
     // open rentals (fake)
     var OPEN_RENTALS = {
-      "SN-2001-02": { product: "2001", customer: "C-200", start: daysFromToday(-5), due: daysFromToday(-2), tender: "Cash" },
-      "SN-2002-05": { product: "2002", customer: "C-105", start: daysFromToday(-3), due: daysFromToday(1), tender: "Credit card **** 9310" }
+      "SN-2001-02": { rentalNo: "R03-000131", customer: "C-200", start: daysFromToday(-5), due: daysFromToday(-2), tender: "cash" },
+      "SN-2002-05": { rentalNo: "R03-000140", customer: "C-105", start: daysFromToday(-2), due: daysFromToday(1), tender: "card", last4: "9310" },
+      "SN-2003-03": { rentalNo: "R02-000088", customer: "C-105", start: daysFromToday(-15), due: daysFromToday(-8), tender: "cash" }
     };
+    var serial = null;
     var rental = null;
     var undamaged = null;
+    var approvedDamage = "";
+    var calc = {};
 
     function fmt(d) {
       return d.toLocaleDateString("en-GB");
     }
 
+    function tenderText(r) {
+      return TENDER_NAMES[r.tender] + (r.last4 ? " **** " + r.last4 : "");
+    }
+
+    // findRental(code) and findRentalsOfCustomer(customerID): FR-51
     function findRental() {
-      var sn = document.getElementById("serial").value.trim().toUpperCase();
-      rental = OPEN_RENTALS[sn] || null;
+      var code = document.getElementById("code").value.trim().toUpperCase();
+      var found = Object.keys(OPEN_RENTALS).filter(function (sn) {
+        var r = OPEN_RENTALS[sn];
+        return sn === code || r.rentalNo === code || r.customer === code;
+      });
+      var choose = document.getElementById("choose");
+      document.getElementById("notfound").classList.toggle("hidden", found.length > 0);
+      choose.classList.add("hidden");
+      if (found.length === 1) return select(found[0]);
+      showRental(null);
+      if (found.length > 1) {
+        choose.innerHTML = "<p style='margin:8px 0'>Open rentals of " + code + ":</p><div class='btn-group'>" +
+          found.map(function (sn) {
+            return "<button class='btn' onclick=\"select('" + sn + "')\">" + CATALOG[RENTAL_ITEMS[sn].product].name + " · " + sn + "</button>";
+          }).join("") + "</div>";
+        choose.classList.remove("hidden");
+      }
+    }
+
+    function select(sn) {
+      document.getElementById("choose").classList.add("hidden");
+      showRental(sn);
+    }
+
+    function showRental(sn) {
+      serial = sn;
+      rental = sn ? OPEN_RENTALS[sn] : null;
       undamaged = null;
-      document.getElementById("notfound").classList.toggle("hidden", !!rental);
+      approvedDamage = "";
       document.getElementById("rental-box").classList.toggle("hidden", !rental);
-      document.getElementById("done").classList.add("hidden");
+      document.getElementById("b-ok").className = "btn";
+      document.getElementById("b-bad").className = "btn";
+      document.getElementById("damage-box").classList.add("hidden");
+      document.getElementById("damage").value = "";
+      document.getElementById("damage-ok").classList.add("hidden");
+      document.getElementById("r-declined").classList.add("hidden");
 
       if (rental) {
-        var p = CATALOG[rental.product];
+        var p = CATALOG[RENTAL_ITEMS[sn].product];
+        rental.name = p.name;
+        rental.fee = p.fee;
         rental.deposit = p.deposit;
-        rental.lateDays = Math.max(0, Math.round((new Date() - rental.due) / 86400000));
+        rental.daysLate = Math.max(0, Math.round((daysFromToday(0) - rental.due) / 86400000));
 
         document.getElementById("r-title").textContent = p.name + " (" + sn + ")";
-        document.getElementById("r-customer").textContent = rental.customer;
-        document.getElementById("r-start").textContent = fmt(rental.start);
-        document.getElementById("r-due").textContent = fmt(rental.due);
+        document.getElementById("r-customer").textContent = rental.customer + " · " + rental.rentalNo;
+        document.getElementById("r-dates").textContent = fmt(rental.start) + " · " + fmt(rental.due);
         document.getElementById("r-today").textContent = fmt(new Date());
-        document.getElementById("r-ontime").classList.toggle("hidden", rental.lateDays > 0);
-        document.getElementById("r-late").classList.toggle("hidden", rental.lateDays === 0);
-        document.getElementById("r-late").textContent =
-          "Returned " + rental.lateDays + " day(s) late. A late fee is taken from the deposit.";
-        document.getElementById("refund-to").textContent = rental.tender;
+        document.getElementById("r-ontime").classList.toggle("hidden", rental.daysLate > 0);
+        document.getElementById("r-late").classList.toggle("hidden", rental.daysLate === 0);
+        document.getElementById("r-late").textContent = "Returned " + rental.daysLate +
+          " day(s) late. Late fee: one day's rental fee (" + money(rental.fee) + ") for each day, with its tax (BR-16).";
+        document.getElementById("refund-to").textContent = tenderText(rental);
       } else {
         document.getElementById("refund-to").textContent = "-";
       }
       update();
     }
 
+    // recordCondition(): a damaged item needs the confirmation of a store manager (FR-52, D-01)
     function setCondition(ok) {
       undamaged = ok;
       document.getElementById("b-ok").className = "btn" + (ok ? " btn-ok" : "");
       document.getElementById("b-bad").className = "btn" + (ok ? "" : " btn-danger");
+      document.getElementById("damage-box").classList.toggle("hidden", ok);
+      if (ok) approvedDamage = "";
       update();
     }
 
-    // BR-10: the deposit is refunded when the item comes back undamaged
+    // FR-53, FR-54, FR-72, FR-73
     function update() {
       var dep = rental ? rental.deposit : 0;
-      var late = rental ? Math.min(rental.lateDays * LATE_FEE_PER_DAY, dep) : 0;
-      var kept = undamaged === false ? dep - late : 0;
-      var refund = dep - late - kept;
+      var late = rental ? rental.daysLate * rental.fee : 0;
+      var lateTax = round2(late * (taxOffline() ? DEFAULT_TAX_RATE : TAX_RATE));
+      var kept = 0, refund = 0, due = 0;
+      if (undamaged === false) {
+        kept = dep;                       // the whole deposit; late fee recorded, not charged (FR-72)
+      } else {
+        refund = Math.max(0, round2(dep - late - lateTax));
+        due = Math.max(0, round2(late + lateTax - dep));
+      }
+      calc = { dep: dep, late: late, lateTax: lateTax, kept: kept, refund: refund, due: due };
 
       document.getElementById("dep").textContent = money(dep);
-      document.getElementById("late").textContent = "- " + money(late);
-      document.getElementById("kept").textContent = "- " + money(kept);
-      document.getElementById("refund").textContent = money(refund);
-      document.getElementById("confirm").disabled = !rental || undamaged === null;
+      document.getElementById("late-label").textContent = undamaged === false ? "Late fee (recorded, not charged)" : "Late fee";
+      document.getElementById("late").textContent = money(late);
+      document.getElementById("late-tax").textContent = money(lateTax);
+      document.getElementById("kept").textContent = money(kept);
+      document.getElementById("result-label").textContent = due > 0 ? "Amount still due" : "Refund";
+      document.getElementById("refund").textContent = money(due > 0 ? due : refund);
+
+      var damageText = document.getElementById("damage").value.trim();
+      document.getElementById("confirm").textContent = undamaged === false && !approvedDamage ? "Confirm damage (manager)" :
+        due > 0 ? "Customer pays the rest" : "Confirm return";
+      document.getElementById("confirm").disabled = !rental || undamaged === null || (undamaged === false && damageText === "");
     }
 
+    function buildTx(status, refundTo, approvedBy) {
+      return {
+        type: "Rental return", number: nextTxId(), date: new Date().toLocaleString("en-GB"),
+        item: rental.name, serial: serial, rentalNo: rental.rentalNo,
+        start: fmt(rental.start), due: fmt(rental.due), returned: fmt(new Date()),
+        condition: undamaged ? "Undamaged" : "Damaged", damageNote: undamaged ? "" : document.getElementById("damage").value.trim(),
+        deposit: calc.dep, daysLate: rental.daysLate, lateFee: calc.late, lateTax: calc.lateTax,
+        kept: calc.kept, refund: calc.refund, refundTo: refundTo || "", refundStatus: status || "",
+        approvedBy: approvedBy || approvedDamage, taxToCorrect: taxOffline() && calc.late > 0
+      };
+    }
+
+    function finish(status, refundTo, approvedBy) {
+      var tx = buildTx(status, refundTo, approvedBy);
+      if (status === "CASH_PAID") recordCash(-calc.refund); else recordCash(0);
+      if (status === "PENDING") addPendingRefund({ id: tx.number, type: "Rental return", amount: calc.refund });
+      saveTx(tx);
+      window.location.href = "receipt.html";
+    }
+
+    function cashWithApproval() {
+      managerApproval({ title: "Approve cash refund", text: "Refund " + money(calc.refund) + " in cash (card refund declined).", reason: true }, function (m) {
+        finish("CASH_PAID", "Cash", m.name + " (" + m.reason + ")");
+      });
+    }
+
+    // confirmRentalReturn()
     function confirmReturn() {
-      document.getElementById("done").classList.remove("hidden");
+      document.getElementById("r-declined").classList.add("hidden");
+
+      if (undamaged === false && !approvedDamage) {
+        managerApproval({ title: "Confirm damage", text: "Damaged: " + document.getElementById("damage").value.trim() + ". The whole deposit is kept." }, function (m) {
+          approvedDamage = m.name;
+          var ok = document.getElementById("damage-ok");
+          ok.textContent = "Damage confirmed by " + m.name + ". The item goes to Under maintenance.";
+          ok.classList.remove("hidden");
+          update();
+        });
+        return;
+      }
+      if (undamaged === false) return finish("", "");
+
+      if (calc.due > 0) {
+        // UC5 ext. 7b: the customer pays the rest on the payment screen S-05
+        var tx = buildTx("", "");
+        tx.amountDue = calc.due;
+        tx.lines = [];
+        saveTx(tx);
+        window.location.href = "payment.html";
+        return;
+      }
+      if (calc.refund === 0) return finish("", "");
+      if (rental.tender === "cash") return finish("CASH_PAID", "Cash");
+
       document.getElementById("confirm").disabled = true;
+      document.getElementById("r-busy").classList.remove("hidden");
+      var result = document.querySelector("input[name=refres]:checked").value;
+      setTimeout(function () {
+        document.getElementById("r-busy").classList.add("hidden");
+        document.getElementById("confirm").disabled = false;
+        if (result === "ok") finish("CARD_REFUNDED", tenderText(rental));
+        if (result === "declined") document.getElementById("r-declined").classList.remove("hidden");
+        if (result === "down") finish("PENDING", tenderText(rental));
+      }, 1500);
     }
 
-    function scanSerial() {
+    function scanCode() {
       var codes = [
         { code: "SN-2001-02", label: "Electric drill (2 days late)" },
         { code: "SN-2002-05", label: "Pressure washer (on time)" },
+        { code: "SN-2003-03", label: "Ladder (8 days late)" },
+        { code: "R03-000140", label: "Rental receipt" },
         { code: "SN-9999-99", label: "Unknown barcode" }
       ];
-      openScanner("Scan returned item", codes, function (code) {
-        document.getElementById("serial").value = code;
+      openScanner("Scan returned item or receipt", codes, function (code) {
+        document.getElementById("code").value = code;
         findRental();
       });
     }
 
-    document.getElementById("serial").addEventListener("keydown", function (e) {
+    document.getElementById("code").addEventListener("keydown", function (e) {
       if (e.key === "Enter") findRental();
     });
 
