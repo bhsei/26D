@@ -1017,6 +1017,8 @@ Derived from the fully dressed use cases. ID ranges: UC1 FR-01–FR-19, UC2 FR-2
 | FR-73 | When the late fee and its tax of an undamaged item are larger than the deposit, the system shall show the amount still due and ask the customer to pay it. | Should | UC5 ext. 7b, BR-10 |
 | FR-74 | When the cashier closes a session and the difference between the closing cash and the expected cash is larger than 5.00, the system shall mark the session as to review and show it in the store manager's list of sessions to review. | Should | UC4 close session ext. 4b, BR-17 |
 | FR-75 | The system shall let a store manager review a session in that list, enter a reason and confirm the review, and shall record who reviewed it and when. | Should | UC4 close session ext. 4b, BR-17, NFR-07 |
+| FR-76 | The system shall show the store manager the number of records waiting for the Accounting System and the time the oldest one has waited, and shall warn when the oldest record has waited longer than a time set in the configuration. | Should | AD-06, IR-07, BR-14 |
+| FR-77 | The system shall list the returns and rental returns of the register whose card refund is pending, and shall let the cashier ask the Payment Service for the refund status of one of them again. | Should | UC2 and UC5 ext. 9b2b, FR-26, FR-55 |
 
 ### 3.3 Usability requirements
 
@@ -1159,7 +1161,7 @@ The business rules of the store are defined here (#36, B-D17). The glossary repe
 
 #### 3.10.1 Requirements that depend on a Proposed rule
 
-14 of the 18 business rules are still _Proposed_. In this version, 33 of the 75 functional requirements (14 of the 34 _Must_ requirements) cite at least one of them. If a Proposed rule changes, these requirements change with it.
+14 of the 18 business rules are still _Proposed_. In this version, 33 of the 77 functional requirements (14 of the 34 _Must_ requirements) cite at least one of them. If a Proposed rule changes, these requirements change with it.
 
 | Proposed rule | Requirements that cite it |
 | --- | --- |
@@ -1192,6 +1194,7 @@ All requirements will be verified using one of four methods: **Inspection** (I),
 | FR-68 to FR-70   | Test                       | Functional tests of the store manager functions (reorder list, tax rate, disable employee).                       |
 | FR-71            | Test / Inspection          | Print one receipt of each type; check common contents and masked card.                                            |
 | FR-72 to FR-73   | Test                       | Functional tests for a damaged item and for a late fee larger than the deposit.                                   |
+| FR-74 to FR-77   | Test                       | Functional tests of the session review, the Accounting queue status and the list of pending card refunds.  |
 | NFR-01, NFR-02   | Test                       | On the reference setup: 200 registrations (95th percentile < 1s) and 10 starts (< 30s).                           |
 | NFR-03           | Analysis                   | Availability computed from the application log over one calendar month; plus a crash test.                        |
 | NFR-04           | Demonstration              | Simulate internet drop and verify local storage.                                                                  |
@@ -1291,7 +1294,7 @@ See [glossary.md](glossary.md).
 
 ### 5.2 Traceability matrix
 
-The full traceability matrix linking the requirements (FR-01 to FR-73), use cases, planned design elements, and test cases is maintained in the [Requirements Conventions document](requirements_conventions.md), section 4.
+The full traceability matrix linking the requirements (FR-01 to FR-77), use cases, planned design elements, and test cases is maintained in the [Requirements Conventions document](requirements_conventions.md), section 4.
 
 ### 5.3 Open questions
 
