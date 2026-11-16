@@ -1,5 +1,5 @@
 @startuml
-' NewEra POS - Logical view (layers and packages), W09
+' NewEra POS - Logical view (layers and packages), W09; W10: StoreDatabaseSync (AD-05), PaymentMethod (AD-08)
 ' Team D - editable source of assets/architecture_logical.png
 ' Render with: java -jar plantuml.jar -tpng assets/architecture_logical.puml
 ' Names follow docs/design/architecture.md (AD-01 layers, AD-02 local web application, AD-04 adapters, AD-10 devices),
@@ -37,6 +37,7 @@ package "Application / domain layer" as APP {
     rectangle "SessionHandler · SaleHandler · ReturnHandler\nRentalHandler · RentalReturnHandler · ManagerHandler" as Handlers
     rectangle "ManagerApproval\n(manager ID + PIN, AD-09)" as Approval
     rectangle "AccountingSender\n(background, IR-06)" as Sender
+    rectangle "PaymentMethods → PaymentMethod\nCash · CreditCard · Check (AD-08)" as PayMethods
   }
   package "application.interfaces" as interfaces {
     rectangle "<<interface>>\nPaymentService · TaxCalculator · AccountingSystem\nHRSystem · CatalogSource\nCardReader · ReceiptPrinter · CashDrawer · repositories\n+ result classes (PaymentResult, TaxResult…)" as Interfaces
@@ -66,7 +67,7 @@ package "Technical services layer" as TECH {
   }
   package "technical.storage" as storage {
     rectangle "TransactionRepository · ItemRepository\nAccountingQueue · EmployeeList" as Repos
-    rectangle "StoreDatabaseSync\n(placeholder, AD-05, W10)" as Sync
+    rectangle "StoreDatabaseSync\n(only link to the store database, AD-05)" as Sync
   }
   package "technical.logging" as logging {
     rectangle "EventLog" as Log
@@ -80,6 +81,9 @@ Handlers -down-> Interfaces
 Handlers -right-> Approval
 Approval -down-> Interfaces
 Sender -down-> Interfaces : AccountingQueue to\nAccountingSystem
+Handlers -down-> PayMethods : one tender
+PayMethods -down-> Interfaces
+PayMethods -down-> DPay : creates Payment
 DStore -[hidden]right- DCatalog
 DTrans -[hidden]right- DPay
 DStore -[hidden]down- DTrans
@@ -87,6 +91,7 @@ Repos -[hidden]right- Sync
 Adapters -up-|> Interfaces : implements
 Drivers -up-|> Interfaces : implements
 Repos -up-|> Interfaces : implements
+Sync -up-|> Interfaces : implements
 Adapters -down-> Log
 Drivers -down-> Log
 
