@@ -83,6 +83,7 @@ package "ui.screens (web pages in the browser of the register)" {
     tenderType: CASH | CREDIT_CARD | CHECK
     amount: Money
     -- shown --
+    availableTenders: list of\n CASH | CREDIT_CARD | CHECK
     total: Money (with its parts)
     amountDue: Money (rental return)
     changeDue: Money
@@ -130,6 +131,7 @@ package "ui.screens (web pages in the browser of the register)" {
     dueDate: Date
     tax: Money
     total: Money
+    taxToBeCorrected: Boolean
     errorMessage: String
     waitingMessage: Boolean
   }
@@ -149,6 +151,7 @@ package "ui.screens (web pages in the browser of the register)" {
     lateFeeTax: Money
     refundTotal: Money
     amountDue: Money
+    taxToBeCorrected: Boolean
     refundState: CASH_PAID | CARD_REFUNDED |\n NEEDS_APPROVAL | PENDING
     errorMessage: String
     waitingMessage: Boolean
@@ -158,7 +161,7 @@ package "ui.screens (web pages in the browser of the register)" {
     -- input --
     managerID: String
     pin: String (masked)
-    reason: String
+    reason: String (only for\n approveCashRefund)
     -- shown --
     errorMessage: String
   }
@@ -178,11 +181,10 @@ package "ui.screens (web pages in the browser of the register)" {
     errorMessage: String
   }
 
-  class "M-03 Settings" as M03 <<screen>> {
+  class "M-03 Default tax rate" as M03 <<screen>> {
     -- input --
     managerID, pin: String
     rate: Decimal
-    employeeID: String
     -- shown --
     changedBy, changedAt
     errorMessage: String
@@ -195,6 +197,23 @@ package "ui.screens (web pages in the browser of the register)" {
     -- shown --
     importedCount: Integer
     errors: missing or invalid fields
+    errorMessage: String
+  }
+
+  class "M-05 Local employees" as M05 <<screen>> {
+    -- input --
+    managerID, pin: String
+    employeeID: String
+    -- shown --
+    changedBy, changedAt
+    errorMessage: String
+  }
+
+  class "M-06 Accounting queue" as M06 <<screen>> {
+    -- input --
+    managerID, pin: String
+    -- shown --
+    queueStatus: records waiting for\n the Accounting System
     errorMessage: String
   }
 }
@@ -212,6 +231,7 @@ package "ui.api (controllers of the POS application)" {
 
   class SaleController <<controller>> {
     makeNewSale()
+    getAvailableTenders()
     enterItem(itemID: String, quantity: Integer)
     removeItem(lineNumber: Integer)
     overridePrice(lineNumber: Integer, newPrice: Money,\n managerID: String, pin: String)
@@ -264,6 +284,7 @@ package "ui.api (controllers of the POS application)" {
     changeDefaultTaxRate(rate: Decimal, managerID: String, pin: String)
     disableEmployee(employeeID: String, managerID: String, pin: String)
     importCatalog(file: File, managerID: String, pin: String)
+    getAccountingQueueStatus(managerID: String, pin: String)
   }
 }
 
@@ -272,7 +293,7 @@ S01 ..> SessionController : <<calls>>\nlogIn(), enterOpeningCash()
 S03 ..> SessionController : <<calls>>\ncloseSession(), enterClosingCash(),\nconfirmCloseSession()
 
 S04 ..> SaleController : <<calls>>\nmakeNewSale(), enterItem(), removeItem(),\noverridePrice(), endSale(), cancelSale()
-S05 ..> SaleController : <<calls>>\nmakePayment() (sale)
+S05 ..> SaleController : <<calls>>\ngetAvailableTenders() (when it opens),\nmakePayment() (sale), cancelSale()
 S05 ..> RentalController : <<calls>>\nmakePayment() (rental)
 S05 ..> RentalReturnController : <<calls>>\nmakePayment() (amount still due)
 S06 ..> SaleController : <<calls>>\nreprintReceipt()
@@ -283,8 +304,10 @@ S09 ..> RentalReturnController : <<calls>>\nmakeNewRentalReturn(), findRental(),
 
 M01 ..> ManagerController : <<calls>>\nlistFlaggedProducts()
 M02 ..> ManagerController : <<calls>>\nlistSessionsToReview(),\nconfirmSessionReview()
-M03 ..> ManagerController : <<calls>>\nchangeDefaultTaxRate(), disableEmployee()
+M03 ..> ManagerController : <<calls>>\nchangeDefaultTaxRate()
 M04 ..> ManagerController : <<calls>>\nimportCatalog()
+M05 ..> ManagerController : <<calls>>\ndisableEmployee()
+M06 ..> ManagerController : <<calls>>\ngetAccountingQueueStatus()
 
 ' ---------- navigation between screens ----------
 S01 --> S02 : <<opens>>
@@ -300,14 +323,22 @@ S05 --> S06 : <<opens>>
 S07 --> S06 : <<opens>>
 S08 --> S06 : <<opens>>
 S09 --> S06 : <<opens>>
+S02 --> S06 : <<opens>>\nReprint last receipt
+S02 --> D01 : <<opens>>\nManager functions
 S04 --> D01 : <<opens>>\nprice change
-S07 --> D01 : <<opens>>\ncash refund
-S09 --> D01 : <<opens>>\ndamage, cash refund
+S07 --> D01 : <<opens>>\ncash refund (with reason)
+S09 --> D01 : <<opens>>\ndamage, cash refund (with reason)
+D01 --> M01 : <<opens>>
+D01 --> M02 : <<opens>>
+D01 --> M03 : <<opens>>
+D01 --> M04 : <<opens>>
+D01 --> M05 : <<opens>>
+D01 --> M06 : <<opens>>
 
 note bottom of ManagerController
-  The operations of the store manager functions have no name in
-  system_interfaces.md §3.6; the names above are proposed here.
-  The operations that change data carry managerID and pin (BR-04).
+  listFlaggedProducts() and importCatalog() have no name in ui_design.md §1.4;
+  the names are proposed here. The operations that change data carry
+  managerID and pin (BR-04).
 end note
 
 note bottom of SessionController
