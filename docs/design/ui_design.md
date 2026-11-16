@@ -149,10 +149,10 @@ What the diagram shows:
 - **Waiting and message.** S-05 shows a waiting message after 1 s (NFR-18). When the Payment Service does not answer within 10 s (AD-07), `makePayment` returns `NOT_AVAILABLE` and S-05 shows *"Card payment not available"* with three choices: *Retry*, *Other tender* and *Cancel sale* (NFR-14). The failure is logged by the POS application (IR-10), not by the screen. No payment is created and the sale stays open (BR-18).
 - **Retry (IR-02).** S-05 sends the same `makePayment(amount, CREDIT_CARD)` again. The sale keeps its transaction ID, so the customer is never charged twice; the card is read again (AD-09).
 - **Other tender.** S-05 sends `makePayment` with the new tender. The POS application first voids the card request (`voidAuthorization`, IR-15); the screen does not see this step.
-- **Cancel sale (\*b).** S-05 goes back to S-04, which sends `cancelSale()` (the operation belongs to S-04 in section 1.2). The card request is voided first, the stock levels do not change (FR-07) and the Menu S-02 opens; the cashier session stays open.
+- **Cancel sale (\*b).** S-05 sends `cancelSale()` itself to `SaleController`, so the cashier does not go back to S-04 first (review #58). The card request is voided first, the stock levels do not change (FR-07) and the Menu S-02 opens; the cashier session stays open.
 
 ### 5.3 Open points
 
 1. **Where the total is shown.** The diagram shows the total on S-04 after `endSale()` and then opens S-05. To align with the navigation diagram of section 2.
-2. **Cancel from S-05.** *Cancel sale* goes back to S-04, because `cancelSale()` is an operation of S-04 (section 1.2). If S-05 should send it directly, section 1.2 and the diagram change together.
+2. **Cancel from S-05 (review #58).** S-05 now sends `cancelSale()` itself (section 5.2). Section 1.2 (row S-05) and the UI class diagram of section 4 (`S-05 ..> SaleController`) still list `cancelSale()` only for S-04; to add it to S-05 there (Yasmine, Josué).
 3. **Screen after a cancelled sale.** The diagram opens the Menu S-02. Opening an empty S-04 for the next customer is also possible. To align with section 2.
