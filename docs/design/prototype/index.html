@@ -19,11 +19,15 @@
         <h2>Cashier login</h2>
 
         <div id="hr-offline" class="msg msg-warn hidden" style="margin-bottom:16px">
-          HR System not available. Using the local employee list (last update: yesterday 21:30).
+          The HR System does not answer. The list saved on 15/11/2026 at 21:30 is used.
         </div>
 
         <div id="login-error" class="msg msg-error hidden" style="margin-bottom:16px">
           Employee ID not found or not an active cashier.
+        </div>
+
+        <div id="cash-error" class="msg msg-error hidden" style="margin-bottom:16px">
+          The opening cash is not a valid amount. Count the drawer and type the amount again.
         </div>
 
         <div class="field">
@@ -48,7 +52,8 @@
     <div class="demo">
       <strong>Prototype:</strong>
       <label><input type="checkbox" id="hr-toggle" onchange="toggleHr()"> HR System offline</label>
-      <span>Try employee ID "E-0000" to see the error.</span>
+      <span>Try employee ID "E-0000" or opening cash "abc" to see the errors.</span>
+      <span>Screen S-01</span>
     </div>
   </div>
 
@@ -64,13 +69,17 @@
 
     function login() {
       var id = document.getElementById("emp").value.trim().toUpperCase();
-      if (!EMPLOYEES[id]) {
-        document.getElementById("login-error").classList.remove("hidden");
-        return;
-      }
+      var cash = document.getElementById("cash").value.trim();
+      var cashOk = /^\d+([.,]\d{1,2})?$/.test(cash);   // FR-47
+      document.getElementById("login-error").classList.toggle("hidden", !!EMPLOYEES[id]);
+      document.getElementById("cash-error").classList.toggle("hidden", !EMPLOYEES[id] || cashOk);
+      if (!EMPLOYEES[id] || !cashOk) return;
+
       setSetting("cashier", EMPLOYEES[id]);
-      setSetting("opening_cash", document.getElementById("cash").value);
-      setSetting("hr_offline", document.getElementById("hr-toggle").checked ? "yes" : "no");
+      setSetting("opening_cash", money(parseAmount(cash)).replace(" €", ""));
+      setFlag("hr_offline", document.getElementById("hr-toggle").checked);
+      setSetting("session_cash", "0");    // cash in and out of this session (FR-62)
+      setSetting("session_count", "0");
       clearTx();
       window.location.href = "menu.html";
     }
