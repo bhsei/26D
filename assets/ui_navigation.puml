@@ -1,0 +1,76 @@
+@startuml
+' NewEra POS - Navigation between the screens (UC1 to UC5), W10
+' Team D - editable source of assets/ui_navigation.png
+' Render with: java -jar plantuml.jar -tpng assets/ui_navigation.puml
+' Screen IDs follow docs/design/ui_design.md section 1. Messages: section 2.2.
+
+skinparam shadowing false
+skinparam dpi 120
+skinparam defaultFontName Arial
+skinparam state {
+  BackgroundColor #FFFFFF
+  BorderColor #444444
+  ArrowColor #333333
+}
+skinparam ArrowFontSize 11
+hide empty description
+
+title Navigation between the screens of NewEra POS
+
+state "S-01 Login\n(UC4)" as S01
+state "S-02 Menu" as S02 #E8F0FE
+state "S-03 Close session\n(UC4)" as S03
+state "S-04 Sale\n(UC1)" as S04
+state "S-05 Payment\n(UC1, UC3, UC5)" as S05 #FFF4D6
+state "S-06 Receipt" as S06
+state "S-07 Return\n(UC2)" as S07
+state "S-08 Rental\n(UC3)" as S08
+state "S-09 Rental return\n(UC5)" as S09
+state "D-01 Manager approval" as D01 #FDE7E7
+state "M-01 to M-04\nManager screens" as MGR
+
+[*] --> S01 : the program starts\n(UC4)
+S01 --> S01 : E1 wrong ID or PIN\nE2 HR System offline,\nlocal list used
+S01 --> S02 : opening cash entered
+
+S02 --> S04 : New sale
+S02 --> S07 : New return /\npending refund
+S02 --> S08 : New rental
+S02 --> S09 : Rental return /\npending refund
+S02 --> S03 : Close session
+S02 --> D01 : Manager functions
+D01 --> MGR : approved
+D01 --> S02 : cancel
+
+S03 --> S02 : E3 a transaction is open
+S03 --> S01 : session closed\n(E4 difference > 5.00:\nsession to review)
+
+S04 --> S04 : E5 unknown item\nE6 quantity not valid
+S04 --> D01 : price disputed
+D01 --> S04 : price approved
+S04 --> S05 : End sale (tax shown;\nE7 default tax rate)
+S04 --> S02 : Cancel sale
+
+S08 --> S08 : E8 customer not found\nE9 overdue rental\nE10 item not available
+S08 --> S05 : End rental
+S08 --> S02 : Cancel rental
+
+S09 --> S09 : E11 no open rental
+S09 --> D01 : damage confirmation /\ncash refund
+D01 --> S09 : approved
+S09 --> S05 : amount still due\n(late fee > deposit)
+S09 --> S06 : refund done
+S09 --> S02 : Cancel
+
+S07 --> S07 : E12 no sale found\nE13 item not in the sale\nE14 older than refund period
+S07 --> D01 : cash refund instead of card
+D01 --> S07 : approved
+S07 --> S06 : refund done
+S07 --> S02 : Cancel / E15 refund\nstays pending
+
+S05 --> S05 : E16 card declined\nE17 payment service\nnot available:\nother tender or retry
+S05 --> S06 : payment approved
+S05 --> S02 : Cancel (E17: void\nthe card request)
+
+S06 --> S02 : Done
+@enduml
