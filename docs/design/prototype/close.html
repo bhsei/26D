@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NewEra POS - Close session</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="screen">
+    <div class="topbar">
+      <span class="logo">NewEra POS</span>
+      <span class="title">Close session</span>
+      <span class="info">Register 03</span>
+      <span class="info" id="cashier"></span>
+      <span class="info" id="clock"></span>
+    </div>
+
+    <div class="main">
+      <div class="left">
+        <div id="open-tx" class="msg msg-error hidden">
+          A transaction is still open. Finish it or cancel it before you close the session.
+        </div>
+
+        <div class="panel" id="count-box">
+          <h2>Closing count</h2>
+          <div id="drawer" class="msg msg-info" style="margin-bottom:16px">The cash drawer is open. Count the cash and type the amount.</div>
+          <div class="field">
+            <label for="closing">Closing cash in the drawer (€)</label>
+            <input id="closing" type="text" oninput="update()" autofocus>
+          </div>
+          <div id="cash-error" class="msg msg-error hidden">The closing cash is not a valid amount. Count again and type the amount.</div>
+        </div>
+
+        <div id="review" class="msg msg-warn hidden"></div>
+        <div id="closed" class="msg msg-ok hidden">
+          Session closed. You can log out now.
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="panel totals">
+          <div><span>Opening cash</span><span id="opening"></span></div>
+          <div><span>Cash in and out (session)</span><span id="moves"></span></div>
+          <div><span>Expected cash</span><span id="expected"></span></div>
+          <div><span>Closing cash</span><span id="counted"></span></div>
+          <div class="total"><span>Difference</span><span id="diff"></span></div>
+        </div>
+        <p style="font-size:13px; color:#52606d">Expected cash = opening cash + cash payments - cash refunds (FR-62).</p>
+
+        <div style="flex:1"></div>
+
+        <button id="confirm" class="btn btn-ok btn-big" onclick="confirmClose()" disabled>Close session</button>
+        <a class="btn btn-big" id="back" href="menu.html">Back to menu</a>
+        <a class="btn btn-primary btn-big hidden" id="logout" href="index.html">Log out</a>
+      </div>
+    </div>
+
+    <div class="demo">
+      <strong>Prototype:</strong>
+      <span>Type the expected cash to close without a difference, or 7 € less to see the review message.</span>
+      <span>Screen S-03</span>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    var opening = parseAmount(getSetting("opening_cash", "150,00"));
+    var moves = parseAmount(getSetting("session_cash", "0"));
+    var expected = round2(opening + moves);
+
+    document.getElementById("opening").textContent = money(opening);
+    document.getElementById("moves").textContent = money(moves);
+    document.getElementById("expected").textContent = money(expected);
+
+    // FR-60: no close while a transaction of the session is open
+    var tx = loadTx();
+    var blocked = !!(tx && !tx.number);
+    document.getElementById("open-tx").classList.toggle("hidden", !blocked);
+    document.getElementById("count-box").classList.toggle("hidden", blocked);
+
+    // enterClosingCash(amount): FR-61, FR-62
+    function update() {
+      var s = document.getElementById("closing").value.trim();
+      var ok = /^\d+([.,]\d{1,2})?$/.test(s);
+      document.getElementById("cash-error").classList.toggle("hidden", ok || s === "");
+      var counted = ok ? parseAmount(s) : 0;
+      document.getElementById("counted").textContent = ok ? money(counted) : "-";
+      document.getElementById("diff").textContent = ok ? money(round2(counted - expected)) : "-";
+      document.getElementById("confirm").disabled = !ok || blocked;
+      return ok ? round2(counted - expected) : null;
+    }
+
+    // confirmCloseSession(): FR-63, FR-74
+    function confirmClose() {
+      var diff = update();
+      if (diff === null) return;
+      if (Math.abs(diff) > 5) {
+        var list = getList("sessions_review") || [];
+        list.push({ who: getSetting("cashier", "Li Wei"), when: new Date().toLocaleString("en-GB"), diff: diff });
+        setList("sessions_review", list);
+        var review = document.getElementById("review");
+        review.textContent = "The difference is " + money(diff) + ". The store manager will review this session.";
+        review.classList.remove("hidden");
+      }
+      document.getElementById("closed").classList.remove("hidden");
+      document.getElementById("count-box").classList.add("hidden");
+      document.getElementById("confirm").classList.add("hidden");
+      document.getElementById("back").classList.add("hidden");
+      document.getElementById("logout").classList.remove("hidden");
+      clearTx();
+    }
+
+    update();
+  </script>
+</body>
+</html>
