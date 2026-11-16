@@ -27,7 +27,7 @@ state "S-07 Return\n(UC2)" as S07
 state "S-08 Rental\n(UC3)" as S08
 state "S-09 Rental return\n(UC5)" as S09
 state "D-01 Manager approval" as D01 #FDE7E7
-state "M-01 to M-04\nManager screens" as MGR
+state "M-01 to M-06\nManager screens" as MGR
 
 [*] --> S01 : the program starts\n(UC4)
 S01 --> S01 : E1 wrong ID or PIN\nE2 HR System offline,\nlocal list used
@@ -37,6 +37,7 @@ S02 --> S04 : New sale
 S02 --> S07 : New return /\npending refund
 S02 --> S08 : New rental
 S02 --> S09 : Rental return /\npending refund
+S02 --> S06 : Reprint last receipt
 S02 --> S03 : Close session
 S02 --> D01 : Manager functions
 D01 --> MGR : approved
