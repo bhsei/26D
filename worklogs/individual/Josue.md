@@ -77,9 +77,11 @@ Team: D · Project: NewEra POS / Role: Quality and Requirements
 
 ### W10
 **What I did:** 
-- Created the UI Class Diagram (`ui_classes.puml` and `.png`) for the User Interface Design. It contains 20 classes: 14 screens (S-01 to S-09, D-01, M-01 to M-04) and 6 controllers.
-- Wrote Section 4 of `ui_design.md`, detailing the screens, controllers, and the system operations they call.
-- Mapped all usability Non-Functional Requirements (NFR-05, NFR-06, NFR-13 to NFR-18) to specific elements in the class diagram and defined the UI rules for each.
-**Hours:** 6
-**Problems:** The PlantUML diagram was too large to be rendered by the standard online viewer, so I had to use an alternative renderer to generate the final image.
-**Next:** Review Avni's Navigation sequence diagram (Part D) and prepare for the W11 design milestone.
+- Created the UI Class Diagram (`ui_classes.puml` and `.png`) with 22 classes (15 screens/dialogs and 6 controllers) for the User Interface Design.
+- Wrote Section 4 of `ui_design.md`, detailing the class diagram and mapping all usability NFRs (NFR-05, NFR-06, NFR-13 to NFR-18) to specific UI elements and rules.
+- Applied peer review feedback from Yasmine (added M-05, M-06, updated D-01) and Avni (added `cancelSale()` and `getAvailableTenders()` to S-05).
+- Reviewed Avni's work (A4 Navigation sequence diagram and AD-08) for Part D, creating a GitHub Issue with 2 findings (both accepted and fixed).
+- Checked the Team E's new SRS v1.5 (pending task from W09) and confirmed they applied our corrections, allowing the W09 review to be officially closed.
+**Hours:** 8
+**Problems:** Ensuring the PlantUML code rendered correctly due to its large size (had to use an alternative online renderer).
+**Next:** Prepare for the W11 design milestone and the detailed design diagrams.
