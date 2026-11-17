@@ -54,7 +54,7 @@ Roles were confirmed by the team in W05 (see the [W05 report](weekly-reports/W05
 
 | Document | Content |
 | --- | --- |
-| [SRS](docs/requirements/SRS.md) | Software Requirements Specification (ISO/IEC/IEEE 29148), v1.2: baseline for the design, with the open questions 1–4, 7 and 9 decided in W09 (v1.1 was the baseline after the cross-team review of W08). UC1 to UC5 fully dressed, FR-01 to FR-75, NFR-01 to NFR-20, IR-01 to IR-17, DR-01 to DR-20, DC-01 to DC-09, BR-01 to BR-18 |
+| [SRS](docs/requirements/SRS.md) | Software Requirements Specification (ISO/IEC/IEEE 29148), v1.3 (W10): open questions 1–4 and 6–9 decided, question 5 proposed (v1.2 was the baseline for the design, v1.1 the baseline after the cross-team review of W08). UC1 to UC5 fully dressed, FR-01 to FR-77, NFR-01 to NFR-20, IR-01 to IR-17, DR-01 to DR-20, DC-01 to DC-09, BR-01 to BR-18 |
 | [Use case model](docs/requirements/use_case_model.md) | Use case diagram (`assets/use_case_diagram.png`) and one-paragraph description of UC1–UC5 |
 | [Glossary and business rules](docs/requirements/glossary.md) | Domain terms and BR-01 to BR-18 |
 | [External interfaces](docs/requirements/external_interfaces.md) | The 4 external systems, first draft of IR-01 to IR-10 and the open questions (decided in W09) |
@@ -70,9 +70,10 @@ Roles were confirmed by the team in W05 (see the [W05 report](weekly-reports/W05
 | [System sequence diagrams](docs/design/system_sequence_diagrams.md) | System operations of UC1 to UC5 (`assets/ssd_uc1.png` to `ssd_uc5.png`) |
 | [Operation contracts](docs/design/operation_contracts.md) | Contracts 1 to 29 for the system operations of UC1 to UC5 |
 | [Architecture drivers](docs/design/architecture_drivers.md) | Functional drivers, quality attributes with the utility tree, constraints and trade-offs |
-| [System interfaces](docs/design/system_interfaces.md) | System API used by the screens and the Java interfaces of the external systems and devices |
+| [System interfaces](docs/design/system_interfaces.md) | System API used by the screens, the Java interfaces of the external systems, devices and storage, and the protocol with the stubs |
 | [Architecture description](docs/design/architecture.md) | ISO/IEC/IEEE 42010: context, logical, interaction, deployment and data views, correspondences and architecture decisions AD-01 to AD-10 |
-| [UI prototype](docs/design/ui_prototype.md) | Clickable prototype of the cashier screens (`docs/design/prototype/`) |
+| [Data model](docs/design/data_model.md) | E/R model of the store database and the local database of each register (AD-05, AD-06) |
+| [UI design](docs/design/ui_design.md), [UI prototype](docs/design/ui_prototype.md) | Screens, navigation, UI rules, UI class diagram and navigation sequence diagram; clickable prototype of all the screens (`docs/design/prototype/`) |
 
 **Planning**
 
@@ -91,6 +92,7 @@ Roles were confirmed by the team in W05 (see the [W05 report](weekly-reports/W05
 | W07  | [Weekly_Report_W07.pptx](weekly-reports/W07/Weekly_Report_W07.pptx) | SRS v1.0 milestone: five fully dressed use cases and 132 requirements, each with an ID, a priority, a source and a verification method. Increment 2 (Design) started: domain model, SSD of UC1, first operation contracts, architecture drivers and architecture skeleton |
 | W08  | [Weekly_Report_W08.pptx](weekly-reports/W08/Weekly_Report_W08.pptx) | Cross-team reviews: 45 findings received from Teams B and C and answered, SRS v1.1; SRS of Teams E and F reviewed (26 and 13 findings). First architecture decisions proposed (AD-01 to AD-03) |
 | W09  | [Weekly_Report_W09.pptx](weekly-reports/W09/Weekly_Report_W09.pptx) | Architecture design: AD-01 to AD-03 accepted (layers on each register, local web application, Java); context, logical, interaction, deployment and data views with their correspondences; AD-04, AD-07, AD-09 and AD-10; system interfaces; SSDs and contracts of UC4 and UC5, state diagrams; open questions 1–4, 7 and 9 decided (SRS v1.2); internal reviews #51 to #56 |
+| W10  | [Weekly_Report_W10.pptx](weekly-reports/W10/Weekly_Report_W10.pptx) | User interface design: 15 screens and a manager dialog with their system operations, navigation of UC1 to UC5, UI rules, UI class diagram (22 classes), navigation sequence diagram of UC1, prototype of all the screens; AD-05 local storage and store database, AD-06 Accounting queue, AD-08 payment methods; data model (E/R); storage interfaces; open questions 6 and 8 decided (SRS v1.3); internal reviews #57 to #61 |
 
 ## Working rules
 
