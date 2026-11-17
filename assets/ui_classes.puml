@@ -222,6 +222,9 @@ package "ui.api (controllers of the POS application)" {
 
   class SessionController <<controller>> {
     startUp()
+    getSystemStatus()
+    listPendingRefunds()
+    reprintLastReceipt()
     logIn(employeeID: String, pin: String)
     enterOpeningCash(amount: Money)
     closeSession()
@@ -278,11 +281,14 @@ package "ui.api (controllers of the POS application)" {
   }
 
   class ManagerController <<controller>> {
-    listFlaggedProducts(limit: Integer, offset: Integer)
-    listSessionsToReview(limit: Integer, offset: Integer)
+    listFlaggedProducts(managerID: String, pin: String,\n limit: Integer, offset: Integer)
+    listRentalConflicts(managerID: String, pin: String,\n limit: Integer, offset: Integer)
+    resolveRentalConflict(conflictID: String, managerID: String,\n pin: String, reason: String)
+    listSessionsToReview(managerID: String, pin: String,\n limit: Integer, offset: Integer)
     confirmSessionReview(sessionID: String, managerID: String,\n pin: String, reason: String)
     changeDefaultTaxRate(rate: Decimal, managerID: String, pin: String)
     disableEmployee(employeeID: String, managerID: String, pin: String)
+    enableEmployee(employeeID: String, managerID: String, pin: String)
     importCatalog(file: File, managerID: String, pin: String)
     getAccountingQueueStatus(managerID: String, pin: String)
   }
@@ -290,23 +296,24 @@ package "ui.api (controllers of the POS application)" {
 
 ' ---------- screens call controllers ----------
 S01 ..> SessionController : <<calls>>\nlogIn(), enterOpeningCash()
+S02 ..> SessionController : <<calls>>\ngetSystemStatus(), listPendingRefunds(),\nreprintLastReceipt()
 S03 ..> SessionController : <<calls>>\ncloseSession(), enterClosingCash(),\nconfirmCloseSession()
 
 S04 ..> SaleController : <<calls>>\nmakeNewSale(), enterItem(), removeItem(),\noverridePrice(), endSale(), cancelSale()
 S05 ..> SaleController : <<calls>>\ngetAvailableTenders() (when it opens),\nmakePayment() (sale), cancelSale()
-S05 ..> RentalController : <<calls>>\nmakePayment() (rental)
-S05 ..> RentalReturnController : <<calls>>\nmakePayment() (amount still due)
+S05 ..> RentalController : <<calls>>\nmakePayment() (rental), cancelRental()
+S05 ..> RentalReturnController : <<calls>>\nmakePayment() (amount still due),\ncancelRentalReturn()
 S06 ..> SaleController : <<calls>>\nreprintReceipt()
 
 S07 ..> ReturnController : <<calls>>\nmakeNewReturn(), findSale(), enterReturnItem(),\nremoveReturnItem(), confirmReturn(),\ncheckRefundStatus(), approveCashRefund(),\ncancelReturn()
 S08 ..> RentalController : <<calls>>\nmakeNewRental(), enterCustomerID(),\nregisterCustomer(), enterRentalItem(),\nselectRentalPeriod(), endRental(),\ncancelRental()
 S09 ..> RentalReturnController : <<calls>>\nmakeNewRentalReturn(), findRental(),\nfindRentalsOfCustomer(), selectRental(),\nrecordCondition(), confirmDamage(),\nconfirmRentalReturn(), checkRefundStatus(),\napproveCashRefund(), cancelRentalReturn()
 
-M01 ..> ManagerController : <<calls>>\nlistFlaggedProducts()
+M01 ..> ManagerController : <<calls>>\nlistFlaggedProducts(), listRentalConflicts(),\nresolveRentalConflict()
 M02 ..> ManagerController : <<calls>>\nlistSessionsToReview(),\nconfirmSessionReview()
 M03 ..> ManagerController : <<calls>>\nchangeDefaultTaxRate()
 M04 ..> ManagerController : <<calls>>\nimportCatalog()
-M05 ..> ManagerController : <<calls>>\ndisableEmployee()
+M05 ..> ManagerController : <<calls>>\ndisableEmployee(), enableEmployee()
 M06 ..> ManagerController : <<calls>>\ngetAccountingQueueStatus()
 
 ' ---------- navigation between screens ----------
@@ -336,14 +343,17 @@ D01 --> M05 : <<opens>>
 D01 --> M06 : <<opens>>
 
 note bottom of ManagerController
-  listFlaggedProducts() and importCatalog() have no name in ui_design.md §1.4;
-  the names are proposed here. The operations that change data carry
-  managerID and pin (BR-04).
+  Names as in system_interfaces.md v0.5 §3.6. Every operation of this
+  controller carries managerID and pin (BR-04); the lists are sent
+  with POST so that the PIN is never in a URL (AD-09).
 end note
 
 note bottom of SessionController
   startUp() is sent by the POS program when it starts, before any session
   (system_interfaces.md §3.1); S-01 only shows its result.
+  getSystemStatus(), listPendingRefunds() and reprintLastReceipt() are
+  sent by S-02 (system_interfaces.md §3.8, §3.9); they are placed here
+  because they are cashier-session operations (Issue #62).
 end note
 
 @enduml
