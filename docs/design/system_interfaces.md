@@ -3,12 +3,14 @@
 | | |
 | --- | --- |
 | **Maintainer** | Alfonso Pinto |
-| **Version** | 0.4 (draft for review; storage interfaces after AD-05 and AD-06; system status, pending refunds and store manager names; screen ↔ API table) |
+| **Version** | 0.5 (draft for review; after the internal review #60 and the data model v0.2) |
 | **Last updated** | W10 |
 | **Part of** | Increment 2 – Design (milestone W11); step 2 of the architecture process |
 | **Inputs** | [System sequence diagrams](system_sequence_diagrams.md), [operation contracts](operation_contracts.md), [SRS](../requirements/SRS.md) §3.1 and §3.2, [architecture](architecture.md) AD-01 to AD-10; [UI design](ui_design.md) §1 |
 
 > **Status: draft.** The operations of all five use cases have the names of the [system sequence diagrams](system_sequence_diagrams.md) v0.7, and each one refers to its [operation contract](operation_contracts.md) (contracts 1 to 28).
+>
+> **v0.5 (review #60, data model v0.2):** pending refunds with their kind and a *pending refund* mode of S-07 and S-09; S-05 with `getAvailableTenders()` and cancel for the three use cases; `reprintLastReceipt()`; session and settings repositories, catalog import and rental conflicts; the local disable of an employee kept after a refresh; `UNKNOWN` status and the time of the last call; `REJECTED` records of the Accounting System; retention of pending refunds; store manager lists and session review read the store database (`409` when it is not available); `sendWaitingRecordsUp`, `refund_status`, `open_authorization`; screens M-03 to M-06 (ui_design.md v0.2).
 >
 > **v0.4 (W10):** storage interfaces (§4.3) from AD-05 and AD-06; `getSystemStatus()` and `listPendingRefunds()` (§3.8, NFR-15, FR-76, FR-77); names of the store manager operations as proposed in ui_design.md §4.3, and their lists sent with `POST` so that the PIN is never in a URL (§3.6); table of the screens and their requests (§3.9).
 >
@@ -68,6 +70,8 @@ The column *Operation* gives the name of the system operation in the SSD; *Contr
 | `makePayment(amount, tenderType)` | `POST /api/sales/{saleID}/payment` `{"tenderType": "CASH" \| "CREDIT_CARD" \| "CHECK", "amount"}` | `"result"`: `APPROVED` (with change due for cash, last 4 digits and authorization code for a card, receipt number) · `DECLINED` (reason) · `NOT_AVAILABLE` (retry allowed). `422` cash lower than the total, or a card or check amount different from the total · `409` sale not ended or already paid | 4 | FR-09–FR-16, FR-71, IR-01, IR-02, IR-06, BR-18 |
 | `cancelSale()` | `DELETE /api/sales/{saleID}` | Sale cancelled, no change in the stock levels. `409` already paid | – | FR-07 |
 | `reprintReceipt()` | `POST /api/receipts/{receiptNumber}/print` | Printer status | – | FR-17, FR-29, IR-13 |
+| `reprintLastReceipt()` | `POST /api/receipts/last/print` | The last receipt of this register is printed again (kept in `register_state`); printer status. `404` no receipt yet in this session | – | FR-17, IR-13 |
+| `getAvailableTenders()` | `GET /api/tenders` | The tenders of the configuration (AD-08): cash, credit card and, if enabled, check, each one with `available` (false for a card when the Payment Service is `NOT_AVAILABLE` in `getSystemStatus()`, so the cashier sees it but can still retry). The same answer for a sale, a rental and a rental return | – | FR-09–FR-12, AD-08 |
 
 One payment per sale (BR-18): after `DECLINED` or `NOT_AVAILABLE` no payment is created, and the screen sends a new `makePayment` with the same or another tender; the sale keeps the same transaction ID. When the cashier gives up a card payment after `NOT_AVAILABLE` (another tender or `cancelSale`), the POS first sends `voidAuthorization` with that transaction ID, so a late approval can never charge the customer (AD-07, IR-15).
 
@@ -115,17 +119,24 @@ One payment per sale (BR-18): after `DECLINED` or `NOT_AVAILABLE` no payment is 
 
 ### 3.6 Store manager functions
 
-There is no session of the store manager. The menu S-02 has the entry *Manager functions*; the dialog D-01 asks for the employee ID and the PIN, which stay in the memory of the browser only while a screen M-01 to M-04 is open, and every request below carries them (BR-04, AD-09; ui_design.md §1.6, point 2).
+There is no session of the store manager. The menu S-02 has the entry *Manager functions*; the dialog D-01 asks for the employee ID and the PIN, which stay in the memory of the browser only while a screen M-01 to M-06 is open, and every request below carries them (BR-04, AD-09; ui_design.md §1.6, point 2).
+
+The operations that only read (the lists and the queue status) are sent with `POST`, not `GET`: they change nothing, but the PIN goes in the body, because a URL can end up in the browser history or in a log (AD-09, §2).
+
+The store database is the master of the settings, the catalog, the stock differences, the rental conflicts and the session reviews (AD-05). The operations marked * read or write it through `StoreDatabaseSync` and answer `409` *store database not available* when it cannot be reached.
 
 | Operation | Request | Answer | Requirements |
 | --- | --- | --- | --- |
-| `listFlaggedProducts(managerID, pin)` | `POST /api/manager/flagged-products` `{"manager", "limit", "offset"}` | Products flagged for reorder or stock check, with stock level, threshold and missing quantity | FR-68, FR-19, BR-09 |
-| `changeDefaultTaxRate(rate, managerID, pin)` | `PUT /api/settings/default-tax-rate` `{"rate", "manager"}` | New rate, who changed it and when. `409` store database not available (AD-05) | FR-69, IR-05 |
-| `disableEmployee(employeeID, managerID, pin)` | `PUT /api/employees/{employeeID}/local-status` `{"active": false, "manager"}` | Employee disabled, who did it and when | FR-70, IR-09 |
-| `listSessionsToReview(managerID, pin)` | `POST /api/manager/sessions-to-review` `{"manager", "limit", "offset"}` | Sessions with a cash difference larger than 5.00 | FR-74 |
-| `confirmSessionReview(sessionID, managerID, pin, reason)` | `POST /api/sessions/{sessionID}/review` `{"reason", "manager"}` | Review recorded (Contract 29) | FR-75 |
-| `getAccountingQueueStatus(managerID, pin)` | `POST /api/manager/accounting-queue` `{"manager"}` | Number of records waiting for the Accounting System, time the oldest has waited, and the warning when it is older than the configured limit | FR-76, AD-06 |
-| `importCatalog(file, managerID, pin)` | `POST /api/catalog/imports` (file + `"manager"`) | Number of products imported, or the fields that are missing or not valid (the previous catalog is kept). `409` store database not available (AD-05) | IR-17 |
+| `listFlaggedProducts(managerID, pin)` | `POST /api/manager/flagged-products` `{"manager", "limit", "offset"}` | Products below the reorder threshold, from the local copy (the stock level is an estimate until the next synchronisation); and the products to check for stock, with the missing quantity, from `stock_difference` in the store database. When the store database is not available, only the first part is returned, with `"stockCheckAvailable": false` | FR-68, FR-19, BR-09 |
+| `listRentalConflicts(managerID, pin)` * | `POST /api/manager/rental-conflicts` `{"manager", "limit", "offset"}` | Two rentals of the same item found after an offline register sent its transactions (`sync_conflict`): item, both transactions, when found | AD-05, SRS §5.3 Q6, BR-11 |
+| `resolveRentalConflict(conflictID, managerID, pin, reason)` * | `POST /api/manager/rental-conflicts/{conflictID}/resolve` `{"reason", "manager"}` | Conflict marked as resolved, by whom and when; neither rental is changed (DR-04) | AD-05 |
+| `changeDefaultTaxRate(rate, managerID, pin)` * | `PUT /api/settings/default-tax-rate` `{"rate", "manager"}` | New rate, who changed it and when. `409` store database not available (AD-05) | FR-69, IR-05 |
+| `disableEmployee(employeeID, managerID, pin)` | `PUT /api/employees/{employeeID}/local-status` `{"active": false, "manager"}` | Employee disabled in the local list, who did it and when. The mark is kept after a refresh of the list (§4.3) | FR-70, IR-09 |
+| `enableEmployee(employeeID, managerID, pin)` | `PUT /api/employees/{employeeID}/local-status` `{"active": true, "manager"}` | The local mark is removed; the employee is active again if the HR System says so | FR-70, IR-09 |
+| `listSessionsToReview(managerID, pin)` * | `POST /api/manager/sessions-to-review` `{"manager", "limit", "offset"}` | Sessions of all registers with a cash difference larger than 5.00 | FR-74 |
+| `confirmSessionReview(sessionID, managerID, pin, reason)` * | `POST /api/sessions/{sessionID}/review` `{"reason", "manager"}` | Review recorded (Contract 29) | FR-75 |
+| `getAccountingQueueStatus(managerID, pin)` | `POST /api/manager/accounting-queue` `{"manager"}` | Number of records waiting for the Accounting System, time the oldest has waited, and the warning when it is older than the configured limit; if the first record was refused (`REJECTED`, §4.1), its transaction ID and the reason, because it blocks the queue | FR-76, AD-06 |
+| `importCatalog(file, managerID, pin)` * | `POST /api/catalog/imports` (file + `"manager"`) | Number of products imported, or the fields that are missing or not valid (the previous catalog is kept). `409` store database not available (AD-05) | IR-17 |
 
 ### 3.7 Card refund results (UC2 and UC5)
 
@@ -146,10 +157,12 @@ The handler turns the answer of the Payment Service (§4.1) into the refund stat
 
 | Operation | Request | Answer | Requirements |
 | --- | --- | --- | --- |
-| `getSystemStatus()` | `GET /api/status` (sent by S-02 when it opens, and every 30 s while it is open) | For each external system (Payment Service, Tax Calculator, Accounting System, HR System): `AVAILABLE` or `NOT_AVAILABLE`, from the last call of its adapter; `defaultTaxRateInUse`; the store database reachable or not, and the time of the last synchronisation; `accountingWarning` (true when the oldest waiting record is older than the configured limit; the numbers are only for the store manager, §3.6) | NFR-15, FR-76, AD-05, AD-06 |
-| `listPendingRefunds()` | `GET /api/refunds?status=PENDING&limit=20&offset=0` | Returns and rental returns of this register with a card refund still *pending* (§3.7): transaction ID, date, amount. The cashier selects one and sends `checkRefundStatus()` of §3.3 or §3.5 | FR-77, FR-26, FR-55 |
+| `getSystemStatus()` | `GET /api/status` (sent by S-02 when it opens, and every 30 s while it is open) | For each external system (Payment Service, Tax Calculator, Accounting System, HR System): `AVAILABLE`, `NOT_AVAILABLE` or `UNKNOWN` (no call since the start-up), with the time of its last call; `defaultTaxRateInUse`; the store database reachable or not, and the time of the last synchronisation; `accountingWarning` (true when the oldest waiting record is older than the configured limit; the numbers are only for the store manager, §3.6) | NFR-15, FR-76, AD-05, AD-06 |
+| `listPendingRefunds()` | `GET /api/refunds?status=PENDING&limit=20&offset=0` | Returns and rental returns of this register with a card refund still *pending* (§3.7, current row of `refund_status`): `kind` (`RETURN` or `RENTAL_RETURN`), `id` (the ID of the return or rental return, which is its transaction ID), date, amount. S-02 opens S-07 (`RETURN`) or S-09 (`RENTAL_RETURN`) in *pending refund* mode with that ID | FR-77, FR-26, FR-55 |
 
-`getSystemStatus()` does not call the external systems: it reports the result of their last call, so it is answered at once and never makes the menu wait (NFR-02, NFR-18).
+`getSystemStatus()` does not call the external systems: it reports the result of their last call, so it is answered at once and never makes the menu wait (NFR-02, NFR-18). The time of the last call shows how old the status is; a status older than 5 minutes is shown as `UNKNOWN`.
+
+**Pending refund mode.** When S-07 or S-09 is opened from the list of pending refunds, it shows the saved return or rental return with its refund and sends only `GET /api/returns/{id}/refund` (or `/api/rental-returns/{id}/refund`) and, when the answer is `NEEDS_APPROVAL`, `POST …/cash-approval` with D-01. No new return is created (ui_design.md §1.6, point 3).
 
 ### 3.9 Screens and their requests
 
@@ -158,19 +171,21 @@ The screens are those of the [UI design](ui_design.md) §1. Each screen sends on
 | Screen | Requests |
 | --- | --- |
 | S-01 Login | `POST /api/sessions` · `PUT /api/sessions/current/opening-cash`. It shows the result of `POST /api/startup`, which the POS program sends when it starts (§3.1); no screen sends it |
-| S-02 Menu | `GET /api/status` · `GET /api/refunds?status=PENDING` · opens S-03, S-04, S-07, S-08, S-09 and, through D-01, M-01 to M-04 |
+| S-02 Menu | `GET /api/status` · `GET /api/refunds?status=PENDING` · `POST /api/receipts/last/print` (*Reprint last receipt*) · opens S-03, S-04, S-07, S-08, S-09, S-07 and S-09 in *pending refund* mode, and, through D-01, M-01 to M-06 |
 | S-03 Close session | `POST /api/sessions/current/close` · `PUT /api/sessions/current/closing-cash` · `POST /api/sessions/current/confirm-close` |
 | S-04 Sale | `POST /api/sales` · `POST`, `DELETE /api/sales/{saleID}/lines…` · `PUT …/lines/{lineNumber}/price` (with D-01) · `POST /api/sales/{saleID}/end` · `DELETE /api/sales/{saleID}` |
-| S-05 Payment | `POST /api/sales/{saleID}/payment`, `POST /api/rentals/{rentalID}/payment` or `POST /api/rental-returns/{id}/payment` |
+| S-05 Payment | `GET /api/tenders` when it opens · `POST /api/sales/{saleID}/payment`, `POST /api/rentals/{rentalID}/payment` or `POST /api/rental-returns/{id}/payment` · *Cancel*: `DELETE /api/sales/{saleID}`, `DELETE /api/rentals/{rentalID}` or `DELETE /api/rental-returns/{id}`, for the transaction that opened it |
 | S-06 Receipt | `POST /api/receipts/{receiptNumber}/print` |
-| S-07 Return | `POST /api/returns` · `PUT …/sale` · `POST`, `DELETE …/lines…` · `POST …/confirm` · `POST …/cash-approval` (with D-01) · `GET …/refund` · `DELETE /api/returns/{returnID}` |
+| S-07 Return | *Pending refund* mode: only `GET …/refund` and `POST …/cash-approval` · otherwise `POST /api/returns` · `PUT …/sale` · `POST`, `DELETE …/lines…` · `POST …/confirm` · `POST …/cash-approval` (with D-01) · `GET …/refund` · `DELETE /api/returns/{returnID}` |
 | S-08 Rental | `POST /api/rentals` · `PUT`, `POST …/customer` · `POST …/lines` · `PUT …/lines/{lineNumber}/period` · `POST …/end` · `DELETE /api/rentals/{rentalID}` |
-| S-09 Rental return | `POST /api/rental-returns` · `PUT …/rental`, `GET /api/rentals?customerID=…`, `PUT …/selected-rental` · `PUT …/condition` · `POST …/damage-confirmation` and `POST …/cash-approval` (with D-01) · `POST …/confirm` · `GET …/refund` · `DELETE /api/rental-returns/{id}` |
+| S-09 Rental return | *Pending refund* mode: only `GET …/refund` and `POST …/cash-approval` · otherwise `POST /api/rental-returns` · `PUT …/rental`, `GET /api/rentals?customerID=…`, `PUT …/selected-rental` · `PUT …/condition` · `POST …/damage-confirmation` and `POST …/cash-approval` (with D-01) · `POST …/confirm` · `GET …/refund` · `DELETE /api/rental-returns/{id}` |
 | D-01 Manager approval | None: it gives `managerID`, `pin` and `reason` to the request of the screen that opened it |
-| M-01 Reorder and stock-check list | `POST /api/manager/flagged-products` |
+| M-01 Reorder and stock-check list | `POST /api/manager/flagged-products` · `POST /api/manager/rental-conflicts` · `POST …/rental-conflicts/{conflictID}/resolve` |
 | M-02 Sessions to review | `POST /api/manager/sessions-to-review` · `POST /api/sessions/{sessionID}/review` |
-| M-03 Settings | `PUT /api/settings/default-tax-rate` · `PUT /api/employees/{employeeID}/local-status` · `POST /api/manager/accounting-queue` |
+| M-03 Default tax rate | `PUT /api/settings/default-tax-rate` |
 | M-04 Catalog import | `POST /api/catalog/imports` |
+| M-05 Local employees | `PUT /api/employees/{employeeID}/local-status` (disable or enable) |
+| M-06 Accounting queue | `POST /api/manager/accounting-queue` |
 
 ## 4. Interfaces of the technical services (application layer → adapters)
 
@@ -211,7 +226,7 @@ public interface CatalogSource {
 | `PaymentResult` | `APPROVED`, `DECLINED` or `NOT_AVAILABLE` (timeout, error or connection lost); authorization code, payment reference, last 4 digits, reason |
 | `TaxRequest` / `TaxResult` | transaction ID and type, lines (item ID, quantity, line subtotal), date / tax per line and total, or `NOT_AVAILABLE` |
 | `AccountingRecord` | the fields of the [external interfaces](../requirements/external_interfaces.md) §3.3, with the transaction ID and the mark *tax to be corrected* |
-| `Acknowledgement` | `RECEIVED` with the transaction ID, or `NOT_AVAILABLE`; the queue removes the record only after `RECEIVED` (FR-42) and keeps it otherwise (IR-07) |
+| `Acknowledgement` | `RECEIVED` with the transaction ID; `REJECTED` with a reason, when the Accounting System answers but refuses the record (for example a field it cannot read); or `NOT_AVAILABLE`. The queue removes the record only after `RECEIVED` (FR-42) and keeps it otherwise (IR-07); a `REJECTED` record stays first, is marked with the reason and is shown in M-06 |
 | `EmployeeCheck` | `VALID` (with name and role, *cashier* or *store manager*), `INVALID` (not found, not active or wrong PIN) or `NOT_AVAILABLE`, after which the handler checks the local employee list (UC4 6c, IR-09) |
 | `EmployeeListResult` | `OK` with the list of `EmployeeEntry` (employee ID, name, role, active, PIN as a salted hash only, DR-11), or `NOT_AVAILABLE`, after which the local copy is kept as it is |
 | `CatalogImport` | products imported, or the list of rejected fields |
@@ -252,49 +267,73 @@ public interface TransactionRepository {
     void saveCompleted(Transaction t, AccountingRecord record);   // ONE database transaction: the transaction with its lines, payments and refunds,
                                                                   // the stock changes, the record of AccountingQueue and the entry of store_sync_list (DR-13)
     Optional<Transaction> find(String transactionID);             // local copy only; see StoreDatabaseSync.findTransaction
-    List<Transaction> findPendingRefunds(int limit, int offset);  // FR-77
-    void saveOpenAuthorization(String transactionID, String paymentReference);  // IR-15
+    void addRefundStatus(String refundID, RefundState state, String reference);  // new row of refund_status (insert only); also queued in store_sync_list
+    List<PendingRefund> findPendingRefunds(int limit, int offset);// current refund_status = PENDING; kind and ID of the return (FR-77)
+    void saveOpenAuthorization(String transactionID, String paymentReference);  // open_authorization (IR-15)
+    void deleteOpenAuthorization(String transactionID);           // in saveCompleted, or after voidAuthorization
     List<String> findOpenAuthorizations();                        // voided at start-up (IR-15)
+    Optional<Receipt> lastReceipt();                              // register_state (FR-17)
+}
+
+public interface SessionRepository {                              // cashier_session (DR-09)
+    CashierSession open(String employeeID, Money openingCash);     // also queued in store_sync_list
+    void close(String sessionID, Money closingCash, Money difference, boolean toReview);  // FR-61, FR-62, FR-74; queued again
+    Optional<CashierSession> findOpen();                          // an open session found at start-up is ended as interrupted (FR-63)
+}
+
+public interface SettingsRepository {                             // settings: local copy of the store database (AD-05)
+    Settings current();                                           // default tax rate, reorder threshold, currency, timeouts
 }
 
 public interface ItemRepository {
     Optional<ProductDescription> findProduct(String itemID);      // NFR-01: local copy, no external call
     Optional<Item> findItem(String serialNumber);
-    List<FlaggedProduct> listFlagged(int limit, int offset);      // FR-68, FR-19
+    List<FlaggedProduct> listBelowThreshold(int limit, int offset); // FR-68: stock estimate of the local copy
 }
 
 public interface EmployeeList {
     Optional<EmployeeEntry> find(String employeeID);              // PIN only as a salted hash (DR-11)
-    void replaceAll(List<EmployeeEntry> fromHRSystem);            // after every successful employeeList() (FR-46)
-    void disable(String employeeID, String managerID);            // FR-70
+    void replaceAll(List<EmployeeEntry> fromHRSystem);            // after every successful employeeList() (FR-46); keeps the local disable marks
+    void setLocallyDisabled(String employeeID, boolean disabled, String managerID);  // FR-70
 }
 
 public interface AccountingQueue {                                // table accounting_queue, only on the register (AD-06)
     void add(AccountingRecord record);                            // inside saveCompleted, in the same database transaction
     Optional<QueuedRecord> takeFirst();                           // lowest sequence number; the record stays in the queue
     void delete(long seq);                                        // only after RECEIVED (DR-12)
-    void markFailedAttempt(long seq);                             // number and time of the attempts
-    QueueStatus status();                                         // number waiting, age of the oldest (FR-76)
+    void markFailedAttempt(long seq, String rejectedReason);      // number and time of the attempts; the reason when REJECTED
+    QueueStatus status();                                         // number waiting, age of the oldest, first record rejected or not (FR-76)
 }
 
 public interface StoreDatabaseSync {                              // the only class that knows the store database (AD-05)
     SyncResult copyMasterDataDown();                              // catalog, items and status, stock levels, settings, customers:
                                                                   // at start-up (never waited for), every 5 min, and when the connection is back
-    SyncResult sendWaitingTransactionsUp();                       // store_sync_list in order; INSERT … ON CONFLICT DO NOTHING; then mark as sent
+    SyncResult sendWaitingRecordsUp();                            // store_sync_list in order (kind, record_id): transactions, cashier sessions,
+                                                                  // refund statuses, hold removals; INSERT … ON CONFLICT DO NOTHING; then mark as sent
     HoldResult putHold(String serialNumber, String transactionID);// UC3 step 7: HELD, HELD_BY_OTHER (ext. 7b) or NOT_AVAILABLE (rent from the local copy)
-    void removeHold(String serialNumber, String transactionID);   // rental completed or cancelled, end of session, start-up
+    void removeHold(String serialNumber, String transactionID);   // queued in store_sync_list when the store database is not available
     TransactionResult findTransaction(String transactionID);      // return of a transaction of another register: FOUND, NOT_FOUND or NOT_AVAILABLE (FR-21)
+    // Store manager functions marked * in §3.6; each answers NOT_AVAILABLE when the store database cannot be reached
+    Page<StockDifference> listStockDifferences(int limit, int offset);         // FR-68, FR-19
+    Page<SessionToReview> listSessionsToReview(int limit, int offset);         // FR-74
+    StoreResult recordSessionReview(String sessionID, String managerID, String reason);   // FR-75, Contract 29
+    Page<RentalConflict> listRentalConflicts(int limit, int offset);           // sync_conflict
+    StoreResult resolveRentalConflict(String conflictID, String managerID, String reason);
+    StoreResult changeSetting(String key, String value, String managerID);     // FR-69
+    StoreResult writeCatalog(Catalog catalog, String managerID);               // IR-17: one store database transaction; the old catalog is kept on error
 }
 ```
 
 | Rule | Detail | Source |
 | --- | --- | --- |
 | One save | `saveCompleted` is one database transaction: everything or nothing, also after a power cut. | AD-05, DR-13, IR-07 |
-| Background jobs | `AccountingSender` (application) calls `takeFirst`, `send`, then `delete` or `markFailedAttempt`, and waits 5 s, 10 s, 30 s, 60 s and then 5 min between attempts; it never skips a record. A background job of `StoreDatabaseSync` sends the waiting transactions. Both are started by `SessionHandler` and never delay the start-up. | AD-06, AD-05, NFR-02 |
-| Store database down | The repositories keep working on the local copy. `putHold` and `findTransaction` answer `NOT_AVAILABLE`; `changeDefaultTaxRate` and `importCatalog` answer `409` (§3.6), because the store database is the master of settings and catalog. | AD-05, DC-09 |
-| Conflicts | Stock levels are changed by quantities and transactions never change, so the only conflict is two offline rentals of the same item; it is recorded in `sync_conflict` for the store manager. | AD-05, SRS §5.3 Q6 |
+| Background jobs | `AccountingSender` (application) calls `takeFirst`, `send`, then `delete` or `markFailedAttempt` (also for `REJECTED`, which keeps the record first and is shown in M-06), and waits 5 s, 10 s, 30 s, 60 s and then 5 min between attempts; it never skips a record. A background job of `StoreDatabaseSync` sends the waiting records (`sendWaitingRecordsUp`). Both are started by `SessionHandler` and never delay the start-up. | AD-06, AD-05, NFR-02 |
+| Store database down | The repositories keep working on the local copy. `putHold` and `findTransaction` answer `NOT_AVAILABLE`; the operations marked * in §3.6 answer `409`, because the store database is the master of settings and catalog. | AD-05, DC-09 |
+| Conflicts | Stock levels are changed by quantities and transactions never change, so the only conflict is two offline rentals of the same item; it is recorded in `sync_conflict` and the store manager sees and resolves it in M-01 (`listRentalConflicts`, `resolveRentalConflict`). | AD-05, SRS §5.3 Q6 |
+| Employee list | `replaceAll` replaces the copy with the list of the HR System but keeps the local disable mark of a store manager, until the HR System also marks the employee inactive or a store manager enables the employee again. | FR-70, IR-09 |
+| Retention | The register deletes acknowledged transactions after 90 days (AD-05), but never a transaction with a pending refund or an open authorization. | AD-05, FR-77, IR-15 |
 
-`SessionRepository` (cashier sessions) and `SettingsRepository` (settings, default tax rate) follow the same rules; they are not in the logical view yet and are proposed for §4.2 of architecture.md (Haifa, C2).
+`SessionRepository` and `SettingsRepository` are new in v0.5; they are proposed for the logical view (architecture.md §4.2, `technical.storage`).
 
 ## 5. Protocol with the stubs (DC-01)
 
@@ -316,6 +355,8 @@ In our project the four external systems are stubs: small HTTP servers that answ
 3. ~~**Offline card authorization**~~ Closed (SRS §5.3, question 4, W09): not allowed, so `authorize` has no deferred result.
 4. ~~**Timeouts and fallbacks**~~ Closed (AD-07, W09): the adapter applies the timeout and returns `NOT_AVAILABLE`; the handler decides the fallback.
 5. ~~**Storage interfaces**~~ Closed (W10): §4.3, from AD-05 and AD-06.
-6. **Names of the store manager operations** (ui_design.md §4.3, point 1): the names proposed by Josué are used in §3.6; `getAccountingQueueStatus` is new (FR-76).
-7. **`startUp()` and S-01** (ui_design.md §4.3, point 2): no screen sends `startUp()`; S-01 shows its result (§3.9). To align ui_design.md §1.2 (Yasmine).
-8. **Status of the external systems** (ui_design.md §1.6 point 1 and §4.3 point 3): `getSystemStatus()` (§3.8). The tax warning of S-08 and S-09 comes from the answers of `endRental()` and `recordCondition()`, which carry `taxToBeCorrected` like `endSale()`.
+6. ~~**Names of the store manager operations**~~ (ui_design.md §4.3, point 1): the names proposed by Josué are used in §3.6; `getAccountingQueueStatus` is new (FR-76).
+7. ~~**`startUp()` and S-01**~~ (ui_design.md §4.3, point 2): no screen sends `startUp()`; S-01 shows its result (§3.9). To align ui_design.md §1.2 (Yasmine).
+8. ~~**Status of the external systems**~~ (ui_design.md §1.6 point 1 and §4.3 point 3): `getSystemStatus()` (§3.8). The tax warning of S-08 and S-09 comes from the answers of `endRental()` and `recordCondition()`, which carry `taxToBeCorrected` like `endSale()`.
+9. **Accounting record refused** (review #60, finding 8): `REJECTED` keeps the order of the queue (IR-07), so a refused record blocks the others until it is fixed. AD-06 has only `RECEIVED` and `NOT_AVAILABLE`; to add `REJECTED` there (Borja).
+10. **Repositories in the logical view**: `SessionRepository` and `SettingsRepository` (Haifa, architecture.md §4.2).
