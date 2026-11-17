@@ -90,3 +90,18 @@
   - The case does not give values for the open questions, so I chose them as proposals and the rules stay Proposed until the full case study is checked.
   - Several people edited the SRS and the architecture document at the same time, so I pulled before every change and made separate commits, without merge commits.
 - **Next:** In W10, take my part of the user interface design from the W10 plan, check the architecture decisions AD-05 and AD-06 for my deployment view, and answer open question 5 (how customers are identified) before the design milestone in W11.
+
+## W10
+- **What I did:**
+  - Drew the navigation sequence diagram of UC1 Process Sale (`ui_design.md` §5): one diagram for the main scenario (menu, sale, payment and receipt screens and `SaleController`) and one for *Card payment not available*, with retry under the same transaction ID, another tender and cancel of the sale. I used the screen names of Yasmine's list and the operations of the system interfaces.
+  - Wrote the decision record AD-08 on payment methods in `architecture.md` §6.1: one `PaymentMethod` class for each tender behind a common interface, so that a new payment method needs no change in the sale, return and rental code (NFR-09), and updated the lines of the architecture document that still called AD-08 open.
+  - Wrote the first proposal for open question 5 in SRS §5.3: the customer is identified only by the customer ID, which is printed on the rental receipt, and no contact data is stored (DR-18, NFR-12).
+  - Answered Josué's review of the sequence diagram and AD-08 (#58, 2 findings, both accepted): the payment screen now cancels the sale itself, and AD-08 names the operation `getAvailableTenders()`.
+  - Reviewed Haifa's UI prototype v0.3 in Issue #61 (5 findings).
+  - Wrote the team work log W10.
+- **Hours:** 7 h
+- **Problems:**
+  - The sequence diagram was too tall for one image, so I split it into two diagrams, as in the interaction view of the architecture.
+  - Yasmine's navigation diagram was not ready when I drew mine, so I listed three open points (where the total is shown, the cancel from the payment screen and the screen after a cancelled sale) to align with it.
+  - I posted the review of the prototype one day late, because the prototype was pushed on Monday afternoon.
+- **Next:** In W11, draw the design sequence diagrams of UC3 Process Rental (contracts 10 to 15) after Borja's skeleton of the design class diagram, and help decide open question 5.
