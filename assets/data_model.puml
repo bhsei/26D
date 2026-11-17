@@ -16,7 +16,7 @@ skinparam NoteBorderColor #B8A04A
 hide circle
 hide methods
 
-title NewEra POS - Data model (20 tables, all shown)\nblue: store database and local database · green: store database only · orange: local database only
+title NewEra POS - Data model (22 tables, all shown)\nblue: store database and local database · green: store database only · orange: local database only
 
 ' ---------- catalog ----------
 entity "product" as product <<both>> #F4F8FD;line:1F4E79 {
@@ -44,13 +44,15 @@ entity "item_hold" as item_hold <<store>> #EAF6EA;line:2E7D32 {
   * serial_number : text <<PK, FK>>
   --
   * register_id : text <<FK>>
+  * transaction_id : text
   * held_since : timestamp
 }
 
-entity "stock_difference" as stock_difference <<both>> #F4F8FD;line:1F4E79 {
-  * difference_id : text <<PK>>
+entity "stock_difference" as stock_difference <<store>> #EAF6EA;line:2E7D32 {
+  * difference_id : integer <<PK, made by the store database>>
   --
   * item_id : text <<FK>>
+  * register_id : text <<FK>>
   * transaction_id : text <<FK>>
   * missing_quantity : integer
   * recorded_at : timestamp
@@ -182,10 +184,18 @@ entity "refund" as refund <<both>> #F4F8FD;line:1F4E79 {
   * transaction_id : text <<FK>>
   * amount_cents : integer
   * tender : text
-  reference : text
   * is_approved : boolean
   approved_by : text
   approval_reason : text
+}
+
+entity "refund_status" as refund_status <<both>> #F4F8FD;line:1F4E79 {
+  * refund_id : text <<PK, FK>>
+  * status_no : integer <<PK>>
+  --
+  * status : text
+  reference : text
+  * changed_at : timestamp
 }
 
 entity "sync_conflict" as sync_conflict <<store>> #EAF6EA;line:2E7D32 {
@@ -213,9 +223,17 @@ entity "accounting_queue" as accounting_queue <<local>> #FFF1E0;line:C26A00 {
 entity "store_sync_list" as store_sync_list <<local>> #FFF1E0;line:C26A00 {
   * seq : integer <<PK>>
   --
-  * transaction_id : text <<FK, unique>>
+  * kind : text
+  * record_id : text
   * queued_at : timestamp
   sent_at : timestamp
+}
+
+entity "open_authorization" as open_authorization <<local>> #FFF1E0;line:C26A00 {
+  * transaction_id : text <<PK>>
+  --
+  * payment_reference : text
+  * created_at : timestamp
 }
 
 entity "employee_copy" as employee_copy <<local>> #FFF1E0;line:C26A00 {
@@ -243,6 +261,7 @@ entity "register_state" as register_state <<local>> #FFF1E0;line:C26A00 {
 product ||--o{ item
 product ||--o{ sale_line
 product ||--o{ stock_difference
+register ||--o{ stock_difference
 item ||--o| item_hold
 item ||--o{ rental_line
 register ||--o{ cashier_session
@@ -256,12 +275,12 @@ txn ||--o{ rental_line
 txn ||--o{ rental_return_line
 txn ||--o{ payment
 txn ||--o{ refund
+refund ||--o{ refund_status
 txn |o--o{ txn
 txn ||--o{ stock_difference
 sale_line ||--o{ return_line
 rental_line ||--o| rental_return_line
 txn ||--o| accounting_queue
-txn ||--o| store_sync_list
 txn ||--o{ sync_conflict
 item ||--o{ sync_conflict
 
@@ -269,6 +288,10 @@ note bottom of txn
   type: SALE, RETURN, RENTAL, RENTAL_RETURN.
   transaction_id = receipt number = register ID + counter.
   Money in whole cents (DR-17). Completed rows are never changed (DR-04).
+end note
+note bottom of store_sync_list
+  kind: TRANSACTION, SESSION, REFUND_STATUS or HOLD_RELEASE;
+  record_id is the ID of the row to send.
 end note
 note bottom of cashier_session
   employee_id, reviewed_by, approved_by and confirmed_by

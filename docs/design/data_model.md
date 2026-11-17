@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Maintainer** | Borja Nicolás |
-| **Version** | 0.1 (draft for review) |
+| **Version** | 0.2 (draft for review; after review #59) |
 | **Last updated** | W10 |
 | **Part of** | Increment 2 (Design): data view ([architecture.md](architecture.md) §4.5), decision records AD-05 and AD-06 |
 
@@ -15,14 +15,14 @@ This document gives the **tables of the store database and of the local database
 
 ![NewEra POS data model](../../assets/data_model.png)
 
-_20 of 20 tables shown. Editable source: [`assets/data_model.puml`](../../assets/data_model.puml) (PlantUML). Blue: table in the store database and in the local database. Green: store database only. Orange: local database only. `<<PK>>` primary key, `<<FK>>` foreign key; a column with a bullet is mandatory._
+_22 of 22 tables shown. Editable source: [`assets/data_model.puml`](../../assets/data_model.puml) (PlantUML). Blue: table in the store database and in the local database. Green: store database only. Orange: local database only. `<<PK>>` primary key, `<<FK>>` foreign key; a column with a bullet is mandatory._
 
 ## 3. Rules for all tables
 
 | Rule | What it means | Source |
 | --- | --- | --- |
 | Money in whole cents | Every amount is an integer number of cents (`price_cents`, `total_cents`…), so there are no rounding errors of floating-point numbers. The currency is one for the whole store (see §6). | DR-17 |
-| Completed rows never change | A completed transaction, its lines, payments and refunds are inserted once and never updated or deleted. A correction (for example, the tax of a transaction marked `tax_to_correct`) is a new `pos_transaction` row whose `corrects_transaction_id` is the original. | DR-04 |
+| Completed rows never change | A completed transaction, its lines, payments and refunds are inserted once and never updated or deleted. A correction (for example, the tax of a transaction marked `tax_to_correct`) is a new `pos_transaction` row whose `corrects_transaction_id` is the original. A card refund that is still pending changes its state by a **new row** of `refund_status`, so the `refund` row itself never changes. Two kinds of rows are updated on purpose, and are not transactions: the `cashier_session` (closed, then reviewed) and, in the store database, `item.status`, `product.stock_level` and `settings`. The rule is kept by the database user of the **store database**, see §4.6. | DR-04 |
 | No deletion of used rows | A product, item or customer that a transaction refers to is never deleted; a product or an item that is no longer used gets `is_active = false`. | DR-16 |
 | Unique IDs without a central counter | `transaction_id` is the receipt number: register ID, a dash and the counter of the register (for example `R02-000153`). `customer_id` is built in the same way. The counters are in `register_state`. | DC-09, AD-05 |
 | Employees are not a table of the store | The HR System is the master of the employees. `employee_id` columns (`cashier_session.employee_id`, `reviewed_by`, `approved_by`, `confirmed_by`, `price_overridden_by`) have no foreign key. | DR-11, IR-08 |
@@ -37,8 +37,8 @@ _20 of 20 tables shown. Editable source: [`assets/data_model.puml`](../../assets
 | --- | --- | --- | --- | --- |
 | `product` | `ProductDescription` | `item_id` (PK), `name`, `price_cents`, `stock_level`, `reorder_threshold`, `is_rentable`, `rental_fee_per_day_cents`, `deposit_cents`, `is_active` | Both. Master: store database | DR-01, DR-20, DR-16 |
 | `item` | `Item`: one rentable unit | `serial_number` (PK), `item_id` (FK), `status` (`AVAILABLE`, `RENTED`, `UNDER_MAINTENANCE`), `is_active` | Both. Master: store database | DR-02 |
-| `item_hold` | A rental that is open at a register has a hold on the item (AD-05). `serial_number` is the primary key, so only one register can hold an item. | `serial_number` (PK, FK), `register_id` (FK), `held_since` | Store database only | BR-11, DC-09 |
-| `stock_difference` | A sale that would make the stock level negative: the stock is set to zero and the missing quantity is recorded for a stock check by the store manager. | `difference_id` (PK), `item_id` (FK), `transaction_id` (FK), `missing_quantity`, `recorded_at`, `is_checked` | Both | FR-19 |
+| `item_hold` | A rental that is open at a register has a hold on the item (AD-05). `serial_number` is the primary key, so only one register can hold an item. The hold is removed in the store database transaction that stores the completed rental. | `serial_number` (PK, FK), `register_id` (FK), `transaction_id` (the open rental), `held_since` | Store database only | BR-11, DC-09 |
+| `stock_difference` | The store database changes the stock level by quantities; when the result would be below zero it sets zero and records the missing quantity here, for a stock check by the store manager (FR-19, FR-68). The ID is made by the store database, so two registers cannot make the same one. The register does not keep this table. | `difference_id` (PK), `item_id` (FK), `register_id` (FK), `transaction_id` (FK), `missing_quantity`, `recorded_at`, `is_checked` | Store database only | FR-19, FR-68 |
 | `settings` | Default tax rate, reorder threshold, currency code, timeouts that a store manager may change. | `setting_key` (PK), `setting_value`, `updated_at` | Both. Master: store database | DR-15, BR-02, BR-04 |
 
 ### 4.2 Store, registers and sessions
@@ -59,9 +59,10 @@ _20 of 20 tables shown. Editable source: [`assets/data_model.puml`](../../assets
 | `rental_line` | `RentalLineItem` | `transaction_id`, `line_no` (PK), `serial_number` (FK), `rental_period_days`, `rental_fee_cents`, `fee_tax_cents`, `due_date`, `deposit_cents` | DR-06, DR-20 |
 | `rental_return_line` | `RentalReturn`: one row for each returned rental line | `transaction_id`, `line_no` (PK), `rental_transaction_id`, `rental_line_no` (FK), `returned_at`, `condition`, `damage_note`, `days_late`, `late_fee_cents`, `late_fee_tax_cents`, `amount_kept_cents`, `amount_due_cents`, `refund_total_cents`, `confirmed_by` | DR-07 |
 | `payment` | `Payment`, `CashPayment`, `CreditCardPayment` in one table | `payment_id` (PK), `transaction_id` (FK), `tender`, `amount_cents`, `paid_at`, `cash_tendered_cents`, `change_due_cents`, `card_last4`, `authorization_code`, `payment_service_transaction_id`, `payment_reference` | DR-05, DR-19 |
-| `refund` | `Refund` | `refund_id` (PK), `transaction_id` (FK), `amount_cents`, `tender`, `reference`, `is_approved`, `approved_by`, `approval_reason` | DR-08, FR-25 |
+| `refund` | `Refund`. Written once, when the return or the rental return is saved | `refund_id` (PK), `transaction_id` (FK), `amount_cents`, `tender`, `is_approved`, `approved_by`, `approval_reason` | DR-08, FR-25 |
+| `refund_status` | The states of a refund, one new row for each change. The current state is the row with the highest `status_no`. A card refund without an answer starts as `PENDING`; later it becomes `CARD_REFUNDED` or `NEEDS_APPROVAL` (system_interfaces.md §3.7); a cash refund has `CASH_PAID`. | `refund_id`, `status_no` (PK), `status`, `reference` (Payment Service reference of the card refund), `changed_at` | FR-26, FR-55, FR-77, IR-03 |
 
-The overdue status of a rental is not stored: it is calculated from `due_date` and the current date (DR-06). A rental line is open as long as no `rental_return_line` refers to it. The payment fields that belong to the card payment (`authorization_code`, `payment_service_transaction_id`, `payment_reference`) are encrypted by `TransactionRepository` before they are written (AD-09, NFR-20).
+The overdue status of a rental is not stored: it is calculated from `due_date` and the current date (DR-06). A rental line is open as long as no `rental_return_line` refers to it. The card fields are encrypted by `TransactionRepository` before they are written (AD-09, NFR-20): in `payment` the `authorization_code`, `payment_service_transaction_id` and `payment_reference`, and in `refund_status` the `reference`. The pending card refunds of FR-77 are the refunds whose current state is `PENDING`.
 
 ### 4.4 Synchronisation, queue and local state
 
@@ -69,11 +70,31 @@ The overdue status of a rental is not stored: it is calculated from `due_date` a
 | --- | --- | --- | --- | --- |
 | `sync_conflict` | Two rentals of the same item that were found when an offline register sent its transactions (AD-05). For the store manager. | `conflict_id` (PK), `kind`, `serial_number` (FK), `transaction_id` (FK), `other_transaction_id` (FK), `found_at`, `is_resolved` | Store database only | DC-09, BR-11 |
 | `accounting_queue` | The queue for the Accounting System (AD-06). A row is deleted after the acknowledgement. | `seq` (PK, the order), `transaction_id` (FK, unique), `payload`, `queued_at`, `attempts`, `last_attempt_at` | Local database only | DR-12, IR-06, IR-07 |
-| `store_sync_list` | The transactions waiting for the store database (AD-05), in the order made. A row is marked as sent after the store database has committed the transaction. | `seq` (PK), `transaction_id` (FK, unique), `queued_at`, `sent_at` | Local database only | DC-09, DR-13 |
+| `store_sync_list` | The records waiting for the store database (AD-05), in the order made: a transaction, a cashier session (when it opens and when it closes), a new refund status, or the removal of a hold. A row is marked as sent after the store database has committed it. | `seq` (PK), `kind` (`TRANSACTION`, `SESSION`, `REFUND_STATUS`, `HOLD_RELEASE`), `record_id`, `queued_at`, `sent_at` | Local database only | DC-09, DR-13 |
+| `open_authorization` | A card payment that the Payment Service has authorized and whose transaction is not completed yet; it is voided at start-up after a crash (IR-15). Deleted when the transaction is saved or the authorization is voided. | `transaction_id` (PK), `payment_reference`, `created_at` | Local database only | IR-15, IR-03 |
 | `employee_copy` | Local copy of the employee list of the HR System | `employee_id` (PK), `name`, `role`, `is_active`, `pin_hash`, `pin_salt`, `updated_at` | Local database only | DR-11, IR-09 |
 | `register_state` | The counters for the unique IDs, the last transaction (to print the receipt again) and the time of the last synchronisation | `register_id` (PK, FK), `transaction_counter`, `customer_counter`, `last_transaction_id`, `last_synced_at`, `employee_list_updated_at` | Local database only | DR-14, DC-09 |
 
 The open sale, rental or return of a register is saved in `pos_transaction` with `is_complete = false`, in the local database only, so that it can be recovered after a crash (FR-48, IR-15). It is sent to the store database only when it is complete. The log of failed communications (IR-10) is a file of the register, not a table.
+
+### 4.5 Customers, sessions and stock differences that go up
+
+Besides the transactions, the register sends to the store database (AD-05): a new `customer`, in the same store database transaction as the rental that created it; the `cashier_session`, when it opens and again when it closes or is found interrupted, so that it is in the store database before its first transaction; and a new `refund_status`. The review of a session is written directly in the store database (FR-74, FR-75), and the register gets it back with the next copy of the master data. The `stock_difference` rows are made only by the store database.
+
+### 4.6 What the database user of the store database may do
+
+The register connects to the store database with one user. The rule of DR-04 is kept for this user; the local database is a file of the register and has no user.
+
+| Tables | The user of the register may |
+| --- | --- |
+| `pos_transaction`, `sale_line`, `return_line`, `rental_line`, `rental_return_line`, `payment`, `refund`, `refund_status` | Insert only (no update, no delete) |
+| `customer`, `stock_difference`, `sync_conflict` | Insert only (a store manager sets `is_resolved` and `is_checked`) |
+| `cashier_session` | Insert, and update when it closes and when it is reviewed; no delete |
+| `item_hold` | Insert and delete |
+| `item` | Update `status` (rental, rental return) |
+| `product` | Update `stock_level` (by quantity); insert and update for the catalog import (IR-17); no delete |
+| `settings` | Update (only for a store manager request, BR-04) |
+| `register` | Read |
 
 ## 5. Traceability: DR to tables
 
@@ -82,16 +103,16 @@ The open sale, rental or return of a register is saved in `pos_transaction` with
 | DR-01 | `product` |
 | DR-02 | `item.status` and `item.item_id`; the change from _Under maintenance_ to _Available_ is a store manager action |
 | DR-03 | `pos_transaction`, `sale_line` (`unit_price_cents` copied at the moment of the sale), `payment` |
-| DR-04 | `pos_transaction.corrects_transaction_id`; the register database user has no `UPDATE` or `DELETE` on the transaction tables (AD-05) |
+| DR-04 | `pos_transaction.corrects_transaction_id`; the **store database user** has no `UPDATE` or `DELETE` on the transaction tables (§4.6, AD-05) |
 | DR-05 | `payment` (`cash_tendered_cents`, `change_due_cents`, `card_last4`, `authorization_code`); no column for the full card number |
 | DR-06 | `pos_transaction` (type `RENTAL`), `rental_line`; overdue not stored |
-| DR-07 | `rental_return_line`, `refund` |
+| DR-07 | `rental_return_line`, `refund`, `refund_status` |
 | DR-08 | `pos_transaction.original_transaction_id`, `return_line`, `refund`; the quantity already returned of a sale line is the sum of `return_line.quantity` with this `original_transaction_id` and `original_line_no` |
 | DR-09 | `cashier_session` |
 | DR-10 | `sale_line.price_overridden_by` |
 | DR-11 | `employee_copy` |
 | DR-12 | `accounting_queue` |
-| DR-13 | the local database (SQLite, one database transaction for each completed transaction, AD-05) |
+| DR-13 | the local database (SQLite, one database transaction for each completed transaction, AD-05); `open_authorization`, `store_sync_list` |
 | DR-14 | `register_state.last_transaction_id` |
 | DR-15 | `settings` (default tax rate) |
 | DR-16 | `is_active` of `product` and `item`; no deletion; `customer` rows are never deleted |
@@ -105,10 +126,10 @@ The open sale, rental or return of a register is saved in `pos_transaction` with
 - **Currency.** One currency for the whole store, set in `settings` as a currency code when the register is installed. There is no conversion (DR-17). The amounts are cents of that currency.
 - **Tax rounding.** The tax is calculated and stored **per line**: the Tax Calculator returns the tax of each line (system_interfaces.md §4.1), and the POS stores it in `sale_line.tax_cents` or `rental_line.fee_tax_cents`, rounded **half up** to whole cents if the answer has more decimals. The tax of the transaction is the **sum** of the taxes of its lines, so that the receipt adds up exactly. When the default tax rate is used (IR-05), the POS calculates the same way, line by line. The deposit has no tax (SRS question 1); the late fee has the tax of the rental fee, stored in `rental_return_line.late_fee_tax_cents`.
 - **Tax of a return.** The refunded tax of a return line is the stored tax of the sale line for the returned quantity: tax of the line × quantity returned ÷ quantity sold, rounded half up. The last return of a line takes what is left of the tax, so that the refunded taxes of all returns of a line add up to the tax of the sale.
-- **Retention.** The accounting record is deleted after the acknowledgement (DR-12). The register deletes from its local database the transactions that the store database has acknowledged, after **90 days**: the refund period is 30 days, a rental lasts 7 days at most, and a session is reviewed within days. Transactions that the store database has not acknowledged are never deleted. The store database keeps every transaction and the POS never deletes one. The legal retention period of the accounting data (for example 7 years in many countries) has to be confirmed with the owner of the store; it concerns the store database and its backup, not the registers.
+- **Retention.** The accounting record is deleted after the acknowledgement (DR-12). The register deletes from its local database the transactions that the store database has acknowledged, after **90 days**: the refund period is 30 days, a rental lasts 7 days at most, and a session is reviewed within days. Transactions that the store database has not acknowledged are never deleted. A rental that is still open (a `rental_line` without a `rental_return_line`) is never deleted either, however old it is: the overdue check (BR-12) and the rental return need it also when the store database is not available. The store database keeps every transaction and the POS never deletes one. The legal retention period of the accounting data (for example 7 years in many countries) has to be confirmed with the owner of the store; it concerns the store database and its backup, not the registers.
 
 ## 7. Open points
 
 1. The size of the local database with 90 days of transactions has not been measured; it is checked with the performance test of NFR-01 and NFR-02 (10,000 products).
-2. The data model has no table for the pending refund of a card refund without answer (UC2 and UC5 9b2b) and no table for the repair of an item (DR-02): the SRS has no function for them yet (domain model §7.3, gaps 2 and 1: pending refund and repair).
+2. The data model has no table for the repair of an item (DR-02): the SRS has no function for it yet (domain model §7.3, gap 1). The pending card refund (domain model §7.3, gap 2) is covered since FR-77 by `refund_status`.
 3. The columns and the keys are the logical design. Indexes, the exact column types of PostgreSQL and SQLite and the schema script are written in the detailed design (W11).
