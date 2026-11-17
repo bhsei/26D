@@ -56,3 +56,9 @@
 - **Hours:** 5
 - **Problems:** Several people edited `architecture.md` and the SRS on the same days, so I had to pull again before pushing. Borja's SSDs of UC4 and UC5 came after my first version of the interfaces, so I changed my operation names to match his.
 - **Next:** W10 User Interface Design, and AD-05 and AD-06 (storage and the Accounting queue) with Borja, so that the storage interfaces can be added to `system_interfaces.md` before the design milestone (W11).
+
+## W10
+- **What I did:** Planned W10 (`plans/task_plan_W10.md`) and the design milestone of W11 (`plans/design_milestone_W11.md`). Wrote the storage interfaces of `system_interfaces.md` (§4.3) from AD-05 and AD-06, the system status and the list of pending card refunds (§3.8), the names of the store manager operations and the table of the screens and their requests (§3.9), and fixed the 10 findings of Yasmine's review (#60) and the changes of the data model v0.2 in v0.5. Added FR-76 and FR-77 to the SRS and integrated SRS v1.3. Reviewed the UI class diagram and the consistency of `ui_design.md`. Updated the README and prepared the W10 report slides.
+- **Hours:** 7
+- **Problems:** My storage interfaces were late: I wrote them on Monday instead of Sunday, so Yasmine's review and my fixes were squeezed into two days. The data model changed after the review of AD-05 (#59), so the interfaces had to follow it.
+- **Next:** W11 design milestone: design sequence diagrams of UC1, the integration of `detailed_design.md`, and every design document at v1.0 by Tue 24 Nov.
