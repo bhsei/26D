@@ -43,15 +43,22 @@
         </div>
 
         <div class="panel grow">
-          <div class="row" style="align-items:center; margin-bottom:12px">
-            <h2 style="flex:1; margin:0">Choose the item (scan or pick the serial number)</h2>
-            <button class="btn" onclick="scanSerial()">&#9783; Scan</button>
+          <div class="row">
+            <div class="field">
+              <label for="serial">Serial number (scan or type)</label>
+              <input id="serial" type="text" placeholder="e.g. SN-2001-01">
+            </div>
+            <div class="field" style="flex:0">
+              <button class="btn btn-primary" onclick="enterSerial()">Enter</button>
+            </div>
+            <div class="field" style="flex:0">
+              <button class="btn" onclick="scanSerial()">&#9783; Scan</button>
+            </div>
           </div>
           <div id="scan-err" class="msg msg-error hidden" style="margin-bottom:12px"></div>
-          <table>
+          <table id="item-box" class="hidden">
             <thead>
               <tr>
-                <th></th>
                 <th>Serial number</th>
                 <th>Description</th>
                 <th>Status</th>
@@ -88,8 +95,9 @@
 
     <div class="demo">
       <strong>Prototype:</strong>
-      <span>Customers C-105 (OK), C-200 (overdue), any other ID is unknown. SN-2002-01 is on hold at Register 01. Fees and deposits are examples.</span>
-      <span>Screen S-08</span>
+      <span style="white-space:nowrap">C-105 OK · C-200 overdue · other IDs unknown</span>
+      <span id="demo-items" style="flex:1"></span>
+      <span style="white-space:nowrap">Screen S-08</span>
     </div>
   </div>
 
@@ -104,18 +112,29 @@
       return "<span class='badge " + cls + "'>" + status + "</span>";
     }
 
+    // demo help only: the real POS has no list of all items (FR-32, IR-11)
+    function drawDemoItems() {
+      var groups = {};
+      Object.keys(RENTAL_ITEMS).forEach(function (sn) {
+        var item = RENTAL_ITEMS[sn];
+        var key = item.heldBy ? "On hold at " + item.heldBy : item.status;
+        (groups[key] = groups[key] || []).push(sn);
+      });
+      document.getElementById("demo-items").textContent = Object.keys(groups).map(function (k) {
+        return k + ": " + groups[k].join(", ");
+      }).join(" · ");
+    }
+
+    // the item that was entered, after the checks of pick()
     function drawItems() {
       var body = document.getElementById("items");
       body.innerHTML = "";
-      Object.keys(RENTAL_ITEMS).forEach(function (sn) {
+      document.getElementById("item-box").classList.toggle("hidden", !selected);
+      [selected].filter(Boolean).forEach(function (sn) {
         var item = RENTAL_ITEMS[sn];
         var p = CATALOG[item.product];
-        var free = item.status === "Available";
         var tr = document.createElement("tr");
-        if (!free) tr.style.color = "#9aa5b1";
         tr.innerHTML =
-          "<td><input type='radio' name='item' value='" + sn + "' style='width:22px;height:22px'" +
-          (free ? "" : " disabled") + (selected === sn ? " checked" : "") + " onchange='pick(this.value)'></td>" +
           "<td>" + sn + "</td>" +
           "<td>" + p.name + "</td>" +
           "<td>" + badge(item.status) + "</td>" +
@@ -131,8 +150,15 @@
       });
       codes.push({ code: "SN-9999-99", label: "Unknown barcode" });
       openScanner("Scan rental item", codes, function (sn) {
+        document.getElementById("serial").value = sn;
         pick(sn);
       });
+    }
+
+    // UC3 step 6: scanner or keyboard, so a damaged label still works (IR-11)
+    function enterSerial() {
+      var sn = document.getElementById("serial").value.trim().toUpperCase();
+      if (sn !== "") pick(sn);
     }
 
     // enterRentalItem(serialNumber): FR-32, FR-33, and the hold of AD-05 (UC3 ext. 7b)
@@ -161,11 +187,12 @@
       return state === "ok" || state === "new";
     }
 
-    // registerCustomer(): new customer ID from the register ID and a counter (AD-05); no personal data (DR-18)
+    // registerCustomer(): customer_id is built like transaction_id, register ID and a counter
+    // (data_model.md, AD-05); no personal data (DR-18)
     function registerCustomer() {
       var n = parseInt(getSetting("customer_counter", "11"), 10) + 1;
       setSetting("customer_counter", String(n));
-      var id = "C-" + REGISTER + "-" + ("0000" + n).slice(-4);
+      var id = REGISTER + "-" + ("000000" + n).slice(-6);
       CUSTOMERS[id] = "new";
       document.getElementById("customer").value = id;
       checkCustomer();
@@ -218,6 +245,11 @@
       window.location.href = "payment.html";
     }
 
+    document.getElementById("serial").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") enterSerial();
+    });
+
+    drawDemoItems();
     drawItems();
     update();
   </script>
