@@ -52,10 +52,10 @@ These are the "Manager screens" of the logical view. Each operation carries the 
 
 | ID   | Screen                                               | Requirement                | System operations (system_interfaces.md §3.6)                                       | Controller          | Prototype |
 | ---- | ---------------------------------------------------- | -------------------------- | ----------------------------------------------------------------------------------- | ------------------- | --------- |
-| M-01 | **Reorder and stock-check list**                     | FR-68, BR-09               | Reorder and stock-check list (`GET /api/products/flagged`)                          | `ManagerController` | new       |
+| M-01 | **Reorder and stock-check list** | FR-68, BR-09 | `listFlaggedProducts(managerID, pin)`; also the rental conflicts: `listRentalConflicts(managerID, pin)`, `resolveRentalConflict(conflictID, managerID, pin, reason)` | `ManagerController` | new |
 | M-02 | **Sessions to review**                               | FR-74, FR-75, BR-17        | `listSessionsToReview()`, `confirmSessionReview(sessionID, managerID, pin, reason)` | `ManagerController` | new       |
 | M-03 | **Default tax rate** | FR-69, IR-05 | `changeDefaultTaxRate(rate, managerID, pin)` | `ManagerController` | new |
-| M-04 | **Catalog import**                                   | IR-17                      | Import the catalog (file and manager)                                               | `ManagerController` | new       |
+| M-04 | **Catalog import** | IR-17 | `importCatalog(file, managerID, pin)` | `ManagerController` | new |
 | M-05 | **Local employees** | FR-70, IR-09 | `disableEmployee(employeeID, managerID, pin)` | `ManagerController` | new |
 | M-06 | **Accounting queue** | FR-76 | `getAccountingQueueStatus(managerID, pin)` | `ManagerController` | new |
 
@@ -63,7 +63,7 @@ These are the "Manager screens" of the logical view. Each operation carries the 
 
 - **9 cashier screens** (S-01 to S-09), **1 dialog** (D-01) and **6 store manager screens** (M-01 to M-06).
 - Every system operation of the use cases UC1 to UC5 is used by exactly one screen, except `makePayment`, which the screen S-05 sends for three controllers, and `checkRefundStatus()` and `approveCashRefund(...)`, which UC2 and UC5 share.
-- The prototype shows 8 of the 16 screens and dialogs. It does not show S-03, D-01, M-01 to M-06, and it does not show the condition of a returned item (S-07) nor the damage confirmation (S-09). The prototype stays a throw-away prototype (process model).
+- The prototype (guide v0.3) shows all 16 screens and dialogs, including S-03, D-01, the condition of a returned item (S-07) and the damage confirmation (S-09). Some share a page: M-03 and M-05 are in the _Settings_ tab of `manager.html`, and M-06 is the panel _Accounting System queue_ next to the tabs. The prototype stays a throw-away prototype (process model).
 
 ### 1.6 Open points
 
