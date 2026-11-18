@@ -52,9 +52,8 @@
         <!-- credit card -->
         <div class="panel grow hidden" id="p-card">
           <h2>Credit card payment</h2>
-          <div id="card-wait" class="msg msg-info">Ask the customer to insert or tap the card, then press Authorize.</div>
+          <div id="card-wait" class="msg msg-info">Ask the customer to insert or tap the card, then press Pay by card.</div>
           <div id="card-busy" class="msg msg-info hidden">Waiting for the Payment Service… please wait.</div>
-          <div id="card-ok" class="msg msg-ok hidden">Payment approved. Card **** 4821, authorization code <strong id="auth"></strong></div>
           <div id="card-declined" class="msg msg-error hidden">The card was declined (insufficient funds). Choose another way to pay.</div>
           <div id="card-down" class="msg msg-error hidden">
             The Payment Service does not answer. Nothing was charged. Try again, choose another way to pay, or cancel the sale.
@@ -65,30 +64,23 @@
             </div>
           </div>
           <div style="margin-top:20px">
-            <button class="btn btn-primary" id="card-authorize" onclick="authorize('card')">Authorize</button>
+            <button class="btn btn-ok btn-big" id="card-authorize" onclick="authorize('card')">Pay by card</button>
           </div>
         </div>
 
         <!-- check -->
         <div class="panel grow hidden" id="p-check">
           <h2>Check payment</h2>
-          <div class="row">
-            <div class="field">
-              <label for="check-no">Check number</label>
-              <input id="check-no" type="text" oninput="updateCheck()">
-            </div>
-            <div class="field">
-              <label for="doc">Customer ID document</label>
-              <input id="doc" type="text" oninput="updateCheck()">
-            </div>
+          <div class="field">
+            <label for="check-no">Check number</label>
+            <input id="check-no" type="text" oninput="updateCheck()">
           </div>
-          <div id="check-wait" class="msg msg-info">Enter the check number and the customer ID document, then press Authorize.</div>
-          <div id="check-busy" class="msg msg-info hidden">Authorizing with the Payment Service… please wait.</div>
-          <div id="check-ok" class="msg msg-ok hidden">Check approved. Authorization code: <strong id="check-auth"></strong></div>
+          <div id="check-wait" class="msg msg-info">Enter the check number, then press Pay by check. The Payment Service gets the check number and the amount (FR-12).</div>
+          <div id="check-busy" class="msg msg-info hidden">Waiting for the Payment Service… please wait.</div>
           <div id="check-declined" class="msg msg-error hidden">Check declined. Ask the customer for another tender.</div>
           <div id="check-down" class="msg msg-error hidden">Check payment not available. Offer another tender (cash).</div>
           <div style="margin-top:20px">
-            <button class="btn btn-primary" id="check-authorize" onclick="authorize('check')" disabled>Authorize</button>
+            <button class="btn btn-ok btn-big" id="check-authorize" onclick="authorize('check')" disabled>Pay by check</button>
           </div>
           <p style="font-size:13px; color:#52606d; margin-top:8px">Check payments are optional for the first version (FR-12, priority Could).</p>
         </div>
@@ -106,6 +98,7 @@
           <div class="total"><span id="total-label">Total</span><span id="total"></span></div>
         </div>
         <p style="font-size:13px; color:#52606d">Check the amount with the customer before you complete the payment.</p>
+        <div id="choose-msg" class="msg msg-info hidden">Choose how the customer pays.</div>
 
         <div style="flex:1"></div>
 
@@ -133,7 +126,7 @@
     }
     var totals = computeTotals(tx);
     var tender = "cash";
-    var authCode = { card: "", check: "" };
+    var authCode = "";
     var BACK = { "Sale": "sale.html", "Rental": "rental.html", "Rental return": "return-rental.html" };
 
     document.getElementById("title").textContent = tx.type + " - payment";
@@ -154,14 +147,18 @@
       document.getElementById("total-label").textContent = "Amount still due";
     }
 
+    // t = null shows the tenders with none selected (UC1 ext. 9b2b)
+    // Complete is only for cash; card and check finish with Pay by card / Pay by check.
     function choose(t) {
       tender = t;
       ["cash", "card", "check"].forEach(function (x) {
         document.getElementById("t-" + x).classList.toggle("selected", x === t);
         document.getElementById("p-" + x).classList.toggle("hidden", x !== t);
       });
+      document.getElementById("choose-msg").classList.toggle("hidden", t !== null);
+      document.getElementById("complete").classList.toggle("hidden", t !== "cash");
+      if (t !== null) document.getElementById("voided").classList.add("hidden");
       if (t === "cash") updateCash();
-      if (t === "card") document.getElementById("complete").disabled = authCode.card === "";
       if (t === "check") updateCheck();
     }
 
@@ -181,19 +178,18 @@
       document.getElementById("complete").disabled = !enough;
     }
 
-    // FR-12: the check must be authorized by the Payment Service before the sale is completed
+    // FR-12: the check is authorized with the check number and the amount only (DR-18: no ID document)
     function updateCheck() {
-      var filled = document.getElementById("check-no").value.trim() !== "" &&
-                   document.getElementById("doc").value.trim() !== "";
-      if (!filled) authCode.check = "";
+      var filled = document.getElementById("check-no").value.trim() !== "";
       document.getElementById("check-authorize").disabled = !filled;
-      document.getElementById("complete").disabled = authCode.check === "";
     }
 
-    // BR-05, FR-10, FR-12: a card or check payment is completed only after authorization.
+    // makePayment(amount, tenderType): one request (system_interfaces.md §3.2).
+    // BR-05, FR-10, FR-12: after APPROVED the receipt opens (ui_design.md §5.1).
     // A retry sends the same transaction ID again (IR-02).
     function authorize(kind) {
-      ["wait", "ok", "declined", "down"].forEach(function (s) {
+      document.getElementById("voided").classList.add("hidden");
+      ["wait", "declined", "down"].forEach(function (s) {
         document.getElementById(kind + "-" + s).classList.add("hidden");
       });
       document.getElementById(kind + "-busy").classList.remove("hidden");
@@ -204,23 +200,22 @@
         document.getElementById(kind + "-busy").classList.add("hidden");
         document.getElementById(kind + "-authorize").disabled = false;
         if (result === "ok") {
-          authCode[kind] = "A" + Math.floor(100000 + Math.random() * 900000);
-          document.getElementById(kind === "card" ? "auth" : "check-auth").textContent = authCode[kind];
-          document.getElementById(kind + "-ok").classList.remove("hidden");
-          document.getElementById("complete").disabled = false;
+          authCode = "A" + Math.floor(100000 + Math.random() * 900000);
+          complete();
         } else {
-          authCode[kind] = "";
+          authCode = "";
           document.getElementById(kind + "-" + result).classList.remove("hidden");
         }
       }, 1500);
     }
 
-    // UC1 ext. 9b2b: the cashier gives up the card; the POS voids the request (IR-15)
+    // UC1 ext. 9b2b: the cashier gives up the card; the POS voids the request (IR-15).
+    // The cashier chooses the new tender (cash or check), so none is selected.
     function otherTender() {
       document.getElementById("card-down").classList.add("hidden");
       document.getElementById("card-wait").classList.remove("hidden");
+      choose(null);
       document.getElementById("voided").classList.remove("hidden");
-      choose("cash");
     }
 
     function cancelTx() {
@@ -239,12 +234,12 @@
         recordCash(0);
       }
       if (tender === "card") {
-        tx.auth = authCode.card;
+        tx.auth = authCode;
         tx.last4 = "4821";
       }
       if (tender === "check") {
         tx.checkNo = document.getElementById("check-no").value;
-        tx.auth = authCode.check;
+        tx.auth = authCode;
       }
       tx.number = tx.number || nextTxId();
       tx.date = new Date().toLocaleString("en-GB");
