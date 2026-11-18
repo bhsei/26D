@@ -1,0 +1,128 @@
+@startuml
+' NewEra POS - Design sequence diagram: UC5 Return Rental, condition, late fee and damage (Contracts 26 and 27), W11 draft
+' Team D - editable source of assets/dsd_uc5_record_condition.png
+' Render with: java -jar plantuml.jar -charset UTF-8 -tpng assets/dsd_uc5_record_condition.puml
+' Participants: classes of the logical view (architecture.md 4.2). Operations: system_interfaces.md 3.5, 4.1 and 4.3.
+' Messages marked <<new>> are not in the logical view or in system_interfaces.md yet (sent to Borja for the design class diagram).
+
+skinparam shadowing false
+skinparam dpi 130
+skinparam defaultFontName Arial
+skinparam ArrowColor #444444
+skinparam SequenceLifeLineBorderColor #444444
+skinparam ParticipantBorderColor #1F4E79
+skinparam ParticipantBackgroundColor #EAF1FB
+skinparam BoxPadding 6
+skinparam SequenceGroupBackgroundColor #F4F8FD
+skinparam SequenceGroupBorderColor #1F4E79
+skinparam SequenceDividerBackgroundColor #EAF1FB
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #B8A04A
+skinparam LegendBackgroundColor #FFFFFF
+skinparam LegendBorderColor #1F4E79
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 190
+
+title NewEra POS - Design sequence diagram: UC5 Return Rental, condition and late fee (Contracts 26-27)
+
+box "UI layer (ui.api)" #F4F8FD
+  participant ":RentalReturn\nController" as Ctl
+end box
+box "Application / domain layer" #F4F8FD
+  participant ":RentalReturn\nHandler" as H
+  participant ":Manager\nApproval" as MA
+  participant "rr:\nRentalReturn" as RR
+  participant "line:\nRentalLineItem" as L
+end box
+box "application.interfaces" #F4F8FD
+  participant ":TaxCalculator" as Tax
+  participant ":Settings\nRepository" as Set
+  participant ":HRSystem" as HR
+  participant ":EmployeeList" as EL
+end box
+
+== recordCondition(condition, damageNote) - Contract 26 ==
+[-> Ctl : PUT /api/rental-returns/{id}/condition\n{"condition", "damageNote"}
+Ctl -> Ctl : DAMAGED needs a damageNote (400 if empty)
+Ctl -> H : recordCondition(condition, damageNote)
+H -> RR : recordCondition(condition, damageNote, today) <<new>>
+RR -> L : dueDate(), feePerDay(), deposit()
+L --> RR : due date, rental fee per day, deposit
+RR -> RR : daysLate = whole days after the due date (0 if on time)\nlateFee = daysLate x fee per day (BR-16)
+RR --> H : lateFee
+note right of RR
+  Information Expert: the rental return has the dates,
+  the fee and the deposit. The status of the Item
+  is not changed here.
+end note
+
+opt daysLate > 0
+  H -> Tax : calculateTax(TaxRequest: late fee line)
+  note right of Tax
+    Timeout 5 s in the adapter (AD-07).
+  end note
+  Tax --> H : TaxResult
+  alt TaxResult OK
+    H -> RR : setLateFeeTax(tax, false) <<new>>
+  else NOT_AVAILABLE (7a1)
+    H -> Set : current()
+    Set --> H : Settings (default tax rate)
+    H -> H : tax = lateFee x default rate
+    H -> RR : setLateFeeTax(tax, true) <<new>>
+    note right of RR
+      true: tax to be corrected (BR-02, IR-05).
+      The fallback is decided by the handler (AD-07).
+    end note
+  end
+end
+
+alt UNDAMAGED
+  H -> RR : calculateRefund() <<new>>
+  RR -> RR : refundTotal = max(0, deposit - lateFee - tax) (BR-10)\namountDue = late fee + tax - deposit, if above the deposit (7b)
+  RR --> H : refundTotal, amountDue
+  H --> Ctl : days late, late fee, tax, refund or amount still due
+  [<-- Ctl : 200 parts of the calculation\n(taxToBeCorrected when the default rate was used)
+else DAMAGED (6a)
+  note over H, RR
+    The late fee and its tax are only recorded, not charged (6a.4).
+    The damage stays pending until confirmDamage; refundTotal is set there.
+  end note
+  H --> Ctl : store manager needed
+  [<-- Ctl : 200 damage pending, D-01 opens
+end
+
+== confirmDamage(managerID, pin) - Contract 27 ==
+[-> Ctl : POST /api/rental-returns/{id}/damage-confirmation\n{"manager"}
+Ctl -> H : confirmDamage(managerID, pin)
+H -> MA : check(managerID, pin) <<new>>
+MA -> HR : checkEmployee(managerID, pin)
+note right of HR
+  Timeout 5 s (IR-09).
+end note
+HR --> MA : EmployeeCheck
+opt NOT_AVAILABLE (UC4 6c4)
+  MA -> EL : find(managerID)
+  EL --> MA : EmployeeEntry (PIN as a salted hash, DR-11)
+  MA -> MA : compare the hash of pin
+end
+MA -> MA : drop the pin (NFR-08)
+MA --> H : VALID store manager, or INVALID
+alt valid store manager
+  H -> RR : confirmDamage(manager: Employee) <<new>>
+  RR -> RR : confirmedBy = manager\namountKept = deposit, refundTotal = 0, amountDue = 0 (BR-10)
+  RR --> H : refundTotal = 0
+  H --> Ctl : damage confirmed
+  [<-- Ctl : 200 damage confirmed, refund 0
+else not a store manager or wrong PIN
+  H --> Ctl : refused
+  [<-- Ctl : 403 the condition stays pending (FR-52)
+end
+
+legend bottom left
+  **GRASP**
+  Controller: RentalReturnController and RentalReturnHandler, as in the other UC5 diagrams.
+  Information Expert: RentalReturn calculates the days late, the late fee, the refund and the amount still due; RentalLineItem gives the due date, the fee and the deposit.
+  Pure Fabrication, High Cohesion: ManagerApproval checks the store manager for UC1, UC2, UC5 and the manager functions, so the check is written once.
+  Protected Variations: TaxCalculator and HRSystem are interfaces; the adapter applies the timeout and the handler chooses the fallback (AD-04, AD-07).
+endlegend
+@enduml
