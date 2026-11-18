@@ -15,13 +15,13 @@
 | 0.1 | W06–W07: cashier screens for UC1, UC2, UC3 and UC5, scanner simulation. |
 | 0.2 | W08: limitations (review #25). |
 | 0.3 | W10: all 14 screens and dialogs of ui_design.md §1 (new: S-03, D-01, M-01 to M-04), the fallback messages, the store manager approval, and the rules of SRS v1.2. |
-| 0.4 | W10: review #61. The check is paid with the check number only. Card and check are paid with one button each, and the receipt opens after the approval. *Other tender* leaves the choice to the cashier. The rental item is entered by serial number. New customer IDs use the format of data_model.md. |
+| 0.4 | W10: review #61. The check is paid with the check number only. Card and check are paid with one button each, and the receipt opens after the approval. *Other tender* leaves the choice to the cashier. The rental item is entered by serial number. New customer IDs use the format of data_model.md. Screen IDs M-01 to M-06 as in ui_design.md §1.4. |
 
 ## 1. Purpose
 
 A clickable HTML prototype of the screens of NewEra POS. We use it to check the use cases and the screen list with the team, and to show the usability rules of each screen (NFR-05, NFR-06, NFR-13 to NFR-18). It is a throw-away prototype (process model): there's no backend, every external system is simulated in the browser, and the code won't be reused in increment 3. What we keep is the screen design.
 
-The screen IDs (S-01 to S-09, D-01, M-01 to M-04) are the ones of [ui_design.md](ui_design.md) §1. Each page shows its ID in the grey bar at the bottom.
+The screen IDs (S-01 to S-09, D-01, M-01 to M-06) are the ones of [ui_design.md](ui_design.md) §1. Each page shows its ID in the grey bar at the bottom.
 
 ## 2. How to open it
 
@@ -63,7 +63,7 @@ The rental fees, deposits and product prices are examples. The refund period (30
 | S-08 | Rental | `rental.html` | UC3 | FR-30 to FR-36, BR-10 to BR-12, BR-15, IR-11 | `C-200`; an unknown ID and *Register new customer*; type `SN-2001-01`; `SN-2002-01` on hold |
 | S-09 | Rental return | `return-rental.html` | UC5 | FR-50 to FR-57, FR-72, FR-73, BR-10, BR-16 | `SN-2003-03` (amount still due); `C-105`; *Damaged* with a description |
 | D-01 | Manager approval | in `app.js` | UC1 4d, UC2 9b2a, UC5 6a, manager functions | FR-06, FR-25, FR-52, FR-55, BR-04, NFR-07 | `E-2001` approves; `E-1042` is refused |
-| M-01 to M-04 | Manager functions | `manager.html` | Store manager | FR-68 to FR-70, FR-74 to FR-76, IR-17 | One tab per screen; *Store database offline* |
+| M-01 to M-06 | Manager functions | `manager.html` | Store manager | FR-68 to FR-70, FR-74 to FR-76, IR-17 | One tab per screen, except M-03 and M-05 (both in *Settings*) and M-06 (the Accounting queue panel on the right); *Store database offline* |
 
 ## 5. Fallback and error messages
 
@@ -97,14 +97,14 @@ The other texts of ui_design.md §2.2 (E1, E3, E5, E8 to E12, E14) are used on t
 The prototype only checks the screens and the flow. Some rules are faked or left out:
 
 - **PINs.** Neither the cashier PIN nor the store manager PIN is checked. D-01 checks only the role: `E-2001` is the only store manager. In the real POS the HR System checks the PIN, or the salted hash of the local list when it doesn't answer (FR-44, IR-08, IR-09).
-- **Manager functions.** The store manager enters the ID and PIN once in D-01, and the actions of M-01 to M-04 reuse them. In the real POS each request carries the ID and the PIN (system_interfaces.md §3.6).
-- **External systems and storage.** Everything is simulated in the browser. The timeouts are shorter, and the Accounting queue on M-01 to M-04 shows fixed numbers. Nothing is sent to the store database.
+- **Manager functions.** The store manager enters the ID and PIN once in D-01, and the actions of M-01 to M-06 reuse them. In the real POS each request carries the ID and the PIN (system_interfaces.md §3.6).
+- **External systems and storage.** Everything is simulated in the browser. The timeouts are shorter, and the Accounting queue (M-06) shows fixed numbers. M-01 doesn't show the rental conflicts yet. Nothing is sent to the store database.
 - **Data.** The demo data is fixed. Stock levels and item status don't change after a sale or a rental.
 - **Tenders.** The Payment screen shows a fixed list of three tenders. In the real POS it asks `getAvailableTenders()` (AD-08).
 
 ## 8. Open points
 
-1. **Screens not in ui_design.md §1 yet.** The prototype adds the list of pending card refunds on S-02 (FR-77) and the Accounting queue status beside the manager screens (FR-76). Yasmine: add them to the screen list, or tell me where they should go.
+1. ~~**Screens not in ui_design.md §1 yet.**~~ Closed (W10): ui_design.md §1 now has M-06 *Accounting queue* and the S-02 entry *Pending refunds*.
 2. **Pending refund from the menu.** ui_design.md §2.3 point 1 opens S-07 or S-09 for the chosen refund. The prototype asks the status directly from S-02 (*Check status*), which saves one screen. To decide with Yasmine.
 3. **Place of the buttons (UI-04).** ui_design.md §3 puts Confirm at the bottom right and Cancel at the bottom left. The prototype still has both in the right column, Confirm above Cancel. I'll change it once UI-04 is confirmed (ui_design.md §3.2 point 2).
 4. **Customer ID on the rental receipt.** When open question 5 is decided in W11, the rental receipt on S-06 gets the customer ID as a barcode too, so the cashier can scan it next time (review #61).
