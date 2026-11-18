@@ -1,0 +1,152 @@
+@startuml
+' NewEra POS - Design sequence diagram: UC5 Return Rental, confirm and refund (Contract 28), W11 draft
+' Team D - editable source of assets/dsd_uc5_confirm_rental_return.png
+' Render with: java -jar plantuml.jar -charset UTF-8 -tpng assets/dsd_uc5_confirm_rental_return.puml
+' Participants: classes of the logical view (architecture.md 4.2). Operations: system_interfaces.md 3.5, 3.7, 4.1 to 4.3; PaymentMethod of AD-08.
+' Messages marked <<new>> are not in the logical view or in system_interfaces.md yet (sent to Borja for the design class diagram).
+
+skinparam shadowing false
+skinparam dpi 130
+skinparam defaultFontName Arial
+skinparam ArrowColor #444444
+skinparam SequenceLifeLineBorderColor #444444
+skinparam ParticipantBorderColor #1F4E79
+skinparam ParticipantBackgroundColor #EAF1FB
+skinparam BoxPadding 6
+skinparam SequenceGroupBackgroundColor #F4F8FD
+skinparam SequenceGroupBorderColor #1F4E79
+skinparam SequenceDividerBackgroundColor #EAF1FB
+skinparam SequenceReferenceBackgroundColor #FFFFFF
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #B8A04A
+skinparam LegendBackgroundColor #FFFFFF
+skinparam LegendBorderColor #1F4E79
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 190
+
+title NewEra POS - Design sequence diagram: UC5 Return Rental, confirm and refund (Contract 28)
+
+box "UI layer (ui.api)" #F4F8FD
+  participant ":RentalReturn\nController" as Ctl
+end box
+box "Application / domain layer" #F4F8FD
+  participant ":RentalReturn\nHandler" as H
+  participant ":Payment\nMethods" as PMs
+  participant "pm:\nPaymentMethod" as PM
+  participant "rr:\nRentalReturn" as RR
+  participant "rental:\nRental" as R
+end box
+box "application.interfaces" #F4F8FD
+  participant ":PaymentService" as Pay
+  participant ":CashDrawer" as Dr
+  participant ":Transaction\nRepository" as Repo
+  participant ":Receipt\nPrinter" as Pr
+end box
+
+ref over Ctl, H
+  Only in 7b (amount still due): makePayment(amount, tenderType) before this operation,
+  as in the design sequence diagram of UC1 (Contract 4), through PaymentMethods (AD-08).
+end ref
+
+== confirmRentalReturn() - Contract 28 ==
+[-> Ctl : POST /api/rental-returns/{id}/confirm
+Ctl -> H : confirmRentalReturn()
+H -> RR : refundTotal()
+RR --> H : amount
+
+alt amount = 0 (damaged item, late fee above the deposit, 7b paid)
+  note over H, RR
+    No Refund is created; go to the completion.
+  end note
+else amount > 0
+  H -> RR : rentalPayment() <<new>>
+  RR -> R : payment()
+  R --> RR : original: Payment
+  RR --> H : original (tender of the rental, BR-08)
+  H -> PMs : get(original.tenderType)
+  PMs --> H : pm
+  H -> PM : refund(original, amount)
+  note right of PM
+    Polymorphism (AD-08): the handler never checks the tender.
+    Cash: CashPaymentMethod. Card: CreditCardPaymentMethod.
+    Check: CheckPaymentMethod answers NEEDS_APPROVAL (9c, FR-25).
+  end note
+  alt cash (9a)
+    PM -> Dr : open(CASH_REFUND, employeeID)
+    Dr --> PM : OPENED (logged, IR-14)
+    PM --> H : RefundOutcome CASH_PAID
+  else credit card (9b)
+    PM -> Pay : refund(RefundRequest)
+    note right of Pay
+      RefundRequest = transaction ID of the refund,
+      payment reference of the rental (DR-19), amount.
+      Timeout 10 s in the adapter (AD-07).
+    end note
+    Pay --> PM : PaymentResult
+    opt NOT_AVAILABLE (9b2b): outcome unknown
+      PM -> Pay : refundStatus(transactionID)
+      Pay --> PM : PaymentResult
+    end
+    PM --> H : RefundOutcome CARD_REFUNDED (with reference),\nNEEDS_APPROVAL (declined, 9b2a) or PENDING (status unknown)
+  else check (9c)
+    PM --> H : RefundOutcome NEEDS_APPROVAL
+  end
+  H -> RR : addRefund(outcome) <<new>>
+  RR -> RR : create Refund (tender, amount, state, reference)
+  note right of RR
+    Creator: the rental return records its Refund.
+    The reference of a card refund is encrypted when
+    it is saved (AD-09, data_model.md 4.3).
+  end note
+end
+
+alt amount = 0, CASH_PAID, CARD_REFUNDED or PENDING
+  H -> RR : complete() <<new>>
+  RR -> R : close()
+  R -> R : item.status = Available (undamaged)\nor Under maintenance (damaged)
+  RR -> RR : isComplete = true
+  RR --> H : AccountingRecord
+  note right of RR
+    Creator: the rental return has the data of the
+    record (deposit, late fee, tax, refund, tax to be corrected).
+  end note
+  H -> Repo : saveCompleted(rr, record)
+  note right of Repo
+    ONE database transaction (AD-05, AD-06): rental return, refund,
+    item status, the AccountingQueue record and the entry of
+    store_sync_list. The Accounting System gets it later (IR-06).
+  end note
+  opt card refund (CARD_REFUNDED or PENDING)
+    H -> Repo : addRefundStatus(refundID, state, reference)
+    note right of Repo
+      PENDING: listed on S-02 (findPendingRefunds, FR-77);
+      checkRefundStatus asks again later. Nothing is paid in cash.
+    end note
+  end
+  H -> Pr : print(receipt)
+  Pr --> H : READY, NO_PAPER or ERROR
+  H --> Ctl : refund state, receipt number
+  [<-- Ctl : 200 CASH_PAID, CARD_REFUNDED or PENDING;\nrental return receipt (S-06)
+else NEEDS_APPROVAL (card declined, or check)
+  note over H, RR
+    No cash is paid and nothing is saved yet: the Refund stays unpaid (Contract 28).
+  end note
+  H --> Ctl : NEEDS_APPROVAL, reason
+  [<-- Ctl : 200 NEEDS_APPROVAL, D-01 opens
+  ref over Ctl, RR
+    approveCashRefund(managerID, pin, reason): the same operation as in UC2 (Contract 9),
+    see the design sequence diagram of UC2. ManagerApproval checks the store manager,
+    CashPaymentMethod opens the drawer, then the completion above.
+  end ref
+end
+
+legend bottom left
+  **GRASP**
+  Controller: RentalReturnController and RentalReturnHandler, as in the other UC5 diagrams.
+  Polymorphism, Protected Variations: the refund goes through PaymentMethod (AD-08), so a new tender changes no handler (NFR-09).
+  Creator: RentalReturn creates its Refund and its AccountingRecord, because it has their data.
+  Information Expert: Rental closes itself and sets the status of its item; RentalReturn knows the refund amount and the tender of the rental.
+  Low Coupling, Indirection: the handler sees only interfaces (PaymentService, CashDrawer, TransactionRepository, ReceiptPrinter);
+  the timeouts are in the adapters and the fallbacks in the handler (AD-07).
+endlegend
+@enduml
