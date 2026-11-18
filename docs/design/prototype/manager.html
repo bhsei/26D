@@ -24,7 +24,7 @@
           <button class="tab" id="tab-4" onclick="show(4)">Catalog import</button>
         </div>
 
-        <!-- M-01: FR-68, FR-19, BR-09 -->
+        <!-- M-01: FR-68, FR-19, BR-09 (the rental conflicts of M-01 are not shown) -->
         <div class="panel grow" id="m-1">
           <h2>Products to reorder or to check</h2>
           <table>
@@ -45,7 +45,7 @@
           <div id="review-msg" class="msg msg-ok hidden" style="margin-top:12px"></div>
         </div>
 
-        <!-- M-03: FR-69, FR-70, IR-05, IR-09 -->
+        <!-- Settings tab: M-03 (FR-69, IR-05) and M-05 (FR-70, IR-09) -->
         <div class="panel grow hidden" id="m-3">
           <h2>Default tax rate</h2>
           <div class="row">
@@ -54,6 +54,7 @@
           </div>
           <div id="rate-msg" class="msg hidden"></div>
 
+          <!-- M-05 -->
           <h2 style="margin-top:24px">Disable an employee in the local list</h2>
           <div class="row">
             <div class="field"><label for="emp">Employee ID</label><input id="emp" type="text" placeholder="E-1055"></div>
@@ -78,6 +79,7 @@
       </div>
 
       <div class="right">
+        <!-- M-06: FR-76 -->
         <div class="panel">
           <h2>Accounting System queue</h2>
           <div class="status-list">
@@ -100,7 +102,7 @@
     <div class="demo">
       <strong>Prototype:</strong>
       <label><input type="checkbox" id="db-toggle" onchange="setFlag('db_offline', this.checked); render()"> Store database offline</label>
-      <span>Screens M-01 to M-04, opened after D-01. Each action uses the manager ID and PIN given in D-01.</span>
+      <span>Screens M-01 to M-06, opened after D-01 (M-03 and M-05 in Settings, M-06 on the right). Each action uses the manager ID and PIN given in D-01.</span>
     </div>
   </div>
 
