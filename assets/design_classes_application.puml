@@ -1,0 +1,113 @@
+@startuml
+' NewEra POS - Design class diagram, skeleton 1 of 3: controllers and application layer (names only), W11
+' Team D - editable source of assets/design_classes_application.png
+' Render with: java -jar plantuml.jar -tpng -charset UTF-8 assets/design_classes_application.puml
+' Sources: logical view (architecture.md 4.2), domain model v0.7, AD-08, system_interfaces.md v0.5.
+' The skeleton has class names, packages and the main links. Attributes and methods are added from the
+' design sequence diagrams (Mon 23 Nov). The UI screens are in assets/ui_classes.puml (ui_design.md 4).
+
+set separator none
+skinparam shadowing false
+skinparam dpi 110
+skinparam defaultFontName Arial
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam nodesep 25
+skinparam ranksep 55
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #B8A04A
+skinparam class {
+  BackgroundColor<<controller>> #EAF6EA
+  BorderColor<<controller>> #2E7D32
+  BackgroundColor<<handler>> #F4F8FD
+  BorderColor<<handler>> #1F4E79
+  BackgroundColor<<payment>> #EAF1FB
+  BorderColor<<payment>> #1F4E79
+  BackgroundColor<<domain>> #FFFFFF
+  BorderColor<<domain>> #666666
+}
+hide circle
+hide members
+
+title NewEra POS - Design class diagram (skeleton 1 of 3): controllers and application layer
+
+package "ui.api" {
+  class SessionController <<controller>>
+  class SaleController <<controller>>
+  class ReturnController <<controller>>
+  class RentalController <<controller>>
+  class RentalReturnController <<controller>>
+  class ManagerController <<controller>>
+}
+
+package "application" {
+  class SessionHandler <<handler>>
+  class SaleHandler <<handler>>
+  class ReturnHandler <<handler>>
+  class RentalHandler <<handler>>
+  class RentalReturnHandler <<handler>>
+  class ManagerHandler <<handler>>
+  class ManagerApproval <<handler>>
+  class AccountingSender <<handler>>
+  class PaymentMethods <<payment>>
+  interface PaymentMethod <<payment>>
+  class CashPaymentMethod <<payment>>
+  class CreditCardPaymentMethod <<payment>>
+  class CheckPaymentMethod <<payment>>
+}
+
+package "domain (classes used by the handlers, diagram 2 of 3)" {
+  class CashierSession <<domain>>
+  class Sale <<domain>>
+  class Return <<domain>>
+  class Rental <<domain>>
+  class RentalReturn <<domain>>
+  class Customer <<domain>>
+  class ProductDescription <<domain>>
+  class Item <<domain>>
+  class ProductCatalog <<domain>>
+  class Employee <<domain>>
+  class Payment <<domain>>
+  class Refund <<domain>>
+}
+
+SessionController --> SessionHandler
+SaleController --> SaleHandler
+ReturnController --> ReturnHandler
+RentalController --> RentalHandler
+RentalReturnController --> RentalReturnHandler
+ManagerController --> ManagerHandler
+
+SessionHandler ..> AccountingSender : starts
+SaleHandler ..> ManagerApproval
+ReturnHandler ..> ManagerApproval
+RentalReturnHandler ..> ManagerApproval
+ManagerHandler ..> ManagerApproval
+SaleHandler ..> PaymentMethods
+ReturnHandler ..> PaymentMethods
+RentalHandler ..> PaymentMethods
+RentalReturnHandler ..> PaymentMethods
+PaymentMethods o-- "*" PaymentMethod
+PaymentMethod <|.. CashPaymentMethod
+PaymentMethod <|.. CreditCardPaymentMethod
+PaymentMethod <|.. CheckPaymentMethod
+PaymentMethod ..> Payment : creates
+PaymentMethod ..> Refund : creates
+
+SessionHandler ..> CashierSession
+SaleHandler ..> Sale
+SaleHandler ..> ProductDescription
+ReturnHandler ..> Return
+RentalHandler ..> Rental
+RentalHandler ..> Customer
+RentalHandler ..> Item
+RentalReturnHandler ..> RentalReturn
+ManagerHandler ..> ProductCatalog
+ManagerHandler ..> Employee
+
+note bottom of AccountingSender
+  The handlers, ManagerApproval and AccountingSender also use the
+  interfaces of application.interfaces (diagram 3 of 3).
+  The screens are in assets/ui_classes.puml (ui_design.md 4).
+end note
+@enduml
