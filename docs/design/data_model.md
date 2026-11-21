@@ -3,8 +3,8 @@
 | | |
 | --- | --- |
 | **Maintainer** | Borja Nicolás |
-| **Version** | 0.2 (draft for review; after review #59) |
-| **Last updated** | W10 |
+| **Version** | 0.3 (draft for review; `REJECTED` records of the Accounting queue, review #60) |
+| **Last updated** | W11 |
 | **Part of** | Increment 2 (Design): data view ([architecture.md](architecture.md) §4.5), decision records AD-05 and AD-06 |
 
 ## 1. Purpose
@@ -69,7 +69,7 @@ The overdue status of a rental is not stored: it is calculated from `due_date` a
 | Table | Meaning | Main columns | Where | Requirements |
 | --- | --- | --- | --- | --- |
 | `sync_conflict` | Two rentals of the same item that were found when an offline register sent its transactions (AD-05). For the store manager. | `conflict_id` (PK), `kind`, `serial_number` (FK), `transaction_id` (FK), `other_transaction_id` (FK), `found_at`, `is_resolved` | Store database only | DC-09, BR-11 |
-| `accounting_queue` | The queue for the Accounting System (AD-06). A row is deleted after the acknowledgement. | `seq` (PK, the order), `transaction_id` (FK, unique), `payload`, `queued_at`, `attempts`, `last_attempt_at` | Local database only | DR-12, IR-06, IR-07 |
+| `accounting_queue` | The queue for the Accounting System (AD-06). A row is deleted after the acknowledgement `RECEIVED`. A record that the Accounting System refuses stays first with the status `REJECTED` and the reason (AD-06). | `seq` (PK, the order), `transaction_id` (FK, unique), `payload`, `queued_at`, `attempts`, `last_attempt_at`, `status` (`WAITING` or `REJECTED`), `rejected_reason` | Local database only | DR-12, IR-06, IR-07 |
 | `store_sync_list` | The records waiting for the store database (AD-05), in the order made: a transaction, a cashier session (when it opens and when it closes), a new refund status, or the removal of a hold. A row is marked as sent after the store database has committed it. | `seq` (PK), `kind` (`TRANSACTION`, `SESSION`, `REFUND_STATUS`, `HOLD_RELEASE`), `record_id`, `queued_at`, `sent_at` | Local database only | DC-09, DR-13 |
 | `open_authorization` | A card payment that the Payment Service has authorized and whose transaction is not completed yet; it is voided at start-up after a crash (IR-15). Deleted when the transaction is saved or the authorization is voided. | `transaction_id` (PK), `payment_reference`, `created_at` | Local database only | IR-15, IR-03 |
 | `employee_copy` | Local copy of the employee list of the HR System | `employee_id` (PK), `name`, `role`, `is_active`, `pin_hash`, `pin_salt`, `updated_at` | Local database only | DR-11, IR-09 |
@@ -131,5 +131,5 @@ The register connects to the store database with one user. The rule of DR-04 is 
 ## 7. Open points
 
 1. The size of the local database with 90 days of transactions has not been measured; it is checked with the performance test of NFR-01 and NFR-02 (10,000 products).
-2. The data model has no table for the repair of an item (DR-02): the SRS has no function for it yet (domain model §7.3, gap 1). The pending card refund (domain model §7.3, gap 2) is covered since FR-77 by `refund_status`.
+2. The data model has no table for the repair of an item (DR-02): the SRS has no function for it yet (domain model §7.5, gap 1). The pending card refund (domain model §7.5, gap 2) is covered since FR-77 by `refund_status`.
 3. The columns and the keys are the logical design. Indexes, the exact column types of PostgreSQL and SQLite and the schema script are written in the detailed design (W11).

@@ -218,6 +218,8 @@ entity "accounting_queue" as accounting_queue <<local>> #FFF1E0;line:C26A00 {
   * queued_at : timestamp
   * attempts : integer
   last_attempt_at : timestamp
+  * status : text <<WAITING, REJECTED>>
+  rejected_reason : text
 }
 
 entity "store_sync_list" as store_sync_list <<local>> #FFF1E0;line:C26A00 {
