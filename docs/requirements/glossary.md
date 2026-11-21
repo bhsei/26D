@@ -5,8 +5,8 @@
 | | |
 | --- | --- |
 | **Maintainer** | Avni Oflaz |
-| **Version** | 0.6 |
-| **Last updated** | W09 |
+| **Version** | 0.7 |
+| **Last updated** | W11 |
 | **Part of** | SRS (Assignment 1), ISO/IEC/IEEE 29148 |
 
 ### Version history
@@ -19,6 +19,7 @@
 | 0.4 | Reviews #36 and #50 (B-D04, B-D17): BR-12 states the accepted risk of a new customer ID. The business rules are defined in SRS section 3.10; this file is informative. |
 | 0.5 | Open questions 1 and 9 decided in W09: refund period 30 days (BR-07), no tax on the deposit (BR-10), rental periods (BR-15), late fee (BR-16), cash difference limit (BR-17); new terms *Cash difference* and *Session to review*. |
 | 0.6 | Open questions 3 and 7 decided in W09 (SRS section 5.3): one tender per sale or rental (BR-18); no discounts or promotions in this version (open question 6). |
+| 0.7 | Open question 5 decided in W11 (SRS section 5.3): *Customer ID* says how it is made and that it is printed on the rental receipt. |
 
 ## 1. Purpose
 
@@ -41,7 +42,7 @@ Terms are sorted alphabetically. Where two words mean the same thing, the prefer
 | **Cashier session** | The period between a cashier's login and logout on one register. Every transaction in the session is linked to that cashier. |
 | **Change due** | Amount returned to the customer when the cash tendered is greater than the total. |
 | **Customer** | Person who buys, returns or rents items at the store. The customer is a stakeholder, not an actor: they never use the register and act only through the cashier. |
-| **Customer ID** | Unique code of a customer who rents items, entered by the cashier at the start of a rental. Of a customer, only the customer ID and the data needed to find open and overdue rentals are stored (DR-18). |
+| **Customer ID** | Unique code of a customer who rents items, created by the POS when a new customer is registered (register ID and a counter, for example `R02-000017`) and entered or scanned by the cashier at the start of a rental. It is printed on the rental receipt as text and as a barcode, which is where the customer finds it (FR-39). Of a customer, only the customer ID and the data needed to find open and overdue rentals are stored (DR-18). |
 | **Default tax rate** | A tax rate stored locally and used only when the Tax Calculator is unavailable (see BR-02). |
 | **Deposit** | Refundable amount paid by the customer when renting an item, kept as a guarantee until the rental return. |
 | **Due date** | Date by which a rented item must be returned. |
