@@ -1,0 +1,66 @@
+@startuml
+' NewEra POS - State diagram of a cashier session (DR-09, UC4), W11
+' Team D - editable source of assets/state_cashier_session.png
+' Render with: java -jar plantuml.jar -tpng -charset UTF-8 assets/state_cashier_session.puml
+' Sources: SRS UC4, FR-47, FR-60 to FR-63, FR-74, FR-75, DR-09, BR-17, contracts 16 to 21 and 29, AD-05.
+
+skinparam shadowing false
+skinparam dpi 130
+skinparam defaultFontName Arial
+skinparam ArrowColor #444444
+skinparam StateBorderColor #1F4E79
+skinparam StateBackgroundColor #EAF1FB
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #B8A04A
+skinparam StateStartColor #444444
+skinparam StateEndColor #444444
+
+title NewEra POS - State diagram: life of a cashier session
+
+state "Open" as Open
+state "Closing" as Closing {
+  state "Counting\n(drawer open)" as Counting
+  state "Difference shown" as Shown
+  [*] --> Counting
+  Counting --> Shown : enterClosingCash(amount)\nvalid amount (FR-61, FR-62)
+  Counting --> Counting : invalid amount (UC4 ext. 3a)
+}
+state "Closed" as Closed
+state "Closed, to review" as ToReview
+state "Reviewed" as Reviewed
+state "Interrupted" as Interrupted
+
+[*] --> Open : logIn(employeeID, pin) and\nenterOpeningCash(amount)\n(UC4 steps 6-9, FR-47)
+Open --> Open : closeSession() refused while a sale,\nreturn, rental or rental return\nis open (FR-60, UC4 ext. 2a)
+Open --> Closing : closeSession()\n(FR-60)
+Shown --> Closed : confirmCloseSession(),\ndifference up to 5.00 (BR-17)\nend time recorded (FR-63)
+Shown --> ToReview : confirmCloseSession(),\ndifference larger than 5.00,\nplus or minus (FR-74, BR-17)
+ToReview --> Reviewed : confirmSessionReview(managerID,\npin, reason) (FR-75, Contract 29)\nneeds the store database
+Open --> Interrupted : failure; found at the next startUp():\nend time = time of the start-up, no\nclosing cash (FR-63, Contract 16)
+Closing --> Interrupted : failure; as above
+Closed --> [*]
+Reviewed --> [*]
+Interrupted --> [*]
+
+note right of Open
+  Every transaction refers to exactly one
+  cashier session (DR-09).
+end note
+
+note bottom of ToReview
+  The session is in the list of sessions to review of every
+  store manager. The review (reviewer, time, reason) is written in the
+  store database and copied back to the register (AD-05).
+end note
+
+note bottom of Interrupted
+  An interrupted session is not to review: it has no closing cash
+  and no difference. Open transactions are recovered at the same
+  start-up (IR-15).
+end note
+
+note left of Closed
+  The register sends the session to the store database when
+  it opens and again when it ends (record SESSION, AD-05).
+end note
+@enduml

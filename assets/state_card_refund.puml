@@ -1,0 +1,68 @@
+@startuml
+' NewEra POS - State diagram of a refund (UC2 and UC5 step 9, card refund), W11
+' Team D - editable source of assets/state_card_refund.png
+' Render with: java -jar plantuml.jar -tpng -charset UTF-8 assets/state_card_refund.puml
+' Sources: SRS UC2 and UC5 ext. 9a to 9c, FR-25, FR-26, FR-55, FR-77, BR-08, AD-07, system_interfaces.md 3.7, data model (refund_status).
+' The states in capitals are the values of refund_status.status and of the "refund" field of the system API.
+
+skinparam shadowing false
+skinparam dpi 130
+skinparam defaultFontName Arial
+skinparam ArrowColor #444444
+skinparam StateBorderColor #1F4E79
+skinparam StateBackgroundColor #EAF1FB
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #B8A04A
+skinparam StateStartColor #444444
+skinparam StateEndColor #444444
+
+title NewEra POS - State diagram: refund of a return or a rental return
+
+state "Choosing the tender\n(of the original transaction)" as Choose
+state "Sending the card refund" as Sending
+state "Asking the refund status\n(same transaction ID)" as Asking
+state "PENDING" as Pending
+state "NEEDS_APPROVAL" as Needs
+state "CARD_REFUNDED" as Card
+state "CASH_PAID" as Cash
+state "Discarded" as Discarded
+
+[*] --> Choose : confirmReturn() or confirmRentalReturn()\n(UC2 step 9, UC5 step 9)
+Choose --> Cash : paid in cash (UC2 ext. 9a):\nthe drawer opens (IR-14)
+Choose --> Sending : paid by credit card (ext. 9b)
+Choose --> Needs : paid by check (ext. 9c, Could)
+
+Sending --> Card : refund APPROVED:\nreference recorded (9b)
+Sending --> Needs : refund DECLINED (9b2a)
+Sending --> Asking : no answer within 10 s (9b2b)
+Asking --> Card : status APPROVED
+Asking --> Needs : status DECLINED:\nrefund failed or unknown
+Asking --> Pending : still no answer:\nnothing is paid (9b2b step 4)
+
+Pending --> Asking : checkRefundStatus()\n(the cashier asks again, FR-77)
+Needs --> Cash : approveCashRefund(managerID, pin, reason)\nthe manager and the reason are recorded (FR-25)
+Needs --> Discarded : the manager does not approve,\nreturn not yet saved (ext. 8a)
+
+Card --> [*]
+Cash --> [*]
+Discarded --> [*]
+
+note right of Pending
+  The return or rental return is already saved and complete:
+  the item is back, the refund waits. No cash is paid until
+  the refund is known to have failed (FR-26, FR-55).
+  The refund is in the list of pending refunds (FR-77).
+end note
+
+note bottom of Needs
+  A saved return whose pending refund turns out to have failed
+  stays in NEEDS_APPROVAL until a store manager approves it
+  from the pending refund mode of S-07 or S-09.
+end note
+
+note bottom of Card
+  Each change of state is a new row of refund_status (data model v0.2):
+  the row of the refund itself never changes (DR-04).
+  The refund is never paid twice (the same transaction ID, AD-07).
+end note
+@enduml

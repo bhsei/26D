@@ -3,8 +3,8 @@
 | | |
 | --- | --- |
 | **Maintainer** | Borja Nicolás |
-| **Version** | 0.7 (draft for review; attributes of the session review for Contract 29) |
-| **Last updated** | W09 |
+| **Version** | 0.8 (draft for review; state diagrams of the cashier session and of the refund) |
+| **Last updated** | W11 |
 | **Part of** | Increment 2 (Design), input to the SRS section 3.5, the [system sequence diagram](system_sequence_diagrams.md) and the [operation contracts](operation_contracts.md) |
 
 ## 1. Purpose
@@ -95,9 +95,9 @@ The four external systems (Payment Service, Tax Calculator, Accounting System, H
 6. **One tender (decided in W09).** BR-18: a sale or a rental is paid with one tender, so the multiplicity Transaction–Payment is 1 – 0..1 and not 1 – *. A customer who cannot pay the whole total with one tender pays it with another one.
 7. **Opening cash and logout.** `endTime` of the session is filled only if the team adds a way to end the session (see the review of the SRS: no function ends a cashier session).
 
-## 7. State diagrams (W09)
+## 7. State diagrams (W09, W11)
 
-The state diagrams show how the **status of an item** and the **life of a rental** change, and which use case or requirement causes each change. They answer the review findings B-D03 and B-D19 (review #50) and use the names of this model (`Item.status`, `Rental`, `RentalReturn`). Their source is the SRS: DR-02, DR-06, DR-07, UC3, UC5 and the business rules BR-11, BR-12, BR-15 and BR-16.
+The state diagrams show how the **status of an item**, the **life of a rental**, the **cashier session** and the **refund** of a return change, and which use case or requirement causes each change. The first two answer the review findings B-D03 and B-D19 (review #50) and use the names of this model (`Item.status`, `Rental`, `RentalReturn`); the other two (W11) use the names of the system API ([system interfaces](system_interfaces.md) §3.7) and of the data model (`refund_status`). Their source is the SRS: DR-02, DR-06, DR-07, DR-09, UC2 to UC5, FR-25, FR-26, FR-55, FR-60 to FR-63, FR-74, FR-75, FR-77 and the business rules BR-11, BR-12, BR-15, BR-16 and BR-17.
 
 ### 7.1 Status of an item
 
@@ -118,12 +118,53 @@ The state diagrams show how the **status of an item** and the **life of a rental
 
 *Editable source: [`assets/state_rental.puml`](../../assets/state_rental.puml) (PlantUML).*
 
-A rental is **not saved** while it is being created: it exists from the payment (UC3 step 15). *Overdue* is **calculated** from the due date and the current date and is not stored (DR-06); a customer with an overdue rental cannot start a new rental (BR-12). The rental changes to *Return in progress* when the Cashier identifies it in UC5 step 5 (`findRental` or `selectRental`), not at `makeNewRentalReturn()`, when no rental is known yet. A rental return that is cancelled or interrupted by a failure leaves the rental as it was (UC5 ext. 8a and \*a): *Open*, or *Overdue* if the due date has passed (BR-12 still applies). When the Payment Service does not answer and the refund status is not known, the rental return is saved and the rental is closed with the refund *pending* (UC5 ext. 9b2b).
+A rental is **not saved** while it is being created: it exists from the payment (UC3 step 15). *Overdue* is **calculated** from the due date and the current date and is not stored (DR-06); a customer with an overdue rental cannot start a new rental (BR-12). The rental changes to *Return in progress* when the Cashier identifies it in UC5 step 5 (`findRental` or `selectRental`), not at `makeNewRentalReturn()`, when no rental is known yet. A rental return that is cancelled or interrupted by a failure leaves the rental as it was (UC5 ext. 8a and \*a): *Open*, or *Overdue* if the due date has passed (BR-12 still applies). When the Payment Service does not answer and the refund status is not known, the rental return is saved and the rental is closed with the refund *pending* (UC5 ext. 9b2b); it leaves that state when the refund is confirmed or paid in cash after approval (§7.4, FR-77).
 
-### 7.3 Gaps found in the SRS
+### 7.3 Cashier session
 
-Drawing the diagrams showed three points that the SRS does not cover yet. They are proposed to the owners of the SRS for version 1.2; until then the diagrams say so in a note.
+![State diagram of a cashier session](../../assets/state_cashier_session.png)
+
+*Editable source: [`assets/state_cashier_session.puml`](../../assets/state_cashier_session.puml) (PlantUML).*
+
+| Transition | Caused by | Requirement |
+| --- | --- | --- |
+| (start) → Open | A valid cashier logs in and enters the opening cash (UC4 steps 6 to 9) | FR-47, DR-09 |
+| Open → Closing | The cashier closes the session; refused while a sale, return, rental or rental return of the session is open | FR-60 |
+| Closing → Closed | The closing cash is valid and the difference is 5.00 or less; the end time is recorded | FR-61 to FR-63, BR-17 |
+| Closing → Closed, to review | The difference is larger than 5.00, plus or minus | FR-74, BR-17 |
+| Closed, to review → Reviewed | A store manager enters the reason and confirms the review (needs the store database) | FR-75, Contract 29 |
+| Open or Closing → Interrupted | A failure; found at the next start-up, which sets the end time and records no closing cash | FR-63, Contract 16 |
+
+An interrupted session has no closing cash and no difference, so it is never *to review*. Only one session is open on a register, and every transaction refers to exactly one session (DR-09).
+
+### 7.4 Refund of a return or a rental return
+
+![State diagram of a refund](../../assets/state_card_refund.png)
+
+*Editable source: [`assets/state_card_refund.puml`](../../assets/state_card_refund.puml) (PlantUML).*
+
+The states in capitals are the values of `refund_status.status` and of the `refund` field of the system API; each change is a new row of `refund_status`, and the row of the refund itself never changes (DR-04). The diagram is the same for UC2 and UC5 (ext. 9a to 9c).
+
+| Transition | Caused by | Requirement |
+| --- | --- | --- |
+| Choosing the tender → CASH_PAID | The original transaction was paid in cash; the drawer opens | FR-25, IR-14 |
+| Choosing the tender → Sending the card refund | The original transaction was paid by credit card | FR-26 |
+| Sending → CARD_REFUNDED | The Payment Service approves the refund; its reference is recorded | FR-26 |
+| Sending → NEEDS_APPROVAL | The Payment Service declines the refund (no cash is paid) | FR-25 |
+| Sending → Asking the refund status | The Payment Service does not answer within 10 s | FR-26, AD-07 |
+| Asking → CARD_REFUNDED or NEEDS_APPROVAL | The status is *approved*, or *failed or unknown to the Payment Service* | FR-26, FR-55 |
+| Asking → PENDING | The status is still not known; nothing is paid | FR-26, FR-55 |
+| PENDING → Asking | The cashier asks for the status again from the list of pending refunds | FR-77 |
+| (check) → NEEDS_APPROVAL | The original transaction was paid by check: cash only with approval | FR-25 |
+| NEEDS_APPROVAL → CASH_PAID | A store manager approves a cash refund; the manager and the reason are recorded | FR-25, FR-55 |
+| NEEDS_APPROVAL → Discarded | The store manager does not approve, and the return is not yet saved (UC2 ext. 8a) | UC2 ext. 9b2a |
+
+A return that is already saved (the pending case) stays in NEEDS_APPROVAL until a store manager approves the cash refund from the *pending refund* mode of S-07 or S-09. The refund is never paid twice, because every request uses the same transaction ID (AD-07).
+
+### 7.5 Gaps found in the SRS
+
+Drawing the diagrams showed three points that the SRS did not cover. Point 2 is closed since SRS v1.3 (FR-77); points 1 and 3 are still open.
 
 1. **Repair of an item.** DR-02 says that a store manager confirms the change from *Under maintenance* to *Available*, but no functional requirement describes this function.
-2. **Pending refund.** UC5 ext. 9b2b says that a store manager completes a pending refund later, and FR-26 and FR-55 keep the refund pending, but no functional requirement describes how a store manager completes it (UC2 and UC5).
+2. ~~**Pending refund.**~~ Closed (SRS v1.3, FR-77, W10): the cashier asks the Payment Service again for the status of a pending refund; if it turns out to have failed, a store manager approves a cash refund (FR-25, FR-55). The state diagram of the refund (§7.4) shows it.
 3. **Item that is never returned.** The SRS keeps it as an open point (section 3.5): the item stays *Rented* and the rental stays *Overdue*, so the customer is blocked (BR-12) and the deposit is not settled. The status transitions of a lost or stolen item depend on the answer of the store manager (interview before W11).

@@ -2,7 +2,7 @@
 ' NewEra POS - State diagram of a rental (DR-06, DR-07), W09
 ' Team D - editable source of assets/state_rental.png
 ' Render with: java -jar plantuml.jar -tpng assets/state_rental.puml
-' Sources: SRS UC3, UC5, DR-06, DR-07, BR-11, BR-12, BR-15, BR-16 (review #50, B-D03 and B-D19).
+' Sources: SRS UC3, UC5, DR-06, DR-07, BR-11, BR-12, BR-15, BR-16, FR-77 (review #50, B-D03 and B-D19; W11: pending refund).
 
 skinparam shadowing false
 skinparam dpi 130
@@ -35,7 +35,7 @@ Returning --> Open : cancelled (UC5 ext. 8a, FR-56) or crash,\ndue date not pass
 Returning --> Overdue : cancelled (UC5 ext. 8a, FR-56) or crash,\ndue date passed: the rental stays as it was
 Returning --> Closed : rental return confirmed and\nrefund paid or card refund made\n(UC5 steps 9-10, FR-57)
 Returning --> Pending : confirmed, but the Payment Service\ngives no answer and the refund status\nis not known (UC5 ext. 9b2b)
-Pending --> Closed : a store manager completes the refund
+Pending --> Closed : the refund is confirmed (checkRefundStatus, FR-77)\nor paid in cash after a store manager approved it\n(state diagram of the refund)
 Closed --> [*]
 
 note right of Open
@@ -53,7 +53,7 @@ end note
 note bottom of Pending
   The item status changes at the confirmation: Available or Under maintenance
   (see the state diagram of the item status).
-  The refund is never paid twice. The function with which the
-  store manager completes the refund has no FR yet.
+  The refund is never paid twice. The cashier asks the Payment Service
+  again with checkRefundStatus (FR-77, state diagram of the refund).
 end note
 @enduml
