@@ -97,7 +97,7 @@ package "domain.catalog" {
   class Item {
     - serialNumber : String
     - status : ItemStatus
-    + isAvailable() : ItemStatus «new»
+    + status() : ItemStatus «new»
     + description() : ProductDescription
   }
 }
