@@ -1,0 +1,74 @@
+@startuml dsd_uc2_checkRefundStatus
+' NewEra POS - Design sequence diagram, UC2 Handle Returns: checkRefundStatus() (card refund still pending, FR-26 and FR-77), W11
+' Team D - editable source of assets/dsd_uc2_checkRefundStatus.png
+' Render with: java -jar plantuml.jar -charset UTF-8 -tpng assets/dsd_uc2_checkRefundStatus.puml
+' Participants: logical view (architecture.md 4.2). Operations: system_interfaces.md 3.3, 3.7, 4.1 to 4.3; AD-05, AD-07, AD-08, AD-09.
+' Messages marked <<new>> are not in the logical view or in system_interfaces.md yet (sent to Borja for the design class diagram).
+title DSD UC2 Handle Returns - checkRefundStatus() (card refund still pending, FR-26 and FR-77)
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam sequenceMessageAlign left
+skinparam ParticipantPadding 8
+skinparam BoxPadding 6
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B7791F
+skinparam maxMessageSize 190
+hide footbox
+box "ui.api" #EAF2E3
+  participant "ctrl:ReturnController" as C
+end box
+box "application" #E8EEF7
+  participant "h:ReturnHandler" as H
+end box
+box "domain" #FFF7E0
+  participant "r:Return" as R
+  participant "f:Refund" as F
+end box
+box "application.interfaces" #F6EDF7
+  participant ":Transaction\nRepository" as TR
+  participant ":PaymentService" as PAY
+end box
+
+== checkRefundStatus() for one return ==
+[-> C : GET /api/returns/{returnID}/refund
+C -> H : checkRefundStatus()
+H -> TR : find(returnID)
+TR --> H : r
+H -> R : refund()
+R --> H : f
+alt f is not PENDING
+  H --> C : f.state (CARD_REFUNDED or NEEDS_APPROVAL, nothing to ask)
+  C -->[ : 200 state
+else f is PENDING
+  H -> PAY : refundStatus(r.transactionID)
+  note right of PAY : the same transaction ID as the refund (IR-02); 10 s timeout in the adapter (AD-07)
+  alt APPROVED
+    PAY --> H : APPROVED, reference
+    H -> F : setState(CARD_REFUNDED, reference) <<new>>
+    H -> TR : addRefundStatus(f.id, CARD_REFUNDED, reference)
+    note right of TR : new row of refund_status, insert only; also queued for the store database
+    H --> C : CARD_REFUNDED
+    C -->[ : 200 CARD_REFUNDED
+  else DECLINED (the refund failed or is unknown to the Payment Service)
+    PAY --> H : DECLINED
+    H -> F : setState(NEEDS_APPROVAL) <<new>>
+    H -> TR : addRefundStatus(f.id, NEEDS_APPROVAL, null)
+    H --> C : NEEDS_APPROVAL
+    C -->[ : 200 NEEDS_APPROVAL: the cashier can ask a store manager (approveCashRefund)
+  else NOT_AVAILABLE
+    PAY --> H : NOT_AVAILABLE
+    H --> C : PENDING
+    C -->[ : 200 PENDING "Not confirmed yet, ask again later"
+  end
+end
+
+note over H
+  The return was completed when it was confirmed (confirmReturn), so this operation changes only the state of the refund.
+  The same steps serve UC5 with RentalReturnHandler (checkRefundStatus on /api/rental-returns/{id}/refund).
+  GRASP
+  Information Expert: Refund keeps its own state. Controller: the handler asks the Payment Service, the controller does not.
+  Indirection, Protected Variations: PaymentService hides the Payment Service; NOT_AVAILABLE is an answer, not an error (AD-07).
+  The list of pending refunds of S-02 (listPendingRefunds, FR-77) only reads TransactionRepository.findPendingRefunds; it is not drawn here (open point).
+end note
+@enduml
