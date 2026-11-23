@@ -75,8 +75,8 @@ The column *Operation* gives the name of the system operation in the SSD; *Contr
 | `endSale()` | `POST /api/sales/{saleID}/end` | Subtotal, tax, total; `"taxToBeCorrected": true` when the default tax rate was used. `409` sale without lines | 3 | FR-08, FR-18, IR-04, IR-05 |
 | `makePayment(amount, tenderType)` | `POST /api/sales/{saleID}/payment` `{"tenderType": "CASH" \| "CREDIT_CARD" \| "CHECK", "amount"}` | `"result"`: `APPROVED` (with change due for cash, last 4 digits and authorization code for a card, receipt number) · `DECLINED` (reason) · `NOT_AVAILABLE` (retry allowed) · `CARD_NOT_READ` (card reader error: read the card again or use another tender; no payment and no void needed, 9b1a). `422` cash lower than the total, or a card or check amount different from the total · `409` sale not ended or already paid | 4 | FR-09–FR-16, FR-71, IR-01, IR-02, IR-06, BR-18 |
 | `cancelSale()` | `DELETE /api/sales/{saleID}` | Sale cancelled, no change in the stock levels. `409` already paid | – | FR-07 |
-| `reprintReceipt()` | `POST /api/receipts/{receiptNumber}/print` | Printer status | – | FR-17, FR-29, IR-13 |
-| `reprintLastReceipt()` | `POST /api/receipts/last/print` | The last receipt of this register is printed again (kept in `register_state`); printer status. `404` no receipt yet in this session | – | FR-17, IR-13 |
+| `reprintReceipt(receiptNumber)` | `POST /api/receipts/{receiptNumber}/print` (S-06, `SessionController`) | Printer status | – | FR-17, FR-29, IR-13 |
+| `reprintLastReceipt()` | `POST /api/receipts/last/print` (S-02, `SessionController`) | The last receipt of this register is printed again (kept in `register_state`); printer status. `404` no receipt yet in this session | – | FR-17, IR-13 |
 | `getAvailableTenders()` | `GET /api/tenders` | The tenders of the configuration (AD-08): cash, credit card and, if enabled, check, each one with `available` (false for a card when the Payment Service is `NOT_AVAILABLE` in `getSystemStatus()`, so the cashier sees it but can still retry). The same answer for a sale, a rental and a rental return | – | FR-09–FR-12, AD-08 |
 
 One payment per sale (BR-18): after `DECLINED` or `NOT_AVAILABLE` no payment is created, and the screen sends a new `makePayment` with the same or another tender; the sale keeps the same transaction ID. When the cashier gives up a card payment after `NOT_AVAILABLE` (another tender or `cancelSale`), the POS first sends `voidAuthorization` with that transaction ID, so a late approval can never charge the customer (AD-07, IR-15).
@@ -140,7 +140,7 @@ The store database is the master of the settings, the catalog, the stock differe
 | `disableEmployee(employeeID, managerID, pin)` | `PUT /api/employees/{employeeID}/local-status` `{"active": false, "manager"}` | Employee disabled in the local list, who did it and when. The mark is kept after a refresh of the list (§4.3) | FR-70, IR-09 |
 | `enableEmployee(employeeID, managerID, pin)` | `PUT /api/employees/{employeeID}/local-status` `{"active": true, "manager"}` | The local mark is removed; the employee is active again if the HR System says so | FR-70, IR-09 |
 | `listSessionsToReview(managerID, pin)` * | `POST /api/manager/sessions-to-review` `{"manager", "limit", "offset"}` | Sessions of all registers with a cash difference larger than 5.00 | FR-74 |
-| `confirmSessionReview(sessionID, managerID, pin, reason)` * | `POST /api/sessions/{sessionID}/review` `{"reason", "manager"}` | Review recorded (Contract 29) | FR-75 |
+| `confirmSessionReview(sessionID, managerID, pin, reason)` * | `POST /api/sessions/{sessionID}/review` `{"reason", "manager"}` | Review recorded (Contract 29). `409` the session is not waiting for review (already reviewed, or no difference above the limit) | FR-75 |
 | `getAccountingQueueStatus(managerID, pin)` | `POST /api/manager/accounting-queue` `{"manager"}` | Number of records waiting for the Accounting System, time the oldest has waited, and the warning when it is older than the configured limit; if the first record was refused (`REJECTED`, §4.1), its transaction ID and the reason, because it blocks the queue | FR-76, AD-06 |
 | `importCatalog(file, managerID, pin)` * | `POST /api/catalog/imports` (file + `"manager"`) | Number of products imported, or the fields that are missing or not valid (the previous catalog is kept). `409` store database not available (AD-05) | IR-17 |
 
@@ -294,7 +294,8 @@ public interface SessionRepository {                              // cashier_ses
 }
 
 public interface SettingsRepository {                             // settings: local copy of the store database (AD-05)
-    Settings current();                                           // default tax rate, reorder threshold, currency, timeouts
+    Settings current();                                           // default tax rate, reorder threshold, currency, timeouts;
+                                                                  // exportFile() and lastCatalogFile() for the catalog import (IR-17)
 }
 
 public interface ItemRepository {
@@ -305,6 +306,7 @@ public interface ItemRepository {
 
 public interface EmployeeList {
     Optional<EmployeeEntry> find(String employeeID);              // PIN only as a salted hash (DR-11)
+    Optional<DateTime> lastUpdate();                              // time of the last replaceAll; shown when the local list is used (UC4 6c)
     void replaceAll(List<EmployeeEntry> fromHRSystem);            // after every successful employeeList() (FR-46); keeps the local disable marks
     void setLocallyDisabled(String employeeID, boolean disabled, String managerID);  // FR-70
 }
@@ -330,7 +332,8 @@ public interface StoreDatabaseSync {                              // the only cl
     // Store manager functions marked * in §3.6; each answers NOT_AVAILABLE when the store database cannot be reached
     Page<StockDifference> listStockDifferences(int limit, int offset);         // FR-68, FR-19
     Page<SessionToReview> listSessionsToReview(int limit, int offset);         // FR-74
-    StoreResult recordSessionReview(String sessionID, String managerID, String reason);   // FR-75, Contract 29
+    SessionLookup findSessionToReview(String sessionID);                       // Contract 29: TO_REVIEW, NOT_TO_REVIEW or NOT_AVAILABLE
+    StoreResult recordSessionReview(String sessionID, String managerID, String reason);   // FR-75, Contract 29; NOT_TO_REVIEW when already reviewed
     Page<RentalConflict> listRentalConflicts(int limit, int offset);           // sync_conflict
     StoreResult resolveRentalConflict(String conflictID, String managerID, String reason);
     StoreResult changeSetting(String key, String value, String managerID);     // FR-69
