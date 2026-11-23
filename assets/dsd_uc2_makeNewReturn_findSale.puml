@@ -1,0 +1,95 @@
+@startuml dsd_uc2_makeNewReturn_findSale
+' NewEra POS - Design sequence diagram, UC2 Handle Returns: makeNewReturn() and findSale(receiptNumber) (Contracts 5 and 6), W11
+' Team D - editable source of assets/dsd_uc2_makeNewReturn_findSale.png
+' Render with: java -jar plantuml.jar -charset UTF-8 -tpng assets/dsd_uc2_makeNewReturn_findSale.puml
+' Participants: logical view (architecture.md 4.2). Operations: system_interfaces.md 3.3, 3.7, 4.1 to 4.3; AD-05, AD-07, AD-08, AD-09.
+' Messages marked <<new>> are not in the logical view or in system_interfaces.md yet (sent to Borja for the design class diagram).
+title DSD UC2 Handle Returns - makeNewReturn() and findSale(receiptNumber) (Contracts 5 and 6)
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam sequenceMessageAlign left
+skinparam ParticipantPadding 8
+skinparam BoxPadding 6
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B7791F
+skinparam maxMessageSize 190
+hide footbox
+box "ui.api" #EAF2E3
+  participant "ctrl:ReturnController" as C
+end box
+box "application" #E8EEF7
+  participant "h:ReturnHandler" as H
+end box
+box "domain" #FFF7E0
+  participant "session:CashierSession" as CS
+  participant "r:Return" as R
+  participant "s:Sale" as S
+end box
+box "application.interfaces" #F6EDF7
+  participant "repo:Transaction\nRepository" as TR
+  participant "sync:StoreDatabase\nSync" as SY
+end box
+
+== makeNewReturn() (Contract 5) ==
+[-> C : POST /api/returns
+C -> H : makeNewReturn()
+H -> TR : nextTransactionID()
+TR --> H : id (e.g. R02-000154)
+H -> CS : createReturn(id) <<new>>
+CS -> R ** : create(id, session)
+note right of R : isComplete = false\nlinked to the open CashierSession
+CS --> H : r
+H --> C : returnID
+C -->[ : 201 return ID
+
+== findSale(receiptNumber) (Contract 6) ==
+[-> C : PUT /api/returns/{returnID}/sale {receiptNumber}
+C -> H : findSale(receiptNumber)
+H -> TR : find(receiptNumber)
+note right of TR : the receipt number is the transaction ID (data_model.md);\nlocal copy first, so a sale of this register needs no network
+alt found in the local copy
+  TR --> H : s
+else not in the local copy (sale made at another register)
+  TR --> H : none
+  H -> SY : findTransaction(receiptNumber)
+  note right of SY : FR-21, AD-05: asked only when the local copy has no answer;\nthe store database is not on the path of a normal return
+  alt NOT_FOUND, or the transaction is not a sale (4a)
+    SY --> H : NOT_FOUND
+    H --> C : SALE_NOT_FOUND
+    C -->[ : 404 "No sale found with this receipt number" (NFR-14)
+  else NOT_AVAILABLE (the store database does not answer)
+    SY --> H : NOT_AVAILABLE
+    H --> C : SALE_NOT_AVAILABLE <<new>>
+    C -->[ : 409 "The sale is not in this register and the store database does not answer. Try again later."
+  else FOUND
+    SY --> H : s
+  end
+end
+opt s found
+  H -> S : isWithinRefundPeriod(today)
+  note right of S : Information Expert: the sale knows its date;\nthe period is a setting, 30 days (BR-07)
+  alt older than the refund period (5a)
+    S --> H : false
+    H --> C : OUT_OF_PERIOD
+    C -->[ : 409 "This sale is older than the refund period"
+  else within the period
+    S --> H : true
+    H -> TR : returnedQuantities(s.receiptNumber) <<new>>
+    TR --> H : quantity already returned for each line
+    note right of TR : returns of this register; a return of the same sale at another\nregister is known only after the synchronisation (open point)
+    H -> R : setSale(s, returnedQuantities)
+    H --> C : SaleView(lines, bought, already returned, tender)
+    C -->[ : 200 lines of the sale with the quantity bought and already returned, and the tender
+  end
+end
+
+note over H
+  GRASP
+  Controller: ReturnController only receives the request; ReturnHandler runs the use case (AD-01).
+  Creator: CashierSession creates the Return it owns (it holds the open session), as for the Sale in UC1.
+  Information Expert: Sale knows its date and says whether it is within the refund period.
+  Indirection, Protected Variations: TransactionRepository and StoreDatabaseSync are interfaces (DC-02); the handler does not know which one answers.
+  Low Coupling: the controller never calls the repository or the domain.
+end note
+@enduml
