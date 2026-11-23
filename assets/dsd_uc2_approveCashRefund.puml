@@ -1,0 +1,101 @@
+@startuml dsd_uc2_approveCashRefund
+' NewEra POS - Design sequence diagram, UC2 Handle Returns: approveCashRefund(managerID, pin, reason) (Contract 9, shared with UC5), W11
+' Team D - editable source of assets/dsd_uc2_approveCashRefund.png
+' Render with: java -jar plantuml.jar -charset UTF-8 -tpng assets/dsd_uc2_approveCashRefund.puml
+' Participants: logical view (architecture.md 4.2). Operations: system_interfaces.md 3.3, 3.7, 4.1 to 4.3; AD-05, AD-07, AD-08, AD-09.
+' Messages marked <<new>> are not in the logical view or in system_interfaces.md yet (sent to Borja for the design class diagram).
+title DSD UC2 Handle Returns - approveCashRefund(managerID, pin, reason) (Contract 9, shared with UC5)
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam sequenceMessageAlign left
+skinparam ParticipantPadding 8
+skinparam BoxPadding 6
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B7791F
+skinparam maxMessageSize 190
+hide footbox
+box "ui.api" #EAF2E3
+  participant "ctrl:ReturnController" as C
+end box
+box "application" #E8EEF7
+  participant "h:ReturnHandler" as H
+  participant ":ManagerApproval" as MA
+  participant ":PaymentMethods" as PMS
+  participant "cash:CashPayment\nMethod" as PM
+end box
+box "domain" #FFF7E0
+  participant "r:Return" as R
+  participant "f:Refund" as F
+  participant "rli:ReturnLineItem" as RLI
+end box
+box "application.interfaces" #F6EDF7
+  participant ":HRSystem" as HR
+  participant ":EmployeeList" as EL
+  participant ":CashDrawer" as DR
+  participant ":Transaction\nRepository" as TR
+  participant ":ReceiptPrinter" as PRT
+end box
+
+[-> C : POST /api/returns/{returnID}/cash-approval {manager, pin, reason}
+C -> H : approveCashRefund(managerID, pin, reason)
+H -> R : refund()
+R --> H : f
+alt f is not NEEDS_APPROVAL (paid, pending or no refund)
+  H --> C : NOT_WAITING_FOR_APPROVAL
+  C -->[ : 409 "This refund does not need an approval"
+else f waits for approval
+  H -> MA : approve(managerID, pin)
+  note right of MA : one class for every manager approval (price, refund, damage, AD-09);\nthe PIN is only compared, never stored, logged or shown (NFR-08)
+  MA -> HR : checkEmployee(managerID, pin)
+  note right of HR : the adapter applies the 5 s timeout (AD-07)
+  alt HR System answers
+    HR --> MA : EmployeeCheck(valid or not valid, role)
+  else NOT_AVAILABLE (IR-08, FR-44)
+    HR --> MA : NOT_AVAILABLE
+    MA -> EL : find(managerID)
+    EL --> MA : EmployeeEntry (salted hash of the PIN, role, local disable mark)
+    MA -> MA : compare the hash of pin with the saved hash
+  end
+  alt the ID is not an active store manager, or the PIN is not correct
+    MA --> H : DENIED
+    H --> C : DENIED
+    C -->[ : 403 "Not a store manager or wrong PIN" (the cashier can try again, no change)
+  else approved
+    MA --> H : manager (Employee, role StoreManager)
+    H -> F : approve(manager, reason)
+    note right of F : isApproved = true, approvedBy = manager, approvalReason = reason,\ntender = CASH (Contract 9). Information Expert: the Refund changes its own state.
+    H -> PMS : get(CASH)
+    PMS --> H : cash
+    H -> PM : payOut(f.amount, employeeID) <<new>>
+    PM -> DR : open(CASH_REFUND, employeeID)
+    DR --> PM : OPENED (logged, IR-14)
+    PM --> H : CASH_PAID
+    H -> R : complete()
+    loop each ReturnLineItem with condition RESELLABLE
+      R -> RLI : restock()
+    end
+    R --> H : AccountingRecord
+    H -> TR : saveCompleted(r, record)
+    note right of TR : ONE database transaction, as in confirmReturn (AD-05, AD-06)
+    H -> R : getReceipt()
+    R --> H : receipt
+    H -> PRT : print(receipt)
+    PRT --> H : READY (NO_PAPER: saved, reprint later, IR-13)
+    H --> C : CASH_PAID, receiptNumber
+    C -->[ : 200 refund paid in cash, receipt number
+  end
+end
+
+note over H, PM
+  UC5 (Contract 28) uses the same steps with RentalReturnHandler and RentalReturn: ManagerApproval, Refund.approve() and the cash PaymentMethod are shared.
+  The card was declined or the original payment was a check; a card refund that is still PENDING is not approved here: it is asked again with checkRefundStatus.
+end note
+note over H
+  GRASP
+  Pure Fabrication, High Cohesion: ManagerApproval holds the check of the store manager for every use case, so no handler repeats it (NFR-07).
+  Information Expert: Refund records its own approval; Return restocks and builds its record.
+  Polymorphism: the cash PaymentMethod opens the drawer, like every tender (AD-08).
+  Protected Variations, Indirection: HRSystem and EmployeeList are interfaces; the HR System answer or the local list is the same result for the handler (IR-08, AD-04).
+end note
+@enduml
