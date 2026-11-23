@@ -105,10 +105,33 @@ One diagram per layer, with attributes, methods, visibility and navigability. Th
 | --- | --- |
 | Controllers and application | [`design_classes_application`](../../assets/design_classes_application.puml) |
 | Domain | [`design_classes_domain`](../../assets/design_classes_domain.puml) |
-| Interfaces and technical services | [`design_classes_technical`](../../assets/design_classes_technical.puml) |
+| Interfaces and technical services: external systems, devices and log | [`design_classes_technical`](../../assets/design_classes_technical.puml) |
+| Interfaces and technical services: repositories, accounting queue and store database | [`design_classes_storage`](../../assets/design_classes_storage.puml) |
 | UI screens | [`ui_classes`](../../assets/ui_classes.puml) (ui_design.md §4) |
 
-*To do (W11, Mon 23 Nov 12:00): methods and attributes from §2.*
+![Design class diagram, application layer](../../assets/design_classes_application.png)
+
+![Design class diagram, domain](../../assets/design_classes_domain.png)
+
+![Design class diagram, external systems, devices and log](../../assets/design_classes_technical.png)
+
+![Design class diagram, repositories, accounting queue and store database](../../assets/design_classes_storage.png)
+
+The attributes are those of the [domain model](domain_model.md) v0.8 and the methods come from the design sequence diagrams of §2 (UC1, UC3, UC4 and UC5). The methods of `Return`, `ReturnLineItem` and `ReturnHandler` come from the operation contracts 5 to 9 and are confirmed when the design sequence diagrams of UC2 are pushed. Visibility: `-` private, `+` public; getters and setters are not drawn. Methods marked «new» are used by a design sequence diagram and were not in the logical view or in system_interfaces.md v0.5. Every «new» method of the messages of Avni (UC3) and Josué (UC4) is in the diagrams, as is `Register.openSession` and `SessionHandler.pendingCashier`. A new class is `Money` (package `domain.shared`), which carries the amount in cents (data model §6).
+
+**Points that the owners of the diagrams confirm** (the diagrams use the first name):
+
+| Point | Where | Proposal |
+| --- | --- | --- |
+| `Item.isAvailable()` returns the status, not a boolean | UC3 (Avni) | Keep the name and return `ItemStatus`, or call it `status()`; the diagram has the first |
+| `selectRentalPeriod(lineNumber, days)` has the line number | UC3 (Avni), system_interfaces.md §3.4 has only `days` | The line number is in the URL of the request; Alfonso adds it to §3.4 |
+| `SessionRepository.open(s)` and `close(s)` take the session, because `Register` creates it | UC4 (Josué), system_interfaces.md §4.2 has the other parameters | The diagram follows the DSD; Alfonso updates §4.2 |
+| `StoreDatabaseSync.startSendingWaitingRecords()` | UC4 `startUp` (Josué) | The job is `sendWaitingRecordsUp()` started by `SessionHandler`; the DSD uses the interface name |
+| `SessionRepository` calls `StoreDatabaseSync.addToStoreSyncList(s)` | UC4 `enterOpeningCash` (Josué) | `store_sync_list` is a local table written by the repository (AD-05); `StoreDatabaseSync` only reads it, so there is no such method |
+| `getSystemStatus()` and `listPendingRefunds()` are in `SessionHandler` | S-02 menu (ui_design.md) | Confirm, or move them to another handler |
+| `ProductCatalog.getProduct` (UC1) and `ItemRepository.findProduct` | UC1 (Alfonso) | `ProductCatalog` reads the products through `ItemRepository`; not drawn |
+
+*Open: the design sequence diagrams of UC2 (Yasmine).*
 
 ## 4. Activity diagrams – Yasmine
 
