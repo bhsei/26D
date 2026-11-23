@@ -46,7 +46,24 @@ Diagrams are in PlantUML in `assets/` (`.puml` + `.png`), named `dsd_uc<N>_<oper
 
 ### 2.3 UC3 Process Rental (contracts 10–15) – Avni
 
-*To do (W11).*
+| Diagram | Operations | Contract | Main design choices |
+| --- | --- | --- | --- |
+| [`dsd_uc3_start_rental`](../../assets/dsd_uc3_start_rental.puml) | `makeNewRental()`, `enterCustomerID(customerID)`, `registerCustomer()` | 10, 11, 12 | `TransactionRepository` gives the rental ID and the customer ID (register ID + counter, SRS §5.3 Q5); `CashierSession` creates the `Rental`; each open `Rental` of the customer answers whether it has an overdue line (BR-12), on this register and, when reachable, at the other registers through `StoreDatabaseSync`; a new `Customer` is created by the `Rental` and saved with it, with no personal data (DR-18) |
+| [`dsd_uc3_enter_item`](../../assets/dsd_uc3_enter_item.puml) | `enterRentalItem(serialNumber)`, `selectRentalPeriod(days)` | 13, 14 | `Item` knows its status (BR-11); a hold in the store database stops two registers renting the same item (`putHold`, AD-05, Q6), and without the store database the rental goes on from the local copy; `RentalLineItem` calculates its fee and due date for 1, 3 or 7 days (BR-15) |
+| [`dsd_uc3_end_rental`](../../assets/dsd_uc3_end_rental.puml) | `endRental()`, `cancelRental()` | 15 | Tax only on the rental fee, not on the deposit (BR-10); after the 5 s timeout the handler applies the default tax rate and *tax to be corrected* (IR-05, AD-07), as in UC1; cancel removes the holds and saves nothing (FR-36) |
+| [`dsd_uc3_pay_rental`](../../assets/dsd_uc3_pay_rental.puml) | `makePayment(amount, tenderType)` for a rental | 4 | The same `PaymentMethods` and steps as `dsd_uc1_makePayment` (AD-08); the total includes the deposit; approved: the items become *Rented*, one `saveCompleted` with the rental, the new customer, the Accounting record and the sync entry, which removes the hold in the store database (AD-05, AD-06); the rental receipt shows the customer ID as text and as a barcode (FR-39) |
+
+![UC3 start and customer](../../assets/dsd_uc3_start_rental.png)
+
+![UC3 item and rental period](../../assets/dsd_uc3_enter_item.png)
+
+![UC3 total and cancel](../../assets/dsd_uc3_end_rental.png)
+
+![UC3 payment and completion](../../assets/dsd_uc3_pay_rental.png)
+
+GRASP patterns: Controller (`RentalController`, `RentalHandler`), Creator (`CashierSession` creates the `Rental`; the `Rental` creates its `RentalLineItem`s, the new `Customer` and its `AccountingRecord`; each `PaymentMethod` creates its `Payment`), Information Expert (`Item` for its status, `ProductDescription` for the fee and the deposit, `RentalLineItem` for the fee, due date and overdue check, `Rental` for its total), Polymorphism (`PaymentMethod`), Pure Fabrication (`TransactionRepository`, `PaymentMethods`), Indirection, Low Coupling and Protected Variations (repositories, `StoreDatabaseSync`, `TaxCalculator`, devices). The justification is in the legend under each diagram.
+
+Methods marked «new» in the diagrams are not yet in the logical view or system_interfaces.md (sent to Borja for the design class diagram, §3): `Rental.addLine`, `setPeriod`, `setCustomer`, `registerNewCustomer`, `hasOverdueLine`, `taxLines`, `setTax`, `complete`, `setItemsRented`; `CashierSession.createRental`; `RentalLineItem.setPeriod`; `Item.isAvailable`; `ProductDescription.rentalData`; `TransactionRepository.findCustomer`, `nextCustomerID` and `findOpenRentalsOfCustomer` (the last one also in UC5).
 
 ### 2.4 UC4 Start Up, close session and session review (contracts 16–21, 29) – Josué
 
