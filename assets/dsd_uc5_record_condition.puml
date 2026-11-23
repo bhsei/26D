@@ -94,26 +94,30 @@ end
 == confirmDamage(managerID, pin) - Contract 27 ==
 [-> Ctl : POST /api/rental-returns/{id}/damage-confirmation\n{"manager"}
 Ctl -> H : confirmDamage(managerID, pin)
-H -> MA : check(managerID, pin) <<new>>
+H -> MA : check(managerID, pin)
 MA -> HR : checkEmployee(managerID, pin)
 note right of HR
   Timeout 5 s (IR-09).
 end note
 HR --> MA : EmployeeCheck
-opt NOT_AVAILABLE (UC4 6c4)
+opt NOT_AVAILABLE (UC4 6c4, IR-09)
   MA -> EL : find(managerID)
-  EL --> MA : EmployeeEntry (PIN as a salted hash, DR-11)
-  MA -> MA : compare the hash of pin
+  EL --> MA : Optional<EmployeeEntry>\n(PIN as a salted hash, DR-11)
+  MA -> MA : entry.isActiveStoreManager()\nand entry.pinMatches(pin)
 end
 MA -> MA : drop the pin (NFR-08)
-MA --> H : VALID store manager, or INVALID
-alt valid store manager
+MA --> H : ApprovalResult(OK, manager)\nor ApprovalResult(REFUSED)
+note right of MA
+  The same check as in UC4 (dsd_uc4_confirmSessionReview):
+  with OK, ManagerApproval gives the manager (Employee).
+end note
+alt ApprovalResult OK
   H -> RR : confirmDamage(manager: Employee) <<new>>
   RR -> RR : confirmedBy = manager\namountKept = deposit, refundTotal = 0, amountDue = 0 (BR-10)
   RR --> H : refundTotal = 0
   H --> Ctl : damage confirmed
   [<-- Ctl : 200 damage confirmed, refund 0
-else not a store manager or wrong PIN
+else ApprovalResult REFUSED (not a store manager or wrong PIN)
   H --> Ctl : refused
   [<-- Ctl : 403 the condition stays pending (FR-52)
 end
