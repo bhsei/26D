@@ -85,3 +85,13 @@ Team: D · Project: NewEra POS / Role: Quality and Requirements
 **Hours:** 8
 **Problems:** Ensuring the PlantUML code rendered correctly due to its large size (had to use an alternative online renderer).
 **Next:** Prepare for the W11 design milestone and the detailed design diagrams.
+
+### W11
+**What I did:** 
+- A4: Designed the Design Sequence Diagrams (DSD) for UC4 (startUp, logIn, enterOpeningCash, closeSession, and confirmSessionReview) using PlantUML, and justified the GRASP patterns used for each one.
+- B6: Aligned the analysis models with the new design. Corrected Contract 16 to include the void of open authorizations after a crash (IR-15), and updated the traceability matrix in `requirements_conventions.md` up to FR-77.
+- Part C: Reviewed Haifa's Design Sequence Diagrams for UC5 and the consistency of `architecture.md`, publishing the findings in a GitHub Issue.
+- Part D: Sent Alfonso the summary of my work across Increment 2 (W07-W11) for the final design milestone presentation.
+**Hours:** 8
+**Problems:** Ensuring the DSDs matched Borja's design class diagram method names, and handling the asynchronous voiding of card authorizations at start-up.
+**Next:** Prepare for the W12 cross-team reviews and the final design milestone freeze.
