@@ -1,0 +1,94 @@
+@startuml dsd_uc1_makePayment
+' NewEra POS - Design sequence diagram, UC1 Process Sale: makePayment(amount, tenderType) (Contract 4), W11
+' Team D - editable source of assets/dsd_uc1_makePayment.png
+' Reference for the payments of UC3 and UC5 (they use the same PaymentMethods, AD-08).
+' Participants: logical view (architecture.md 4.2). Operations: system_interfaces.md 3.2, 4.1 to 4.3; AD-07, AD-08, AD-09.
+title DSD UC1 Process Sale - makePayment(amount, tenderType) (Contract 4)
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam sequenceMessageAlign left
+skinparam ParticipantPadding 8
+skinparam BoxPadding 6
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B7791F
+hide footbox
+box "ui.api" #EAF2E3
+  participant "ctrl:SaleController" as C
+end box
+box "application" #E8EEF7
+  participant "h:SaleHandler" as H
+  participant ":PaymentMethods" as PMS
+  participant "pm:CreditCard\nPaymentMethod" as PM
+end box
+box "domain" #FFF7E0
+  participant "s:Sale" as S
+  participant "p:CreditCard\nPayment" as P
+end box
+box "application.interfaces" #F6EDF7
+  participant ":CardReader" as CR
+  participant ":PaymentService" as PAY
+  participant ":Transaction\nRepository" as TR
+  participant ":ReceiptPrinter" as PR
+end box
+
+[-> C : POST /api/sales/{saleID}/payment {tenderType: CREDIT_CARD, amount}
+C -> H : makePayment(amount, CREDIT_CARD)
+H -> S : canBePaid(amount, CREDIT_CARD)
+note right of S : complete, no payment yet (BR-18),\ncard amount = total
+S --> H : OK (else 409 / 422)
+H -> PMS : get(CREDIT_CARD)
+PMS --> H : pm
+H -> PM : pay(s, amount)
+PM -> CR : read()
+CR --> PM : CardReadResult(OK, cardToken)
+note right of CR : the card token stays in memory\nand goes only to the PaymentService (AD-09, DC-06)
+PM -> PAY : authorize(PaymentRequest(s.transactionID, amount, cardToken))
+note right of PAY : the adapter applies the 10 s timeout (AD-07);\nthe same transaction ID in every retry (IR-02)
+alt APPROVED
+  PAY --> PM : PaymentResult(APPROVED, authCode, reference, last4)
+  PM -> TR : saveOpenAuthorization(s.transactionID, reference)
+  note right of TR : IR-15: voided at start-up\nif the register stops before the save
+  PM -> P ** : create(amount, authCode, reference, last4)
+  PM -> S : setPayment(p)
+  note right of S : isPaid = true
+  PM --> H : APPROVED
+  H -> S : reduceStock()
+  note right of S : each SaleLineItem reduces\nthe stock level of its ProductDescription\n(below zero: recorded for FR-19)
+  H -> S : createAccountingRecord()
+  S --> H : record (with taxToBeCorrected)
+  H -> TR : saveCompleted(s, record)
+  note right of TR : ONE database transaction: sale, lines, payment,\nstock changes, AccountingQueue record and\nstore_sync_list entry; the open authorization is deleted (AD-05, DR-13)
+  H -> S : getReceipt()
+  S --> H : receipt (FR-71, last 4 digits only)
+  H -> PR : print(receipt)
+  PR --> H : READY (NO_PAPER: the sale is saved, reprint later, IR-13)
+  H --> C : APPROVED, receiptNumber, last4, authCode
+  C -->[ : 200 result APPROVED
+else DECLINED (9b2a)
+  PAY --> PM : PaymentResult(DECLINED, reason)
+  PM --> H : DECLINED
+  H --> C : DECLINED, reason
+  C -->[ : 200 result DECLINED: another tender or cancel
+else NOT_AVAILABLE: timeout or error (9b2b)
+  PAY --> PM : PaymentResult(NOT_AVAILABLE)
+  PM --> H : NOT_AVAILABLE
+  H --> C : NOT_AVAILABLE (retry allowed)
+  C -->[ : 200 result NOT_AVAILABLE: retry, another tender or cancel
+  note over H : no Payment is created; the sale stays open with the same transaction ID.\nIf the cashier then uses another tender or cancels, the handler first calls\nPaymentService.voidAuthorization(transactionID) (AD-07, IR-15)
+end
+
+note over H, PM
+  Cash and check use the same steps with CashPaymentMethod (amount tendered, change, cash drawer opens, IR-14)
+  and CheckPaymentMethod (check number, authorization of the check, IR-16). Only pay() differs.
+end note
+
+note over H
+  GRASP
+  Polymorphism, Protected Variations: one PaymentMethod per tender behind a common interface (AD-08); a new tender changes no handler (NFR-09).
+  Creator: the PaymentMethod creates the Payment it records (it has the authorization data).
+  Information Expert: Sale reduces the stock of its lines and builds its receipt and its AccountingRecord.
+  Pure Fabrication, Indirection: TransactionRepository, PaymentService, CardReader and ReceiptPrinter are interfaces (DC-02).
+  Low Coupling: the controller only calls the handler; the handler never calls an adapter class directly.
+end note
+@enduml
