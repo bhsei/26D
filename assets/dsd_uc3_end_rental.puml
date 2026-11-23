@@ -1,0 +1,95 @@
+@startuml
+' NewEra POS - Design sequence diagram: UC3 Process Rental, total of the rental (Contract 15) and cancel, W11 draft
+' Team D - editable source of assets/dsd_uc3_end_rental.png
+' Render with: java -jar plantuml.jar -charset UTF-8 -tpng assets/dsd_uc3_end_rental.puml
+' Participants: classes of the logical view (architecture.md 4.2) and of the design class diagram skeleton. Operations: system_interfaces.md 3.4, 4.1 and 4.3.
+' Messages marked <<new>> are not in the logical view or in system_interfaces.md yet (sent to Borja for the design class diagram).
+
+skinparam shadowing false
+skinparam dpi 130
+skinparam defaultFontName Arial
+skinparam ArrowColor #444444
+skinparam SequenceLifeLineBorderColor #444444
+skinparam ParticipantBorderColor #1F4E79
+skinparam ParticipantBackgroundColor #EAF1FB
+skinparam BoxPadding 6
+skinparam SequenceGroupBackgroundColor #F4F8FD
+skinparam SequenceGroupBorderColor #1F4E79
+skinparam SequenceDividerBackgroundColor #EAF1FB
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #B8A04A
+skinparam LegendBackgroundColor #FFFFFF
+skinparam LegendBorderColor #1F4E79
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 190
+
+title NewEra POS - Design sequence diagram: UC3 Process Rental, total and cancel (Contract 15, ext. 10-13a)
+
+box "UI layer (ui.api)" #F4F8FD
+  participant ":Rental\nController" as Ctl
+end box
+box "Application / domain layer" #F4F8FD
+  participant ":Rental\nHandler" as H
+  participant "rental:\nRental" as R
+end box
+box "application.interfaces" #F4F8FD
+  participant ":StoreDatabase\nSync" as Sync
+  participant ":TaxCalculator" as Tax
+  participant ":Settings\nRepository" as Set
+end box
+
+== endRental() - Contract 15 ==
+[-> Ctl : POST /api/rentals/{rentalID}/end
+Ctl -> H : endRental()
+H -> R : taxLines() <<new>>
+note right of R
+  The rental fee of each line, without the deposit:
+  the deposit is not taxed (BR-10, decided in W09).
+  Every line must have a period (precondition).
+end note
+R --> H : lines (item ID, rental fee)
+H -> Tax : calculateTax(TaxRequest: rental fee lines)
+note right of Tax
+  Timeout 5 s in the adapter (IR-05, AD-07)
+end note
+Tax --> H : TaxResult
+alt TaxResult OK
+  H -> R : setTax(tax, false) <<new>>
+else NOT_AVAILABLE (11a)
+  H -> Set : current()
+  Set --> H : Settings (default tax rate)
+  H -> H : tax = rental fee x default rate
+  H -> R : setTax(tax, true) <<new>>
+  note right of R
+    taxToBeCorrected = true (BR-02);
+    the screen shows a short warning.
+  end note
+end
+H -> R : complete() <<new>>
+R -> R : isComplete = true\ntotal = rental fee + tax + deposit
+R --> H : rental fee, tax, deposit, total, due date
+H --> Ctl : totals
+[<-- Ctl : 200 rental fee, tax, deposit (not taxed),\ntotal, due date, taxToBeCorrected
+
+== cancelRental() - ext. 10-13a (no contract) ==
+[-> Ctl : DELETE /api/rentals/{rentalID}
+Ctl -> H : cancelRental()
+loop each line of the rental
+  H -> Sync : removeHold(serialNumber, rentalID)
+  note right of Sync
+    Queued in store_sync_list when the
+    store database is not available (AD-05).
+  end note
+end
+H -> H : discard the rental (never saved;\nthe item status does not change, FR-36)
+H --> Ctl : cancelled
+[<-- Ctl : 200 rental cancelled, item status unchanged
+
+legend bottom left
+  **GRASP**
+  Controller: RentalController and RentalHandler, as in the start of the rental.
+  Information Expert: Rental knows its lines and calculates its tax lines and its total (fee + tax + deposit, Contract 15).
+  Protected Variations, Indirection: TaxCalculator and StoreDatabaseSync are interfaces; the adapter applies the timeout
+  and the handler chooses the fallback (default tax rate from SettingsRepository) (AD-04, AD-07).
+endlegend
+@enduml
