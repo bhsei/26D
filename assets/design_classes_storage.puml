@@ -97,7 +97,7 @@ package "application.interfaces" {
     + listRentalConflicts(limit : int, offset : int) : Page<RentalConflict>
     + resolveRentalConflict(conflictID : String, managerID : String, reason : String) : StoreResult
     + changeSetting(key : String, value : String, managerID : String) : StoreResult
-    + writeCatalog(catalog : Catalog, managerID : String) : StoreResult
+    + writeCatalog(catalog : Catalog, file : CatalogFileInfo, managerID : String) : StoreResult
   }
 }
 
