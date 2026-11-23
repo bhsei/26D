@@ -141,11 +141,9 @@ The attributes are those of the [domain model](domain_model.md) v0.8 and the met
 
 | Point | Where | Proposal |
 | --- | --- | --- |
-| `ManagerApproval.approve(managerID, pin)` in UC2 and `ManagerApproval.check(managerID, pin)` in UC4 and UC5 | UC2 (Yasmine) | One name for the same class: `check`, which returns `ApprovalResult` (UC4, UC5); Yasmine renames it in `dsd_uc2_approveCashRefund` |
-| `PaymentMethods.get(CASH)` returns the interface `PaymentMethod`, which has no `payOut` | UC2 (Yasmine) | `payOut(amount, employeeID)` is in `CashPaymentMethod`; the diagram adds `PaymentMethods.cash()` that returns it |
-| `approveCashRefund` calls `complete()` and `saveCompleted` again for a return that was already saved with a *pending* card refund and then failed | UC2 (Yasmine), UC5 (Haifa, Contract 28) | A return that is already saved only gets the new row of `refund_status` (`CASH_PAID`) and the stock and the receipt; `saveCompleted` and the Accounting record are done once. See the state diagram of the refund (domain model §7.4) |
+| A return that was already saved with a *pending* card refund and then failed must not call `complete()` and `saveCompleted` again: only the row `CASH_PAID` of `refund_status` and the receipt | UC5 (Haifa, Contract 28) | UC2 does it in `dsd_uc2_approveCashRefund`; UC5 does the same (see the state diagram of the refund, domain model §7.4) |
 
-Closed: `Item.status() : ItemStatus` instead of `isAvailable()` (Avni, UC3); `findSale` with `SALE_NOT_AVAILABLE` and `TransactionRepository.returnedQuantities` (system_interfaces.md v0.8); `SessionRepository.open(s)` and `close(s)` and `selectRentalPeriod(lineNumber, days)` (v0.7); `getSystemStatus` and `listPendingRefunds` stay in `SessionHandler`; `ProductCatalog` reads the products through `ItemRepository` (UC1, shown in diagram 3b).
+Closed: `ManagerApproval.check` in UC2, UC4 and UC5; `PaymentMethods.cash()` and the saved return that is paid in cash (UC2, Yasmine); `Item.status() : ItemStatus` instead of `isAvailable()` (Avni, UC3); `findSale` with `SALE_NOT_AVAILABLE` and `TransactionRepository.returnedQuantities` (system_interfaces.md v0.8); `SessionRepository.open(s)` and `close(s)` and `selectRentalPeriod(lineNumber, days)` (v0.7); `getSystemStatus` and `listPendingRefunds` stay in `SessionHandler`; `ProductCatalog` reads the products through `ItemRepository` (UC1, shown in diagram 3b).
 
 ## 4. Activity diagrams – Yasmine
 
