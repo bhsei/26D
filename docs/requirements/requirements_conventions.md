@@ -25,7 +25,7 @@ Won't have: Out of scope for this release.
 - **Singular:** One requirement states one thing, so it can pass or fail on its own.
 
 4. Traceability Matrix for Use Cases (UC1 to UC5)
-This matrix links the official SRS requirements (FR-01 to FR-73) to the design and test phases for UC1 to UC5.
+This matrix links the official SRS requirements (FR-01 to FR-77) to the design and test phases for UC1 to UC5.
 | Req ID | Requirement Summary (from SRS) | Use Case | Design (UML/UI) | Test Case |
 | --- | --- | --- | --- | --- |
 | FR-01 | Start a new sale in a session | UC1 (Process Sale) | Class Diagram: CashierSession, Sale | TC-01: Verify sale cannot start without session |
