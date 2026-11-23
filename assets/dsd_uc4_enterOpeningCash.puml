@@ -1,0 +1,49 @@
+@startuml dsd_uc4_enterOpeningCash
+title DSD UC4 Start Up - enterOpeningCash(amount) (Contract 18)
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam sequenceMessageAlign left
+skinparam ParticipantPadding 10
+skinparam BoxPadding 6
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B7791F
+hide footbox
+box "ui.api" #EAF2E3
+  participant "ctrl:SessionController" as C
+end box
+box "application" #E8EEF7
+  participant "h:SessionHandler" as H
+end box
+box "domain" #FFF7E0
+  participant "amount:Money" as M
+  participant "reg:Register" as REG
+  participant "s:CashierSession" as S
+end box
+box "technical.storage" #F2F2F2
+  participant "sessions:SessionRepository" as SR
+  participant "sync:StoreDatabaseSync" as SYNC
+end box
+
+[-> C : PUT /api/sessions/current/opening-cash {amount}
+C -> C : check the format (not empty, a number)
+C -> H : enterOpeningCash(amount)
+H -> REG : cashier()
+REG --> H : Employee of the login (logIn was accepted)
+H -> M : isNegative()
+M --> H : result
+alt amount not valid (8a)
+  H --> C : OpeningResult(INVALID_AMOUNT)
+  C -->[ : 400 message for the cashier, nothing changes
+else amount valid
+  H -> REG : openSession(amount)
+  REG -> S : <<create>> CashierSession(cashier, register, now, amount)
+  note right of S : startTime = now\nopeningCash = amount\nendTime not set
+  REG --> H : s
+  H -> SR : open(s)
+  SR -> SYNC : addToStoreSyncList(s)
+  note right of SYNC : the session is sent to the store database\nlater, in the background (AD-05)
+  H --> C : OpeningResult(OK, sessionID)
+  C -->[ : 200, session open, S-02 shown
+end
+@enduml
