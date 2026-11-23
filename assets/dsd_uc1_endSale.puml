@@ -21,34 +21,27 @@ end box
 box "domain" #FFF7E0
   participant "s:Sale" as S
 end box
-box "technical.storage" #F2F2F2
+box "application.interfaces" #F6EDF7
+  participant ":TaxCalculator" as TA
   participant "settings:SettingsRepository" as SET
-end box
-box "technical.external" #F6EDF7
-  participant "TaxCalculatorAdapter" as TA
-end box
-box "external system (stub)" #FFFFFF
-  participant "Tax Calculator" as TC
 end box
 
 [-> C : POST /api/sales/{saleID}/end
 C -> H : endSale()
 H -> S : hasLines()
 S --> H : boolean
-alt no line items
+alt no line items (6a)
   H --> C : NO_LINES
   C -->[ : 409 "Add at least one item"
 else at least one line
   H -> S : toTaxRequest()
   S --> H : TaxRequest(transactionID, lines)
   H -> TA : calculateTax(request)
-  TA -> TC : POST /tax
-  note right of TA : timeout 5 s (IR-05, AD-07)\nthe screen shows a waiting message after 1 s (NFR-18)
+  note right of TA : the adapter applies the 5 s timeout (IR-05, AD-07)\nthe screen shows a waiting message after 1 s (NFR-18)
   alt answer within 5 s
-    TC --> TA : tax of each line, total tax
     TA --> H : TaxResult(OK, taxPerLine, totalTax)
     H -> S : setTax(taxPerLine)
-  else timeout or error
+  else timeout or error (7a)
     TA --> H : TaxResult(NOT_AVAILABLE)
     H -> SET : current()
     SET --> H : settings (default tax rate)
