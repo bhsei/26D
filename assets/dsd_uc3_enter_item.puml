@@ -49,7 +49,7 @@ alt serial number not in the item list (7a)
   H --> Ctl : unknown item
   [<-- Ctl : 404 unknown serial number
 else item found
-  H -> I : isAvailable() <<new>>
+  H -> I : status() <<new>>
   I --> H : status
   alt status Rented or Under maintenance (7b)
     H --> Ctl : not available, status
