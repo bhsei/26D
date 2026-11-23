@@ -42,7 +42,25 @@ Diagrams are in PlantUML in `assets/` (`.puml` + `.png`), named `dsd_uc<N>_<oper
 
 ### 2.2 UC2 Handle Returns (contracts 5–9) – Yasmine
 
-*To do (W11).*
+| Diagram | Operations | Contract | Main design choices |
+| --- | --- | --- | --- |
+| [`dsd_uc2_makeNewReturn_findSale`](../../assets/dsd_uc2_makeNewReturn_findSale.puml) | `makeNewReturn()`, `findSale(receiptNumber)` | 5, 6 | `CashierSession` creates the `Return`; the sale is searched in the local copy first and, only if it is not there, with `StoreDatabaseSync.findTransaction` (FR-21, AD-05); the `Sale` says whether it is within the refund period (BR-07); the quantity already returned of each line is read with the sale |
+| [`dsd_uc2_enterReturnItem`](../../assets/dsd_uc2_enterReturnItem.puml) | `enterReturnItem(itemID, quantity, condition)` | 7 | `Return` creates its `ReturnLineItem` and checks what is left to return; the `SaleLineItem` gives the refund value (price and the tax charged in the sale, FR-27); `RESELLABLE` is the condition *Undamaged* of the domain model |
+| [`dsd_uc2_confirmReturn`](../../assets/dsd_uc2_confirmReturn.puml) | `confirmReturn()` | 8 | `PaymentMethods` gives the `PaymentMethod` of the tender of the sale and `refund` does the rest (AD-08); card refund with the payment reference and the same transaction ID; `NOT_AVAILABLE` leads to `refundStatus` and then to *pending* (AD-07, §3.7 of system_interfaces.md); a declined refund or a check waits for the store manager; stock increases only for resellable items; one `saveCompleted` (AD-05, AD-06) |
+| [`dsd_uc2_approveCashRefund`](../../assets/dsd_uc2_approveCashRefund.puml) | `approveCashRefund(managerID, pin, reason)` | 9 | `ManagerApproval` checks the store manager with the HR System, or with the local list when it does not answer (IR-08); `Refund.approve` records who approved and why; the cash `PaymentMethod` opens the drawer; the same steps serve UC5 (Contract 28) |
+| [`dsd_uc2_checkRefundStatus`](../../assets/dsd_uc2_checkRefundStatus.puml) | `checkRefundStatus()` | – | A pending card refund is asked again with the same transaction ID; the new state is added to `refund_status` (insert only); the same steps serve UC5 |
+
+![makeNewReturn and findSale](../../assets/dsd_uc2_makeNewReturn_findSale.png)
+
+![enterReturnItem](../../assets/dsd_uc2_enterReturnItem.png)
+
+![confirmReturn](../../assets/dsd_uc2_confirmReturn.png)
+
+![approveCashRefund](../../assets/dsd_uc2_approveCashRefund.png)
+
+![checkRefundStatus](../../assets/dsd_uc2_checkRefundStatus.png)
+
+Each diagram has the GRASP patterns used in its own note. Messages marked `<<new>>` are not in the logical view or in `system_interfaces.md` yet: `CashierSession.createReturn(id)`, `TransactionRepository.returnedQuantities(receiptNumber)`, `SaleLineItem.refundValue(quantity)`, `Return.addRefund(outcome)`, `Return.complete()`, `Refund.setState(...)`, `CashPaymentMethod.payOut(amount, employeeID)` and the answer `SALE_NOT_AVAILABLE` of `findSale`. They are sent to Borja (design class diagram) and to Alfonso (`system_interfaces.md`).
 
 ### 2.3 UC3 Process Rental (contracts 10–15) – Avni
 
