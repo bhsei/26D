@@ -1,0 +1,79 @@
+@startuml dsd_uc1_makeNewSale_enterItem
+' NewEra POS - Design sequence diagram, UC1 Process Sale: makeNewSale() and enterItem(itemID, quantity) (Contracts 1 and 2), W11
+' Team D - editable source of assets/dsd_uc1_makeNewSale_enterItem.png
+' Participants: classes of the logical view (architecture.md 4.2) and of the design class diagram skeleton.
+' Operations: system_interfaces.md 3.2 and 4.3.
+title DSD UC1 Process Sale - makeNewSale() and enterItem(itemID, quantity) (Contracts 1 and 2)
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam sequenceMessageAlign left
+skinparam ParticipantPadding 10
+skinparam BoxPadding 6
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B7791F
+hide footbox
+box "ui.api" #EAF2E3
+  participant "ctrl:SaleController" as C
+end box
+box "application" #E8EEF7
+  participant "h:SaleHandler" as H
+end box
+box "domain" #FFF7E0
+  participant "session:CashierSession" as CS
+  participant "s:Sale" as S
+  participant "cat:ProductCatalog" as CAT
+  participant "pd:ProductDescription" as PD
+  participant "sli:SaleLineItem" as SLI
+end box
+box "technical.storage" #F2F2F2
+  participant "repo:TransactionRepository" as TR
+end box
+
+== makeNewSale() (Contract 1) ==
+[-> C : POST /api/sales
+C -> H : makeNewSale()
+H -> TR : nextTransactionID()
+TR --> H : id (e.g. R02-000153)
+H -> CS : createSale(id)
+CS -> S ** : create(id, session)
+note right of S : isComplete = false\nsubtotal = 0\nlinked to the open CashierSession
+CS --> H : s
+H --> C : saleID
+C -->[ : 201 sale ID
+
+== enterItem(itemID, quantity) (Contract 2), repeated for each item ==
+[-> C : POST /api/sales/{saleID}/lines {itemID, quantity}
+C -> C : check format (quantity is a whole number > 0)
+C -> H : enterItem(itemID, quantity)
+H -> CAT : getProduct(itemID)
+note right of CAT : local copy of the catalog\n(ItemRepository), no external call (NFR-01)
+alt unknown item ID (3a)
+  CAT --> H : none
+  H --> C : UNKNOWN_ITEM
+  C -->[ : 404 "Item not found" (NFR-14)
+else product found
+  CAT --> H : pd
+  H -> S : addLineItem(pd, quantity)
+  S -> SLI ** : create(pd, quantity)
+  SLI -> PD : getPrice()
+  PD --> SLI : unitPrice
+  S -> S : subtotal = subtotal + sli.getSubtotal()
+  S --> H : sli, subtotal
+  H -> PD : getStockLevel()
+  PD --> H : stockLevel
+  opt stockLevel - quantity < 0 (11c)
+    H -> H : warning "stock below zero"\n(the sale goes on; the gap is recorded at payment, FR-19)
+  end
+  H --> C : LineResult(lineNumber, description, unitPrice, lineSubtotal, subtotal, warning)
+  C -->[ : 201 line data and running subtotal
+end
+
+note over H
+  GRASP
+  Controller: SaleController receives the request; SaleHandler is the use-case controller of UC1.
+  Creator: CashierSession creates the Sale (it records its transactions); Sale creates its SaleLineItems (composition).
+  Information Expert: SaleLineItem knows its subtotal (price of its ProductDescription x quantity); Sale knows the running subtotal.
+  Pure Fabrication: TransactionRepository gives the unique transaction ID (AD-05).
+end note
+@enduml
