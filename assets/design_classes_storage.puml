@@ -40,6 +40,10 @@ package "application (members in diagram 1 of 3)" {
   class AccountingSender <<handler>>
 }
 
+package "domain (diagram 2 of 3)" {
+  class ProductCatalog
+}
+
 package "application.interfaces" {
   interface TransactionRepository <<interface>> {
     + nextTransactionID() : String
@@ -89,8 +93,8 @@ package "application.interfaces" {
     + putHold(serialNumber : String, transactionID : String) : HoldResult
     + removeHold(serialNumber : String, transactionID : String) : void
     + findTransaction(transactionID : String) : TransactionResult
-    + findOpenRentalsOfCustomer(customerID : String) : RentalSearchResult «new»
-    + findOpenRentalOfItem(serialNumber : String) : RentalSearchResult «new»
+    + findOpenRentalsOfCustomer(customerID : String) : RentalsResult «new»
+    + findOpenRentalOfItem(serialNumber : String) : RentalResult «new»
     + findSessionToReview(sessionID : String) : SessionLookup «new»
     + listStockDifferences(limit : int, offset : int) : Page<StockDifference>
     + listSessionsToReview(limit : int, offset : int) : Page<SessionToReview>
@@ -141,6 +145,7 @@ ManagerHandler --> EmployeeList
 ManagerHandler --> ItemRepository
 ManagerHandler --> AccountingQueue
 ManagerApproval --> EmployeeList
+ProductCatalog --> ItemRepository : reads the products
 AccountingSender --> AccountingQueue
 
 ' ---------- the storage classes call each other only here (AD-05, AD-06) ----------
@@ -152,8 +157,8 @@ note bottom of JdbcStoreDatabaseSync
   Only JdbcStoreDatabaseSync knows the store database (PostgreSQL over JDBC, AD-05). The other
   implementations use the local SQLite file of the register. saveCompleted is one database transaction:
   transaction, lines, payments, refunds, stock change, accounting record and store_sync_list entry.
-  Result classes (SyncResult, HoldResult, TransactionResult, StoreResult, RentalSearchResult, SessionLookup,
-  QueueStatus, Settings, EmployeeEntry with isActiveCashier(), isActiveStoreManager() and pinMatches(pin)) are not drawn.
+  Result classes (SyncResult, HoldResult, TransactionResult, StoreResult, SessionLookup,
+  QueueStatus, RentalsResult, RentalResult, Settings, EmployeeEntry with isActiveCashier(), isActiveStoreManager() and pinMatches(pin)) are not drawn.
   The names of the implementations (Sqlite..., Jdbc...) are proposals.
 end note
 @enduml
