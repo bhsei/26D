@@ -48,7 +48,9 @@ package "ui.screens (web pages in the browser of the register)" {
     -- shown --
     cashierName: String
     registerID: String
-    externalSystemStatus: 4 × Boolean
+    externalSystemStatus: 4 × AVAILABLE | NOT_AVAILABLE | UNKNOWN
+    pendingRefunds: kind, id,\n date, amount
+    printerStatus: String
     defaultTaxRateInUse: Boolean
   }
 
@@ -225,6 +227,7 @@ package "ui.api (controllers of the POS application)" {
     getSystemStatus()
     listPendingRefunds()
     reprintLastReceipt()
+    reprintReceipt(receiptNumber: String)
     logIn(employeeID: String, pin: String)
     enterOpeningCash(amount: Money)
     closeSession()
@@ -241,7 +244,6 @@ package "ui.api (controllers of the POS application)" {
     endSale()
     makePayment(amount: Money, tenderType: TenderType)
     cancelSale()
-    reprintReceipt()
   }
 
   class ReturnController <<controller>> {
@@ -295,15 +297,15 @@ package "ui.api (controllers of the POS application)" {
 }
 
 ' ---------- screens call controllers ----------
-S01 ..> SessionController : <<calls>>\nlogIn(), enterOpeningCash()
 S02 ..> SessionController : <<calls>>\ngetSystemStatus(), listPendingRefunds(),\nreprintLastReceipt()
+S01 ..> SessionController : <<calls>>\nlogIn(), enterOpeningCash()
 S03 ..> SessionController : <<calls>>\ncloseSession(), enterClosingCash(),\nconfirmCloseSession()
 
 S04 ..> SaleController : <<calls>>\nmakeNewSale(), enterItem(), removeItem(),\noverridePrice(), endSale(), cancelSale()
 S05 ..> SaleController : <<calls>>\ngetAvailableTenders() (when it opens),\nmakePayment() (sale), cancelSale()
 S05 ..> RentalController : <<calls>>\nmakePayment() (rental), cancelRental()
 S05 ..> RentalReturnController : <<calls>>\nmakePayment() (amount still due),\ncancelRentalReturn()
-S06 ..> SaleController : <<calls>>\nreprintReceipt()
+S06 ..> SessionController : <<calls>>\nreprintReceipt()
 
 S07 ..> ReturnController : <<calls>>\nmakeNewReturn(), findSale(), enterReturnItem(),\nremoveReturnItem(), confirmReturn(),\ncheckRefundStatus(), approveCashRefund(),\ncancelReturn()
 S08 ..> RentalController : <<calls>>\nmakeNewRental(), enterCustomerID(),\nregisterCustomer(), enterRentalItem(),\nselectRentalPeriod(), endRental(),\ncancelRental()
@@ -320,9 +322,9 @@ M06 ..> ManagerController : <<calls>>\ngetAccountingQueueStatus()
 S01 --> S02 : <<opens>>
 S02 --> S03 : <<opens>>
 S02 --> S04 : <<opens>>
-S02 --> S07 : <<opens>>
+S02 --> S07 : <<opens>>\nnew return or pending refund
 S02 --> S08 : <<opens>>
-S02 --> S09 : <<opens>>
+S02 --> S09 : <<opens>>\nnew rental return or pending refund
 S04 --> S05 : <<opens>>
 S08 --> S05 : <<opens>>
 S09 --> S05 : <<opens>>
@@ -330,7 +332,6 @@ S05 --> S06 : <<opens>>
 S07 --> S06 : <<opens>>
 S08 --> S06 : <<opens>>
 S09 --> S06 : <<opens>>
-S02 --> S06 : <<opens>>\nReprint last receipt
 S02 --> D01 : <<opens>>\nManager functions
 S04 --> D01 : <<opens>>\nprice change
 S07 --> D01 : <<opens>>\ncash refund (with reason)
@@ -352,8 +353,10 @@ note bottom of SessionController
   startUp() is sent by the POS program when it starts, before any session
   (system_interfaces.md §3.1); S-01 only shows its result.
   getSystemStatus(), listPendingRefunds() and reprintLastReceipt() are
-  sent by S-02 (system_interfaces.md §3.8, §3.9); they are placed here
-  because they are cashier-session operations (Issue #62).
+  sent by S-02, and reprintReceipt(receiptNumber) by S-06
+  (system_interfaces.md §3.8, §3.9). They are placed here because they are
+  cashier-session operations; Alfonso confirmed it (SessionHandler in the
+  design class diagram).
 end note
 
 @enduml
