@@ -37,7 +37,7 @@ S02 --> S04 : New sale
 S02 --> S07 : New return /\npending refund
 S02 --> S08 : New rental
 S02 --> S09 : Rental return /\npending refund
-S02 --> S06 : Reprint last receipt
+S02 --> S02 : Reprint last receipt\n(printer state shown)
 S02 --> S03 : Close session
 S02 --> D01 : Manager functions
 D01 --> MGR : approved
