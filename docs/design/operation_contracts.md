@@ -218,10 +218,10 @@ An operation contract describes the behavior of a system operation. Postconditio
 - If a `CashierSession` of this register was still open after a failure: `CashierSession.endTime` was set to the time of the restart and `CashierSession.isInterrupted` was set to true (no closing cash, FR-63).
 - Every `AccountingRecord` waiting in the queue that the Accounting System acknowledged was removed from the queue.
 - Every `AccountingRecord` that was not acknowledged (or not sent because the Accounting System is not available) stayed in the queue, in its original order.
-- If a new export file of the product catalog was found (IR-17) and all its fields are valid, and the store database was available, the catalog was written to the store database as the new `ProductCatalog` (product descriptions, prices, rentable items and reorder thresholds) and reaches the register with the next copy of the master data. If the file has missing or invalid fields, or the store database was not available, a warning was logged and the previous `ProductCatalog` was kept unchanged. If no new export file was found, nothing changed.
+- In the background, after the login screen is shown: if a new export file of the product catalog was found (IR-17; not the same file name and date as the last imported one) and all its fields are valid, and the store database was available, the catalog was written to the store database in one transaction as the new `ProductCatalog` (product descriptions, prices, rentable items and reorder thresholds), with the name and date of the file (`CatalogFileInfo`), and reaches the register with the next copy of the master data. If the file is not valid, the file location was not reachable in time, or the store database was not available, a warning was logged and the previous `ProductCatalog` was kept unchanged. If there is no new file, nothing changed.
 - No `CashierSession` was created.
 - Every open card authorization found in the local database after a failure (IR-15) was voided with the Payment Service and removed from the open authorizations; one that could not be voided (`NOT_AVAILABLE`) stayed and is tried again at the next start-up.
-**Responsibilities:** System imports a new catalog export, if there is one (IR-17), then checks that the product catalog and the stored data are available, recovers the stored data after a failure, sends the waiting records and shows the login screen with the register ID. If the catalog or the stored data are not available (2a), nothing changes and no login screen is shown.
+**Responsibilities:** System checks that the product catalog and the stored data are available, recovers the stored data after a failure, sends the waiting records and shows the login screen with the register ID. In the background it voids the open card authorizations (IR-15), refreshes the employee list (IR-09) and imports a new catalog export, if there is one (IR-17); none of this delays the login screen. If the catalog or the stored data are not available (2a), nothing changes and no login screen is shown.
 
 ### Contract 17: logIn
 **Operation:** logIn(employeeID: String, pin: String)
@@ -232,7 +232,7 @@ An operation contract describes the behavior of a system operation. Postconditio
 **Postconditions:**
 - The `Employee` identified by `employeeID` was recorded as the cashier of the login in progress, for the `CashierSession` that `enterOpeningCash` creates (no `CashierSession` exists yet, and no association with the `Register` is kept).
 - The `pin` was not stored, logged or shown (NFR-08).
-**Responsibilities:** System checks the employee and the PIN and asks for the opening cash. If the employee is not found or not an active cashier (6a), or the PIN is wrong (6b, 6c3), or the employee is not in the local list (6c1), nothing changes. If the HR System is not available (6c), the System shows the warning with the date of the last update of the local list.
+**Responsibilities:** System checks the employee and the PIN and asks for the opening cash. If the employee is not found or not an active cashier (6a), or the PIN is wrong (6b, 6c3), or the employee is not in the local list (6c1), nothing changes. If the HR System is not available (6c), the System shows the warning with the date and time of the last update of the local list.
 
 ### Contract 18: enterOpeningCash
 **Operation:** enterOpeningCash(amount: Money)
@@ -289,13 +289,14 @@ An operation contract describes the behavior of a system operation. Postconditio
 - The `CashierSession` with `sessionID` exists and has `toReview` set to true.
 - `managerID` is an active store manager and `pin` is correct (HR System or local employee list).
 - `reason` is not empty.
+- If it is not to review any more (another store manager reviewed it first), the request is refused and nothing changes.
 **Postconditions:**
 - `CashierSession.toReview` was set to false.
 - The `CashierSession` was associated with the `Employee` whose `employeeID` is `managerID`, as the reviewer (`reviewedBy`).
 - `CashierSession.reviewReason` was set to `reason`.
 - `CashierSession.reviewedAt` was set to the current timestamp.
 - The `pin` was not stored, logged or shown (NFR-08).
-**Responsibilities:** System records the store manager's review of the flagged session, clears the review flag, and logs the action.
+**Responsibilities:** System records the store manager's review of the flagged session, clears the review flag, and records the review (reviewer, time and reason) in the store database.
 
 ## UC5 Return Rental
 
