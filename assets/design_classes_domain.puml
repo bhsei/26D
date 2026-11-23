@@ -2,8 +2,8 @@
 ' NewEra POS - Design class diagram 2 of 3 (complete): domain classes, W11
 ' Team D - editable source of assets/design_classes_domain.png
 ' Render with: java -jar plantuml.jar -tpng -charset UTF-8 assets/design_classes_domain.puml
-' Sources: domain model v0.8 (attributes), design sequence diagrams of UC1, UC3, UC4 and UC5 (methods),
-' operation contracts 5 to 9 (UC2, until the design sequence diagrams of UC2 are pushed), AD-08, system_interfaces.md.
+' Sources: domain model v0.8 (attributes), design sequence diagrams of UC1 to UC5 (methods),
+' AD-08, system_interfaces.md v0.6 (UC2 methods from the design sequence diagrams of Yasmine).
 ' Visibility: - private, + public. Getters and setters of attributes are not drawn. "new" = method that the
 ' design sequence diagrams use and that the logical view did not have. Navigability: the arrow points to the
 ' class that the other one knows.
@@ -62,7 +62,7 @@ package "domain.store" {
     - reviewedAt : DateTime
     - reviewReason : String
     + createSale(id : String) : Sale
-    + createReturn(id : String) : Return
+    + createReturn(id : String) : Return «new»
     + createRental(id : String) : Rental «new»
     + createRentalReturn(id : String) : RentalReturn «new»
     + hasOpenTransaction() : boolean
@@ -90,6 +90,7 @@ package "domain.catalog" {
     - deposit : Money
     + getPrice() : Money
     + getStockLevel() : int
+    + increaseStock(quantity : int) : void
     + needsReorder() : boolean
     + rentalData() : RentalData «new»
   }
@@ -120,6 +121,8 @@ package "domain.transactions" {
   class Sale {
     - isPaid : boolean
     + addLineItem(pd : ProductDescription, quantity : int) : SaleLineItem
+    + findLine(itemID : String) : SaleLineItem
+    + isWithinRefundPeriod(today : Date) : boolean
     + hasLines() : boolean
     + toTaxRequest() : TaxRequest
     + setTax(taxPerLine : List<LineTax>) : void
@@ -131,19 +134,26 @@ package "domain.transactions" {
     - quantity : int
     - unitPrice : Money
     + getSubtotal() : Money
+    + refundValue(quantity : int) : Money «new»
   }
   class Return {
     - refundTotal : Money
-    + setSale(sale : Sale) : void
-    + addLineItem(saleLine : SaleLineItem, quantity : int, condition : ItemCondition) : ReturnLineItem
+    - returnedQuantities : Map<int, int> «new»
+    + setSale(sale : Sale, returnedQuantities : Map<int, int>) : void
+    + addLineItem(itemID : String, quantity : int, condition : ItemCondition) : ReturnLineItem
     + removeLineItem(lineNumber : int) : Money
-    + addRefund(outcome : RefundOutcome) : Refund
-    + complete() : AccountingRecord
+    + refundTotal() : Money
+    + originalPayment() : Payment
+    + refund() : Refund
+    + addRefund(outcome : RefundOutcome) : Refund «new»
+    + complete() : AccountingRecord «new»
   }
   class ReturnLineItem {
     - quantity : int
     - condition : ItemCondition
     - refundAmount : Money
+    + refundValue() : Money
+    + restock() : void
   }
   class Rental {
     - rentalDate : Date
@@ -160,7 +170,7 @@ package "domain.transactions" {
     + openLine() : RentalLineItem
     + openLineFor(code : String) : RentalLineItem
     + payment() : Payment
-    + close() : void
+    + close(refundPending : boolean) : void «new»
   }
   class RentalLineItem {
     - rentalPeriodDays : int
@@ -234,6 +244,8 @@ package "domain.payments" {
     - state : RefundState
     - isApproved : boolean
     - approvalReason : String
+    + setState(state : RefundState, reference : String) : void «new»
+    + approve(manager : Employee, reason : String) : void
   }
 }
 
@@ -289,9 +301,8 @@ Transaction "1" --> "*" Receipt
 Transaction "1" --> "0..1" AccountingRecord
 
 note right of Return
-  The members of Return, ReturnLineItem and the createReturn method
-  come from the operation contracts 5 to 9. The design sequence diagrams
-  of UC2 (Yasmine) are not pushed yet; the members are confirmed with them.
+  The members of Return, ReturnLineItem, SaleLineItem and Refund
+  are those of the design sequence diagrams of UC2 (Yasmine).
 end note
 
 note bottom of Money
