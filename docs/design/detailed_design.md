@@ -135,21 +135,19 @@ One diagram per layer, with attributes, methods, visibility and navigability. Th
 
 ![Design class diagram, repositories, accounting queue and store database](../../assets/design_classes_storage.png)
 
-The attributes are those of the [domain model](domain_model.md) v0.8 and the methods come from the design sequence diagrams of §2 (UC1, UC3, UC4 and UC5). The methods of `Return`, `ReturnLineItem` and `ReturnHandler` come from the operation contracts 5 to 9 and are confirmed when the design sequence diagrams of UC2 are pushed. Visibility: `-` private, `+` public; getters and setters are not drawn. Methods marked «new» are used by a design sequence diagram and were not in the logical view or in system_interfaces.md v0.5. Every «new» method of the messages of Avni (UC3) and Josué (UC4) is in the diagrams, as is `Register.openSession` and `SessionHandler.pendingCashier`. A new class is `Money` (package `domain.shared`), which carries the amount in cents (data model §6).
+The attributes are those of the [domain model](domain_model.md) v0.8 and the methods come from the design sequence diagrams of §2 (UC1 to UC5). Visibility: `-` private, `+` public; getters and setters are not drawn. Methods marked «new» are used by a design sequence diagram and were not in the logical view or in system_interfaces.md v0.5. Every «new» method of §2.2 (Yasmine), §2.3 (Avni), §2.4 (Josué) and §2.5 (Haifa) is in the diagrams, as are `Register.openSession` and `SessionHandler.pendingCashier`. A new class is `Money` (package `domain.shared`), which carries the amount in cents (data model §6). `returnedQuantities` of UC2 is both an attribute (`Return.returnedQuantities`) and a method (`TransactionRepository.returnedQuantities(receiptNumber)`).
 
 **Points that the owners of the diagrams confirm** (the diagrams use the first name):
 
 | Point | Where | Proposal |
 | --- | --- | --- |
 | `Item.isAvailable()` returns the status, not a boolean | UC3 (Avni) | Keep the name and return `ItemStatus`, or call it `status()`; the diagram has the first |
-| `selectRentalPeriod(lineNumber, days)` has the line number | UC3 (Avni), system_interfaces.md §3.4 has only `days` | The line number is in the URL of the request; Alfonso adds it to §3.4 |
-| `SessionRepository.open(s)` and `close(s)` take the session, because `Register` creates it | UC4 (Josué), system_interfaces.md §4.2 has the other parameters | The diagram follows the DSD; Alfonso updates §4.2 |
-| `StoreDatabaseSync.startSendingWaitingRecords()` | UC4 `startUp` (Josué) | The job is `sendWaitingRecordsUp()` started by `SessionHandler`; the DSD uses the interface name |
-| `SessionRepository` calls `StoreDatabaseSync.addToStoreSyncList(s)` | UC4 `enterOpeningCash` (Josué) | `store_sync_list` is a local table written by the repository (AD-05); `StoreDatabaseSync` only reads it, so there is no such method |
-| `getSystemStatus()` and `listPendingRefunds()` are in `SessionHandler` | S-02 menu (ui_design.md) | Confirm, or move them to another handler |
-| `ProductCatalog.getProduct` (UC1) and `ItemRepository.findProduct` | UC1 (Alfonso) | `ProductCatalog` reads the products through `ItemRepository`; not drawn |
+| `ManagerApproval.approve(managerID, pin)` in UC2 and `ManagerApproval.check(managerID, pin)` in UC4 and UC5 | UC2 (Yasmine) | One name for the same class: `check`, which returns `ApprovalResult` (UC4, UC5); Yasmine renames it in `dsd_uc2_approveCashRefund` |
+| `PaymentMethods.get(CASH)` returns the interface `PaymentMethod`, which has no `payOut` | UC2 (Yasmine) | `payOut(amount, employeeID)` is in `CashPaymentMethod`; the diagram adds `PaymentMethods.cash()` that returns it |
+| `approveCashRefund` calls `complete()` and `saveCompleted` again for a return that was already saved with a *pending* card refund and then failed | UC2 (Yasmine), UC5 (Haifa, Contract 28) | A return that is already saved only gets the new row of `refund_status` (`CASH_PAID`) and the stock and the receipt; `saveCompleted` and the Accounting record are done once. See the state diagram of the refund (domain model §7.4) |
+| `findSale` also answers `SALE_NOT_AVAILABLE` (409) and `returnedQuantities` | UC2 (Yasmine) | Alfonso adds both to system_interfaces.md |
 
-*Open: the design sequence diagrams of UC2 (Yasmine).*
+Confirmed by Alfonso: `getSystemStatus` and `listPendingRefunds` stay in `SessionHandler`; `ProductCatalog` reads through `ItemRepository` (not drawn); `SessionRepository.open(s)` and `close(s)` and `selectRentalPeriod(lineNumber, days)` will be in system_interfaces.md v0.7 (Alfonso, to be pushed).
 
 ## 4. Activity diagrams – Yasmine
 
