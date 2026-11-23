@@ -3,7 +3,7 @@
 ' Team D - editable source of assets/dsd_uc3_end_rental.png
 ' Render with: java -jar plantuml.jar -charset UTF-8 -tpng assets/dsd_uc3_end_rental.puml
 ' Participants: classes of the logical view (architecture.md 4.2) and of the design class diagram skeleton. Operations: system_interfaces.md 3.4, 4.1 and 4.3.
-' Messages marked <<new>> are not in the logical view or in system_interfaces.md yet (sent to Borja for the design class diagram).
+' Messages marked <<new>> are not in the logical view or in system_interfaces.md yet (sent to Borja for the design class diagram). Review #66: findings 4 and 5.
 
 skinparam shadowing false
 skinparam dpi 130
@@ -31,6 +31,8 @@ end box
 box "Application / domain layer" #F4F8FD
   participant ":Rental\nHandler" as H
   participant "rental:\nRental" as R
+  participant ":Payment\nMethods" as PMs
+  participant "pm:\nPaymentMethod" as PM
 end box
 box "application.interfaces" #F4F8FD
   participant ":StoreDatabase\nSync" as Sync
@@ -54,18 +56,19 @@ note right of Tax
 end note
 Tax --> H : TaxResult
 alt TaxResult OK
-  H -> R : setTax(tax, false) <<new>>
+  H -> R : setTax(taxPerLine)
 else NOT_AVAILABLE (11a)
   H -> Set : current()
-  Set --> H : Settings (default tax rate)
-  H -> H : tax = rental fee x default rate
-  H -> R : setTax(tax, true) <<new>>
+  Set --> H : settings (default tax rate)
+  H -> R : applyDefaultTaxRate(rate) <<new>>
   note right of R
-    taxToBeCorrected = true (BR-02);
-    the screen shows a short warning.
+    The Rental calculates the tax of its rental fees
+    and sets taxToBeCorrected = true (BR-02), as the
+    Sale in UC1 (dsd_uc1_endSale). The screen shows
+    a short warning (NFR-15).
   end note
 end
-H -> R : complete() <<new>>
+H -> R : complete()
 R -> R : isComplete = true\ntotal = rental fee + tax + deposit
 R --> H : rental fee, tax, deposit, total, due date
 H --> Ctl : totals
@@ -74,6 +77,15 @@ H --> Ctl : totals
 == cancelRental() - ext. 10-13a (no contract) ==
 [-> Ctl : DELETE /api/rentals/{rentalID}
 Ctl -> H : cancelRental()
+opt a card payment was sent and its outcome is unknown (NOT_AVAILABLE, 13b2b)
+  H -> PMs : get(CREDIT_CARD)
+  PMs --> H : pm
+  H -> PM : giveUp(rental)
+  note right of PM
+    voidAuthorization with the same rental ID
+    (IR-15, AD-07), as cancelSale in UC1.
+  end note
+end
 loop each line of the rental
   H -> Sync : removeHold(serialNumber, rentalID)
   note right of Sync
@@ -88,7 +100,9 @@ H --> Ctl : cancelled
 legend bottom left
   **GRASP**
   Controller: RentalController and RentalHandler, as in the start of the rental.
-  Information Expert: Rental knows its lines and calculates its tax lines and its total (fee + tax + deposit, Contract 15).
+  Information Expert: Rental knows its lines, calculates the default tax of its rental fees (applyDefaultTaxRate, as Sale in UC1)
+  and its total (fee + tax + deposit, Contract 15).
+  Polymorphism: cancelRental voids an unknown card payment through PaymentMethod.giveUp (AD-08, IR-15).
   Protected Variations, Indirection: TaxCalculator and StoreDatabaseSync are interfaces; the adapter applies the timeout
   and the handler chooses the fallback (default tax rate from SettingsRepository) (AD-04, AD-07).
 endlegend
