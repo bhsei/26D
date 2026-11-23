@@ -3,12 +3,14 @@
 | | |
 | --- | --- |
 | **Maintainer** | Alfonso Pinto |
-| **Version** | 0.6 (draft for review; catalog import at start-up) |
+| **Version** | 0.7 (draft for review; aligned with the design class diagram) |
 | **Last updated** | W11 |
 | **Part of** | Increment 2 – Design (milestone W11); step 2 of the architecture process |
 | **Inputs** | [System sequence diagrams](system_sequence_diagrams.md), [operation contracts](operation_contracts.md), [SRS](../requirements/SRS.md) §3.1 and §3.2, [architecture](architecture.md) AD-01 to AD-10; [UI design](ui_design.md) §1 |
 
 > **Status: draft.** The operations of all five use cases have the names of the [system sequence diagrams](system_sequence_diagrams.md) v0.10, and each one refers to its [operation contract](operation_contracts.md) (contracts 1 to 29).
+>
+> **v0.7 (W11, design class diagram, review #65):** `SessionRepository.open` and `close` take the `CashierSession` that `Register` creates (UC4); `selectRentalPeriod` has the line number (UC3); `CatalogFileInfo` in the `settings` of the data model v1.0; customers and open rentals in `TransactionRepository` and `StoreDatabaseSync` (UC3, UC5), with `409` for a sale or rental of another register when the store database is not available; `CARD_NOT_READ` answer of `makePayment`; timeout of `CatalogSource`; open points 9 and 11 closed.
 >
 > **v0.6 (W11, Contract 16):** catalog import at start-up in the background (IR-17, NFR-02): `CatalogImport` with `NO_NEW_FILE`, `VALID`, `REJECTED` and `NOT_AVAILABLE`; the last imported file is kept with the catalog; `writeCatalog` without a store manager at start-up; rejected files in the `EventLog`.
 >
@@ -69,7 +71,7 @@ The column *Operation* gives the name of the system operation in the SSD; *Contr
 | `removeItem(lineNumber)` | `DELETE /api/sales/{saleID}/lines/{lineNumber}` | New running subtotal | – | FR-05 |
 | `overridePrice(lineNumber, newPrice, managerID, pin)` | `PUT /api/sales/{saleID}/lines/{lineNumber}/price` `{"newPrice", "manager"}` | New line subtotal and running subtotal. `403` not a store manager | – | FR-06, BR-04 |
 | `endSale()` | `POST /api/sales/{saleID}/end` | Subtotal, tax, total; `"taxToBeCorrected": true` when the default tax rate was used. `409` sale without lines | 3 | FR-08, FR-18, IR-04, IR-05 |
-| `makePayment(amount, tenderType)` | `POST /api/sales/{saleID}/payment` `{"tenderType": "CASH" \| "CREDIT_CARD" \| "CHECK", "amount"}` | `"result"`: `APPROVED` (with change due for cash, last 4 digits and authorization code for a card, receipt number) · `DECLINED` (reason) · `NOT_AVAILABLE` (retry allowed). `422` cash lower than the total, or a card or check amount different from the total · `409` sale not ended or already paid | 4 | FR-09–FR-16, FR-71, IR-01, IR-02, IR-06, BR-18 |
+| `makePayment(amount, tenderType)` | `POST /api/sales/{saleID}/payment` `{"tenderType": "CASH" \| "CREDIT_CARD" \| "CHECK", "amount"}` | `"result"`: `APPROVED` (with change due for cash, last 4 digits and authorization code for a card, receipt number) · `DECLINED` (reason) · `NOT_AVAILABLE` (retry allowed) · `CARD_NOT_READ` (card reader error: read the card again or use another tender; no payment and no void needed, 9b1a). `422` cash lower than the total, or a card or check amount different from the total · `409` sale not ended or already paid | 4 | FR-09–FR-16, FR-71, IR-01, IR-02, IR-06, BR-18 |
 | `cancelSale()` | `DELETE /api/sales/{saleID}` | Sale cancelled, no change in the stock levels. `409` already paid | – | FR-07 |
 | `reprintReceipt()` | `POST /api/receipts/{receiptNumber}/print` | Printer status | – | FR-17, FR-29, IR-13 |
 | `reprintLastReceipt()` | `POST /api/receipts/last/print` | The last receipt of this register is printed again (kept in `register_state`); printer status. `404` no receipt yet in this session | – | FR-17, IR-13 |
@@ -82,7 +84,7 @@ One payment per sale (BR-18): after `DECLINED` or `NOT_AVAILABLE` no payment is 
 | Operation | Request | Answer | Contract | Requirements |
 | --- | --- | --- | --- | --- |
 | `makeNewReturn()` | `POST /api/returns` | `201` return ID | 5 | FR-20 |
-| `findSale(receiptNumber)` | `PUT /api/returns/{returnID}/sale` `{"receiptNumber"}` | Lines of the sale with the quantity bought and already returned, and the tender. `404` no sale · `409` older than 30 days | 6 | FR-21, BR-07 |
+| `findSale(receiptNumber)` | `PUT /api/returns/{returnID}/sale` `{"receiptNumber"}` | Lines of the sale with the quantity bought and already returned, and the tender. `404` no sale · `409` older than 30 days, or the sale is from another register and the store database is not available ("try again later") | 6 | FR-21, BR-07 |
 | `enterReturnItem(itemID, quantity, condition)` | `POST /api/returns/{returnID}/lines` `{"itemID", "quantity", "condition": "RESELLABLE" \| "NOT_RESELLABLE"}` | Return line, refund total, tender of the sale. `409` not in the sale or quantity too large | 7 | FR-22, FR-23 |
 | `removeReturnItem(lineNumber)` | `DELETE /api/returns/{returnID}/lines/{lineNumber}` | New refund total | – | FR-22 |
 | `confirmReturn()` | `POST /api/returns/{returnID}/confirm` | `"refund"`: `CASH_PAID` (drawer opens) · `CARD_REFUNDED` · `NEEDS_APPROVAL` · `PENDING` (see §3.7); receipt number when the return is complete | 8 | FR-25–FR-29, IR-03, BR-08 |
@@ -98,7 +100,7 @@ One payment per sale (BR-18): after `DECLINED` or `NOT_AVAILABLE` no payment is 
 | `enterCustomerID(customerID)` | `PUT /api/rentals/{rentalID}/customer` `{"customerID"}` | Customer accepted. `404` unknown ID · `409` overdue rental | 11 | FR-31, BR-12 |
 | `registerCustomer()` | `POST /api/rentals/{rentalID}/customer` | `201` new customer ID, linked to the rental (no other personal data) | 12 | FR-31, DR-18 |
 | `enterRentalItem(serialNumber)` | `POST /api/rentals/{rentalID}/lines` `{"serialNumber"}` | Description, item status, rental fee per day, deposit. `404` unknown serial number · `409` item not *Available* | 13 | FR-32, FR-33, BR-11 |
-| `selectRentalPeriod(days)` | `PUT /api/rentals/{rentalID}/lines/{lineNumber}/period` `{"days": 1 \| 3 \| 7}` | Rental fee, due date, deposit. `400` other period | 14 | FR-34, BR-15 |
+| `selectRentalPeriod(lineNumber, days)` | `PUT /api/rentals/{rentalID}/lines/{lineNumber}/period` `{"days": 1 \| 3 \| 7}` | Rental fee, due date, deposit. `400` other period | 14 | FR-34, BR-15 |
 | `endRental()` | `POST /api/rentals/{rentalID}/end` | Rental fee, tax, deposit (not taxed), total, due date; `"taxToBeCorrected": true` when the default tax rate was used | 15 | FR-35, BR-10, IR-05 |
 | `makePayment(amount, tenderType)` | `POST /api/rentals/{rentalID}/payment` (same body and answer as for a sale) | As in UC1; after `APPROVED` the item becomes *Rented* | 4 | FR-37–FR-39, FR-64–FR-67, BR-18 |
 | `cancelRental()` | `DELETE /api/rentals/{rentalID}` | Rental cancelled, item status unchanged | – | FR-36 |
@@ -108,8 +110,8 @@ One payment per sale (BR-18): after `DECLINED` or `NOT_AVAILABLE` no payment is 
 | Operation | Request | Answer | Contract | Requirements |
 | --- | --- | --- | --- | --- |
 | `makeNewRentalReturn()` | `POST /api/rental-returns` | `201` rental return ID | 22 | FR-50 |
-| `findRental(code)` | `PUT /api/rental-returns/{id}/rental` `{"code"}` (serial number of the item or rental receipt number) | Customer, item, rental date, due date, deposit, tender. `404` no open rental for this item (5a) | 23 | FR-51 |
-| `findRentalsOfCustomer(customerID)` | `GET /api/rentals?customerID=...&open=true` | Open rentals of the customer (5b) | 24 | FR-51 |
+| `findRental(code)` | `PUT /api/rental-returns/{id}/rental` `{"code"}` (serial number of the item or rental receipt number) | Customer, item, rental date, due date, deposit, tender. `404` no open rental for this item (5a) · `409` the rental is from another register and the store database is not available ("try again later") | 23 | FR-51 |
+| `findRentalsOfCustomer(customerID)` | `GET /api/rentals?customerID=...&open=true` | Open rentals of the customer (5b). `409` store database not available (only the rentals of this register can be found) | 24 | FR-51 |
 | `selectRental(rentalID)` | `PUT /api/rental-returns/{id}/selected-rental` `{"rentalID"}` | As `findRental`. `409` the rental is not open | 25 | FR-51 |
 | `recordCondition(condition, damageNote)` | `PUT /api/rental-returns/{id}/condition` `{"condition": "UNDAMAGED" \| "DAMAGED", "damageNote"}` | On time: full deposit as refund. Late: days late, late fee, its tax and the refund (7a), or the amount still due when the late fee is larger than the deposit (7b); `"taxToBeCorrected": true` when the default tax rate was used. Damaged: request for a store manager (6a) | 26 | FR-52–FR-54, FR-73, BR-16, IR-05 |
 | `confirmDamage(managerID, pin)` | `POST /api/rental-returns/{id}/damage-confirmation` `{"manager"}` | Damage confirmed, refund zero. `403` not a store manager | 27 | FR-52, FR-72 |
@@ -216,7 +218,7 @@ public interface HRSystem {                                         // timeout 5
     EmployeeListResult employeeList();                              // IR-09, FR-46
 }
 
-public interface CatalogSource {
+public interface CatalogSource {                                    // timeout: import timeout of the Settings (proposed 10 s, AD-07)
     CatalogImport importCatalog(Path exportFile, CatalogFileInfo lastImported); // IR-17: lastImported is null for M-04 (always imported)
 }
 ```
@@ -232,7 +234,7 @@ public interface CatalogSource {
 | `EmployeeCheck` | `VALID` (with name and role, *cashier* or *store manager*), `INVALID` (not found, not active or wrong PIN) or `NOT_AVAILABLE`, after which the handler checks the local employee list (UC4 6c, IR-09) |
 | `EmployeeListResult` | `OK` with the list of `EmployeeEntry` (employee ID, name, role, active, PIN as a salted hash only, DR-11), or `NOT_AVAILABLE`, after which the local copy is kept as it is |
 | `CatalogImport` | `NO_NEW_FILE` (no file, or the same name and date as `lastImported`), `VALID` with the `Catalog` and its `CatalogFileInfo`, `REJECTED` with the list of missing or invalid fields, or `NOT_AVAILABLE` (the file location cannot be reached within the timeout) |
-| `CatalogFileInfo` | name and date of the export file; written with the catalog to the store database and copied to every register, so that no register imports the same file twice |
+| `CatalogFileInfo` | name and date of the export file; written with the catalog to the store database (`settings` keys `catalog_file_name` and `catalog_file_date`, data model v1.0) and copied to every register, so that no register imports the same file twice |
 
 ### 4.2 Devices (AD-10)
 
@@ -254,7 +256,7 @@ When a device fails, the register goes on with the fallback of SRS §3.1.2:
 
 | Result | What the screen shows | Source |
 | --- | --- | --- |
-| `CardReader.read()` → `ERROR` (reader error or no card read) | "Card could not be read": read the card again or use another tender; the attempt counts as a failed payment and no payment is created | UC1 ext. 9b1a, contract 4, IR-12 |
+| `CardReader.read()` → `ERROR` (reader error or no card read) | "Card could not be read": `makePayment` answers `CARD_NOT_READ`; read the card again or use another tender. No payment is created and the Payment Service is not called, so no `voidAuthorization` is needed | UC1 ext. 9b1a, contract 4, IR-12 |
 | `ReceiptPrinter.print()` → `NO_PAPER` or `ERROR` | The printer message; the transaction is already saved and the receipt can be reprinted (`reprintReceipt`) | IR-13, FR-17 |
 | `CashDrawer.open()` → `ERROR` | "The cash drawer did not open": open it with the key; the opening is logged as manual | IR-14 |
 
@@ -276,11 +278,15 @@ public interface TransactionRepository {
     void deleteOpenAuthorization(String transactionID);           // in saveCompleted, or after voidAuthorization
     List<String> findOpenAuthorizations();                        // voided at start-up (IR-15)
     Optional<Receipt> lastReceipt();                              // register_state (FR-17)
+    Optional<Customer> findCustomer(String customerID);           // local copy of the customers (UC3 step 4)
+    String nextCustomerID();                                      // register ID + counter, like the transaction ID (UC3 4a, question 5)
+    List<Rental> findOpenRentalsOfCustomer(String customerID);    // local copy: overdue check (BR-12), UC5 5b
+    Optional<Rental> findOpenRentalOfItem(String serialNumber);   // local copy (UC5 step 5)
 }
 
 public interface SessionRepository {                              // cashier_session (DR-09)
-    CashierSession open(String employeeID, Money openingCash);     // also queued in store_sync_list
-    void close(String sessionID, Money closingCash, Money difference, boolean toReview);  // FR-61, FR-62, FR-74; queued again
+    void open(CashierSession s);                                   // created by Register (Contract 18); also queued in store_sync_list
+    void close(CashierSession s);                                  // closing cash, difference and review mark set by the session (FR-61, FR-62, FR-74); queued again
     Optional<CashierSession> findOpen();                          // an open session found at start-up is ended as interrupted (FR-63)
 }
 
@@ -316,6 +322,8 @@ public interface StoreDatabaseSync {                              // the only cl
     HoldResult putHold(String serialNumber, String transactionID);// UC3 step 7: HELD, HELD_BY_OTHER (ext. 7b) or NOT_AVAILABLE (rent from the local copy)
     void removeHold(String serialNumber, String transactionID);   // queued in store_sync_list when the store database is not available
     TransactionResult findTransaction(String transactionID);      // return of a transaction of another register: FOUND, NOT_FOUND or NOT_AVAILABLE (FR-21)
+    RentalsResult findOpenRentalsOfCustomer(String customerID);   // rentals of the other registers: FOUND, NOT_FOUND or NOT_AVAILABLE (BR-12, UC5 5b)
+    RentalResult findOpenRentalOfItem(String serialNumber);       // rental of another register: FOUND, NOT_FOUND or NOT_AVAILABLE (UC5 step 5)
     // Store manager functions marked * in §3.6; each answers NOT_AVAILABLE when the store database cannot be reached
     Page<StockDifference> listStockDifferences(int limit, int offset);         // FR-68, FR-19
     Page<SessionToReview> listSessionsToReview(int limit, int offset);         // FR-74
@@ -332,7 +340,7 @@ public interface StoreDatabaseSync {                              // the only cl
 | --- | --- | --- |
 | One save | `saveCompleted` is one database transaction: everything or nothing, also after a power cut. | AD-05, DR-13, IR-07 |
 | Background jobs | `AccountingSender` (application) calls `takeFirst`, `send`, then `delete` or `markFailedAttempt` (also for `REJECTED`, which keeps the record first and is shown in M-06), and waits 5 s, 10 s, 30 s, 60 s and then 5 min between attempts; it never skips a record. A background job of `StoreDatabaseSync` sends the waiting records (`sendWaitingRecordsUp`). Both are started by `SessionHandler` and never delay the start-up. The catalog import of the start-up is a third background job: `importCatalog` with the last imported file, `writeCatalog` when `VALID`, and the `EventLog` when `REJECTED` or `NOT_AVAILABLE`; the register gets the new catalog with the next `copyMasterDataDown`. | AD-06, AD-05, NFR-02, IR-17 |
-| Store database down | The repositories keep working on the local copy. `putHold` and `findTransaction` answer `NOT_AVAILABLE`; the operations marked * in §3.6 answer `409`, because the store database is the master of settings and catalog. | AD-05, DC-09 |
+| Store database down | The repositories keep working on the local copy. `putHold`, `findTransaction`, `findOpenRentalsOfCustomer` and `findOpenRentalOfItem` answer `NOT_AVAILABLE`; the operations marked * in §3.6 answer `409`, because the store database is the master of settings and catalog. | AD-05, DC-09 |
 | Conflicts | Stock levels are changed by quantities and transactions never change, so the only conflict is two offline rentals of the same item; it is recorded in `sync_conflict` and the store manager sees and resolves it in M-01 (`listRentalConflicts`, `resolveRentalConflict`). | AD-05, SRS §5.3 Q6 |
 | Employee list | `replaceAll` replaces the copy with the list of the HR System but keeps the local disable mark of a store manager, until the HR System also marks the employee inactive or a store manager enables the employee again. | FR-70, IR-09 |
 | Retention | The register deletes acknowledged transactions after 90 days (AD-05), but never a transaction with a pending refund or an open authorization. | AD-05, FR-77, IR-15 |
@@ -362,6 +370,6 @@ In our project the four external systems are stubs: small HTTP servers that answ
 6. ~~**Names of the store manager operations**~~ (ui_design.md §4.3, point 1): the names proposed by Josué are used in §3.6; `getAccountingQueueStatus` is new (FR-76).
 7. ~~**`startUp()` and S-01**~~ (ui_design.md §4.3, point 2): no screen sends `startUp()`; S-01 shows its result (§3.9). To align ui_design.md §1.2 (Yasmine).
 8. ~~**Status of the external systems**~~ (ui_design.md §1.6 point 1 and §4.3 point 3): `getSystemStatus()` (§3.8). The tax warning of S-08 and S-09 comes from the answers of `endRental()` and `recordCondition()`, which carry `taxToBeCorrected` like `endSale()`.
-9. **Accounting record refused** (review #60, finding 8): `REJECTED` keeps the order of the queue (IR-07), so a refused record blocks the others until it is fixed. AD-06 has only `RECEIVED` and `NOT_AVAILABLE`; to add `REJECTED` there (Borja).
+9. ~~**Accounting record refused**~~ Closed (W11, AD-06 by Borja) (review #60, finding 8): `REJECTED` keeps the order of the queue (IR-07), so a refused record blocks the others until it is fixed. AD-06 has only `RECEIVED` and `NOT_AVAILABLE`; to add `REJECTED` there (Borja).
 10. **Repositories in the logical view**: `SessionRepository` and `SettingsRepository` (Haifa, architecture.md §4.2).
-11. **Catalog import at start-up** (Contract 16): the `CatalogFileInfo` of the last import in the data model, with the catalog (Borja); `EventLog` also logs rejected catalog files, not only the failed communications of IR-10 (Haifa, architecture.md §4.2).
+11. ~~**Catalog import at start-up**~~ Closed (W11): `CatalogFileInfo` in the `settings` of the data model v1.0 (Borja); the `EventLog` also logs rejected catalog files (architecture.md §4.2, Haifa).
