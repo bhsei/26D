@@ -41,6 +41,13 @@ H -> PMS : get(CREDIT_CARD)
 PMS --> H : pm
 H -> PM : pay(s, amount)
 PM -> CR : read()
+alt ERROR: the card cannot be read (9b1a)
+  CR --> PM : CardReadResult(ERROR)
+  PM --> H : CARD_NOT_READ
+  H --> C : CARD_NOT_READ
+  C -->[ : 200 result CARD_NOT_READ: read the card again or another tender
+  note over H : no Payment is created and the PaymentService is not called,\nso no voidAuthorization is needed; the sale stays open
+else OK
 CR --> PM : CardReadResult(OK, cardToken)
 note right of CR : the card token stays in memory\nand goes only to the PaymentService (AD-09, DC-06)
 PM -> PAY : authorize(PaymentRequest(s.transactionID, amount, cardToken))
@@ -76,6 +83,7 @@ else NOT_AVAILABLE: timeout or error (9b2b)
   H --> C : NOT_AVAILABLE (retry allowed)
   C -->[ : 200 result NOT_AVAILABLE: retry, another tender or cancel
   note over H : no Payment is created; the sale stays open with the same transaction ID.\nIf the cashier then uses another tender or cancels, the handler first calls\nPaymentService.voidAuthorization(transactionID) (AD-07, IR-15)
+end
 end
 
 note over H, PM
