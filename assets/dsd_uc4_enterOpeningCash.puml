@@ -20,9 +20,8 @@ box "domain" #FFF7E0
   participant "reg:Register" as REG
   participant "s:CashierSession" as S
 end box
-box "technical.storage" #F2F2F2
+box "application.interfaces" #F2F2F2
   participant "sessions:SessionRepository" as SR
-  participant "sync:StoreDatabaseSync" as SYNC
 end box
 
 [-> C : PUT /api/sessions/current/opening-cash {amount}
@@ -42,8 +41,7 @@ else amount valid
   REG --> H : s
   H -> H : pendingCashier = none
   H -> SR : open(s)
-  SR -> SYNC : addToStoreSyncList(s)
-  note right of SYNC : the session is sent to the store database\nlater, in the background (AD-05)
+  note right of SR : saved in the local database; the entry of store_sync_list is written in\nthe same local transaction. The session is sent to the store database\nlater, in the background (AD-05)
   H --> C : OpeningResult(OK, sessionID)
   C -->[ : 200, session open, S-02 shown
 end
