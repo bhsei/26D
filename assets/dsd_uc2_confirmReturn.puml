@@ -1,0 +1,122 @@
+@startuml dsd_uc2_confirmReturn
+' NewEra POS - Design sequence diagram, UC2 Handle Returns: confirmReturn() (Contract 8), W11
+' Team D - editable source of assets/dsd_uc2_confirmReturn.png
+' Render with: java -jar plantuml.jar -charset UTF-8 -tpng assets/dsd_uc2_confirmReturn.puml
+' Participants: logical view (architecture.md 4.2). Operations: system_interfaces.md 3.3, 3.7, 4.1 to 4.3; AD-05, AD-07, AD-08, AD-09.
+' Messages marked <<new>> are not in the logical view or in system_interfaces.md yet (sent to Borja for the design class diagram).
+title DSD UC2 Handle Returns - confirmReturn() (Contract 8)
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam sequenceMessageAlign left
+skinparam ParticipantPadding 8
+skinparam BoxPadding 6
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B7791F
+skinparam maxMessageSize 190
+hide footbox
+box "ui.api" #EAF2E3
+  participant "ctrl:ReturnController" as C
+end box
+box "application" #E8EEF7
+  participant "h:ReturnHandler" as H
+  participant ":PaymentMethods" as PMS
+  participant "pm:PaymentMethod" as PM
+end box
+box "domain" #FFF7E0
+  participant "r:Return" as R
+  participant "rli:ReturnLineItem" as RLI
+  participant "pd:ProductDescription" as PD
+end box
+box "application.interfaces" #F6EDF7
+  participant ":PaymentService" as PAY
+  participant ":CashDrawer" as DR
+  participant ":Transaction\nRepository" as TR
+  participant ":ReceiptPrinter" as PRT
+end box
+
+[-> C : POST /api/returns/{returnID}/confirm
+C -> H : confirmReturn()
+H -> R : refundTotal()
+R --> H : amount (at least one line, else 409 "Enter an item")
+H -> R : originalPayment()
+R --> H : original (the Payment of the sale: tender and payment reference, DR-19)
+H -> PMS : get(original.tenderType)
+PMS --> H : pm
+H -> PM : refund(original, amount)
+note right of PM : Polymorphism (AD-08): the handler never tests the tender (BR-08, NFR-09).\nThe return has no card reader: the refund uses the payment reference, not the card (AD-09).
+
+alt CASH (9a)
+  PM -> DR : open(CASH_REFUND, employeeID)
+  DR --> PM : OPENED (logged, IR-14)
+  PM --> H : RefundOutcome CASH_PAID
+else CREDIT_CARD (9b)
+  PM -> PAY : refund(RefundRequest(r.transactionID, original.reference, amount))
+  note right of PAY : the adapter applies the 10 s timeout (AD-07);\nthe same transaction ID in every retry (IR-02)
+  alt APPROVED
+    PAY --> PM : PaymentResult(APPROVED, reference)
+    PM --> H : RefundOutcome CARD_REFUNDED (with reference)
+  else DECLINED (9b2a)
+    PAY --> PM : PaymentResult(DECLINED, reason)
+    PM --> H : RefundOutcome NEEDS_APPROVAL (no cash paid)
+  else NOT_AVAILABLE: outcome unknown (9b2b)
+    PAY --> PM : PaymentResult(NOT_AVAILABLE)
+    PM -> PAY : refundStatus(r.transactionID)
+    note right of PAY : same transaction ID: the Payment Service says whether the refund was made
+    alt APPROVED
+      PAY --> PM : APPROVED
+      PM --> H : CARD_REFUNDED
+    else DECLINED (the refund failed or is unknown)
+      PAY --> PM : DECLINED
+      PM --> H : NEEDS_APPROVAL
+    else NOT_AVAILABLE
+      PAY --> PM : NOT_AVAILABLE
+      PM --> H : RefundOutcome PENDING (nothing is paid)
+    end
+  end
+else CHECK (9c)
+  PM --> H : RefundOutcome NEEDS_APPROVAL (cash only with a store manager, FR-25)
+end
+
+H -> R : addRefund(outcome) <<new>>
+R -> R : create Refund(tender, amount, state, reference)
+note right of R : Creator: the return records its Refund.\nThe reference of a card refund is encrypted when it is saved (AD-09)
+
+alt CASH_PAID, CARD_REFUNDED or PENDING
+  H -> R : complete() <<new>>
+  loop each ReturnLineItem with condition RESELLABLE
+    R -> RLI : restock()
+    RLI -> PD : increaseStock(quantity)
+    note right of PD : NOT_RESELLABLE: no stock change (FR-23);\nthe item is only recorded
+  end
+  R -> R : isComplete = true
+  R --> H : AccountingRecord
+  note right of R : Creator: the return has the data of the record\n(refund, tax refunded, tender, refund state)
+  H -> TR : saveCompleted(r, record)
+  note right of TR : ONE database transaction (AD-05, AD-06): return, lines, refund,\nstock changes, the AccountingQueue record and the store_sync_list entry
+  opt card refund (CARD_REFUNDED or PENDING)
+    H -> TR : addRefundStatus(refundID, state, reference)
+    note right of TR : PENDING: listed on S-02 (findPendingRefunds, FR-77);\ncheckRefundStatus asks again later. No cash is paid.
+  end
+  H -> R : getReceipt()
+  R --> H : receipt (FR-71, last 4 digits only)
+  H -> PRT : print(receipt)
+  PRT --> H : READY (NO_PAPER or ERROR: the return is saved, reprint later, IR-13)
+  H --> C : refund state, receiptNumber
+  C -->[ : 200 CASH_PAID, CARD_REFUNDED or PENDING; receipt number
+else NEEDS_APPROVAL (card declined, or check)
+  note over H, R : No cash is paid and nothing is saved yet: the Refund stays unpaid and the return stays open (Contract 8).
+  H --> C : NEEDS_APPROVAL, reason
+  C -->[ : 200 NEEDS_APPROVAL: D-01 opens
+  ref over C, R : approveCashRefund(managerID, pin, reason), see dsd_uc2_approveCashRefund
+end
+
+note over H
+  GRASP
+  Polymorphism, Protected Variations: one PaymentMethod for each tender behind one interface; a new tender changes no handler (NFR-09, AD-08).
+  Creator: Return creates its Refund and its AccountingRecord.
+  Information Expert: Return knows the refund total and the tender of the sale; ReturnLineItem knows its condition and restocks only if resellable; ProductDescription changes its own stock level.
+  Indirection, Pure Fabrication: PaymentService, CashDrawer, TransactionRepository and ReceiptPrinter are interfaces (DC-02); the timeout is in the adapter, the fallback in the handler (AD-07).
+  Low Coupling: the controller only calls the handler.
+end note
+@enduml
