@@ -1,0 +1,69 @@
+@startuml dsd_uc2_enterReturnItem
+' NewEra POS - Design sequence diagram, UC2 Handle Returns: enterReturnItem(itemID, quantity, condition) (Contract 7), W11
+' Team D - editable source of assets/dsd_uc2_enterReturnItem.png
+' Render with: java -jar plantuml.jar -charset UTF-8 -tpng assets/dsd_uc2_enterReturnItem.puml
+' Participants: logical view (architecture.md 4.2). Operations: system_interfaces.md 3.3, 3.7, 4.1 to 4.3; AD-05, AD-07, AD-08, AD-09.
+' Messages marked <<new>> are not in the logical view or in system_interfaces.md yet (sent to Borja for the design class diagram).
+title DSD UC2 Handle Returns - enterReturnItem(itemID, quantity, condition) (Contract 7)
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam sequenceMessageAlign left
+skinparam ParticipantPadding 8
+skinparam BoxPadding 6
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B7791F
+skinparam maxMessageSize 190
+hide footbox
+box "ui.api" #EAF2E3
+  participant "ctrl:ReturnController" as C
+end box
+box "application" #E8EEF7
+  participant "h:ReturnHandler" as H
+end box
+box "domain" #FFF7E0
+  participant "r:Return" as R
+  participant "s:Sale" as S
+  participant "sli:SaleLineItem" as SLI
+  participant "rli:ReturnLineItem" as RLI
+end box
+
+== enterReturnItem(itemID, quantity, condition), repeated for each returned item ==
+[-> C : POST /api/returns/{returnID}/lines {itemID, quantity, condition: RESELLABLE | NOT_RESELLABLE}
+C -> C : check format (quantity is a whole number > 0; condition is one of the two values)
+C -> H : enterReturnItem(itemID, quantity, ItemCondition)
+note right of C : RESELLABLE is the condition Undamaged of the domain model;\nNOT_RESELLABLE is Damaged
+H -> R : addLineItem(itemID, quantity, condition)
+R -> S : findLine(itemID)
+S --> R : sli (or none)
+alt the item is not in the sale (6a)
+  R --> H : NOT_IN_SALE
+  H --> C : NOT_IN_SALE
+  C -->[ : 409 "This item is not in the sale"
+else quantity > bought - already returned - already entered in this return (6a)
+  R --> H : QUANTITY_TOO_LARGE
+  H --> C : QUANTITY_TOO_LARGE, quantity left
+  C -->[ : 409 "The quantity is larger than what is left to return"
+else valid line
+  R -> RLI ** : create(sli, quantity, condition)
+  RLI -> SLI : refundValue(quantity) <<new>>
+  SLI --> RLI : price + tax charged in the sale
+  note right of SLI : Information Expert: the sale line knows its price and the tax of the sale;\nthe refund is the tax of the original sale, not a new calculation (FR-27, Q-06)
+  R -> R : refundTotal = refundTotal + rli.refundValue
+  R --> H : rli, refundTotal
+  H --> C : LineResult(lineNumber, description, quantity, condition, refundValue, refundTotal, tender of the sale)
+  C -->[ : 201 return line, refund total, tender of the sale
+end
+
+note over H
+  removeReturnItem(lineNumber) (FR-22) is the same without a new class: DELETE /api/returns/{returnID}/lines/{lineNumber}
+  calls r.removeLineItem(lineNumber) and answers the new refund total.
+end note
+note over H
+  GRASP
+  Controller: ReturnController and ReturnHandler, as in UC1.
+  Creator: Return creates its ReturnLineItems (it aggregates them and has the data).
+  Information Expert: Return knows what is left to return; SaleLineItem knows what the customer paid for a unit; ReturnLineItem keeps its own refund value.
+  High Cohesion, Low Coupling: the handler does no calculation; the rules of a refund stay in the domain classes.
+end note
+@enduml
