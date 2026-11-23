@@ -26,8 +26,9 @@ box "domain" #FFF7E0
   participant "pd:ProductDescription" as PD
   participant "sli:SaleLineItem" as SLI
 end box
-box "technical.storage" #F2F2F2
+box "application.interfaces" #F6EDF7
   participant "repo:TransactionRepository" as TR
+  participant ":ItemRepository" as IR
 end box
 
 == makeNewSale() (Contract 1) ==
@@ -47,9 +48,11 @@ C -->[ : 201 sale ID
 C -> C : check format (quantity is a whole number > 0)
 C -> H : enterItem(itemID, quantity)
 H -> CAT : getProduct(itemID)
-note right of CAT : local copy of the catalog\n(ItemRepository), no external call (NFR-01)
-alt unknown item ID (3a)
-  CAT --> H : none
+CAT -> IR : findProduct(itemID)
+note right of IR : local copy of the catalog,\nno external call (NFR-01)
+IR --> CAT : Optional<ProductDescription>
+alt unknown item ID (4a)
+  CAT --> H : empty
   H --> C : UNKNOWN_ITEM
   C -->[ : 404 "Item not found" (NFR-14)
 else product found
@@ -73,6 +76,7 @@ note over H
   GRASP
   Controller: SaleController receives the request; SaleHandler is the use-case controller of UC1.
   Creator: CashierSession creates the Sale (it records its transactions); Sale creates its SaleLineItems (composition).
+  Indirection: ProductCatalog reads the products through the ItemRepository interface (DC-02).
   Information Expert: SaleLineItem knows its subtotal (price of its ProductDescription x quantity); Sale knows the running subtotal.
   Pure Fabrication: TransactionRepository gives the unique transaction ID (AD-05).
 end note
