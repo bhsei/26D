@@ -1,0 +1,71 @@
+@startuml dsd_uc1_endSale
+' NewEra POS - Design sequence diagram, UC1 Process Sale: endSale() (Contract 3), W11
+' Team D - editable source of assets/dsd_uc1_endSale.png
+' Participants: logical view (architecture.md 4.2). Operations: system_interfaces.md 3.2, 4.1; fallback of AD-07.
+title DSD UC1 Process Sale - endSale() (Contract 3)
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam sequenceMessageAlign left
+skinparam ParticipantPadding 10
+skinparam BoxPadding 6
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B7791F
+hide footbox
+box "ui.api" #EAF2E3
+  participant "ctrl:SaleController" as C
+end box
+box "application" #E8EEF7
+  participant "h:SaleHandler" as H
+end box
+box "domain" #FFF7E0
+  participant "s:Sale" as S
+end box
+box "technical.storage" #F2F2F2
+  participant "settings:SettingsRepository" as SET
+end box
+box "technical.external" #F6EDF7
+  participant "TaxCalculatorAdapter" as TA
+end box
+box "external system (stub)" #FFFFFF
+  participant "Tax Calculator" as TC
+end box
+
+[-> C : POST /api/sales/{saleID}/end
+C -> H : endSale()
+H -> S : hasLines()
+S --> H : boolean
+alt no line items
+  H --> C : NO_LINES
+  C -->[ : 409 "Add at least one item"
+else at least one line
+  H -> S : toTaxRequest()
+  S --> H : TaxRequest(transactionID, lines)
+  H -> TA : calculateTax(request)
+  TA -> TC : POST /tax
+  note right of TA : timeout 5 s (IR-05, AD-07)\nthe screen shows a waiting message after 1 s (NFR-18)
+  alt answer within 5 s
+    TC --> TA : tax of each line, total tax
+    TA --> H : TaxResult(OK, taxPerLine, totalTax)
+    H -> S : setTax(taxPerLine)
+  else timeout or error
+    TA --> H : TaxResult(NOT_AVAILABLE)
+    H -> SET : current()
+    SET --> H : settings (default tax rate)
+    H -> S : applyDefaultTaxRate(rate)
+    note right of S : taxToBeCorrected = true (IR-05)\nthe Accounting record will carry the mark
+  end
+  H -> S : complete()
+  note right of S : isComplete = true\ntotal = subtotal + tax (tax rounded per line, SRS Q8)
+  S --> H : subtotal, tax, total, taxToBeCorrected
+  H --> C : TotalResult(subtotal, tax, total, taxToBeCorrected)
+  C -->[ : 200 subtotal, tax, total\n(warning when the default tax rate was used, NFR-15)
+end
+
+note over H
+  GRASP
+  Information Expert: Sale computes its tax per line and its total.
+  Indirection, Protected Variations: the handler calls the TaxCalculator interface; the stub and the real system are interchangeable (DC-02, AD-04).
+  The fallback is decided by the handler, the timeout by the adapter (AD-07).
+end note
+@enduml
