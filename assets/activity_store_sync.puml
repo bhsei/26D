@@ -1,0 +1,74 @@
+@startuml activity_store_sync
+' NewEra POS - Activity diagram: background jobs of StoreDatabaseSync (copy down and send up), W11
+' Team D - editable source of assets/activity_store_sync.png
+' Render with: java -jar plantuml.jar -charset UTF-8 -tpng assets/activity_store_sync.puml
+' Sources: architecture.md AD-05; system_interfaces.md 4.3; DR-04, DR-13; NFR-02
+title Activity diagram - background jobs of StoreDatabaseSync (copy down and send up)
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam ActivityBackgroundColor #EAF1FB
+skinparam ActivityBorderColor #1F4E79
+skinparam ActivityDiamondBackgroundColor #FFF7E0
+skinparam ActivityDiamondBorderColor #B7791F
+skinparam ArrowColor #444444
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B7791F
+skinparam swimlaneTitleFontStyle bold
+skinparam swimlaneWidth same
+skinparam maxMessageSize 160
+|SessionHandler|
+start
+:Start the StoreDatabaseSync jobs at start-up\n(the start-up never waits for them, NFR-02);
+fork
+  |Copy down|
+  repeat
+    if (Trigger: start-up, every 5 min,\nor the connection is back) then (yes)
+      :copyMasterDataDown();
+      if (Store database reachable?) then (yes)
+        :Copy the catalog, prices, rental fee and deposit,\nthe item list with status, the stock levels,\nthe settings and the customers\ninto the local copy;
+        :Save the time of the last synchronisation\n(register_state);
+        note right
+          A sale that is open keeps its prices.
+          Stock level and item status are an estimate
+          until the next copy (AD-05).
+        end note
+      else (no)
+        :Keep the local copy; the register goes on selling;
+        :Remember the failure (a warning is shown\nwhen the store database was not reachable\nfor 30 min);
+      endif
+    else (no)
+      :Wait;
+    endif
+  repeat while (Program running?) is (yes)
+fork again
+  |Send up|
+  repeat
+    :Take the first record of store_sync_list\n(in the order made: transaction, cashier session,\nrefund status, hold removal);
+    if (Record found?) then (yes)
+      if (Store database reachable?) then (yes)
+        :Write its rows in ONE store database transaction\n(transaction: INSERT ... ON CONFLICT DO NOTHING on the ID;\nsession: update of the session ID);
+        if (Second offline rental of the same item?) then (yes)
+          :Both rentals stay saved (DR-04);\nwrite the conflict in sync_conflict;
+          note right
+            The store manager sees it in M-01
+            (listRentalConflicts) and closes it
+            (resolveRentalConflict).
+          end note
+        else (no)
+        endif
+        :Mark the record as sent in the local list;
+        note right
+          If the acknowledgement is lost, the record is sent
+          again and stored once (ON CONFLICT DO NOTHING).
+        end note
+      else (no)
+        :Stop and keep the record;\nwait for the next trigger or the return of the connection;
+      endif
+    else (no)
+      :Wait for a new record;
+    endif
+  repeat while (Program running?) is (yes)
+end fork
+stop
+@enduml
