@@ -2,7 +2,7 @@
 ' NewEra POS - Design class diagram 3b of 3 (complete): repositories, queue and store database, W11
 ' Team D - editable source of assets/design_classes_storage.png
 ' Render with: java -jar plantuml.jar -tpng -charset UTF-8 assets/design_classes_storage.puml
-' Sources: system_interfaces.md section 4.2 and 4.3, data_model.md v0.3, design sequence diagrams of UC1, UC3, UC4 and UC5, AD-05, AD-06.
+' Sources: system_interfaces.md section 4.2 and 4.3, data_model.md v1.0, design sequence diagrams of UC1 to UC5, AD-05, AD-06.
 ' "new" = used by a design sequence diagram and not in system_interfaces.md v0.5 (sent to Alfonso for the next version).
 
 set separator none
@@ -47,6 +47,7 @@ package "application.interfaces" {
     + saveCompleted(t : Transaction, record : AccountingRecord) : void
     + find(transactionID : String) : Optional<Transaction>
     + findCustomer(customerID : String) : Optional<Customer> «new»
+    + returnedQuantities(receiptNumber : String) : Map<int, int> «new»
     + findOpenRentalsOfCustomer(customerID : String) : List<Rental> «new»
     + findOpenRentalOfItem(serialNumber : String) : Optional<Rental> «new»
     + addRefundStatus(refundID : String, state : RefundState, reference : String) : void
