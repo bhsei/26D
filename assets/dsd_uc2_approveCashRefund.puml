@@ -45,7 +45,7 @@ alt f is not NEEDS_APPROVAL (paid, pending or no refund)
   H --> C : NOT_WAITING_FOR_APPROVAL
   C -->[ : 409 "This refund does not need an approval"
 else f waits for approval
-  H -> MA : approve(managerID, pin)
+  H -> MA : check(managerID, pin)
   note right of MA : one class for every manager approval (price, refund, damage, AD-09);\nthe PIN is only compared, never stored, logged or shown (NFR-08)
   MA -> HR : checkEmployee(managerID, pin)
   note right of HR : the adapter applies the 5 s timeout (AD-07)
@@ -65,19 +65,26 @@ else f waits for approval
     MA --> H : manager (Employee, role StoreManager)
     H -> F : approve(manager, reason)
     note right of F : isApproved = true, approvedBy = manager, approvalReason = reason,\ntender = CASH (Contract 9). Information Expert: the Refund changes its own state.
-    H -> PMS : get(CASH)
-    PMS --> H : cash
+    H -> PMS : cash() <<new>>
+    PMS --> H : cash (CashPaymentMethod)
     H -> PM : payOut(f.amount, employeeID) <<new>>
     PM -> DR : open(CASH_REFUND, employeeID)
     DR --> PM : OPENED (logged, IR-14)
     PM --> H : CASH_PAID
-    H -> R : complete()
-    loop each ReturnLineItem with condition RESELLABLE
-      R -> RLI : restock()
+    alt the return is not saved yet (the card was declined or the original payment was a check)
+      H -> R : complete()
+      loop each ReturnLineItem with condition RESELLABLE
+        R -> RLI : restock()
+      end
+      R --> H : AccountingRecord
+      H -> TR : saveCompleted(r, record)
+      note right of TR : ONE database transaction, as in confirmReturn (AD-05, AD-06)
+    else the return is already saved (the card refund was PENDING and then failed)
+      note over H, TR : complete(), the stock and saveCompleted are NOT done again: the transaction and its Accounting record exist (accounting_queue.transaction_id is unique).
+      H -> F : setState(CASH_PAID) <<new>>
+      H -> TR : addRefundStatus(f.id, CASH_PAID, null)
+      note right of TR : new row of refund_status, insert only; also queued for the store database
     end
-    R --> H : AccountingRecord
-    H -> TR : saveCompleted(r, record)
-    note right of TR : ONE database transaction, as in confirmReturn (AD-05, AD-06)
     H -> R : getReceipt()
     R --> H : receipt
     H -> PRT : print(receipt)
@@ -89,7 +96,8 @@ end
 
 note over H, PM
   UC5 (Contract 28) uses the same steps with RentalReturnHandler and RentalReturn: ManagerApproval, Refund.approve() and the cash PaymentMethod are shared.
-  The card was declined or the original payment was a check; a card refund that is still PENDING is not approved here: it is asked again with checkRefundStatus.
+  A card refund that is still PENDING is not approved here: it is asked again with checkRefundStatus; only when it failed (NEEDS_APPROVAL) does this operation pay it in cash.
+  For a return already saved, UC5 does the same: only the CASH_PAID row of refund_status, then the receipt.
 end note
 note over H
   GRASP
