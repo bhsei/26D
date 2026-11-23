@@ -1,0 +1,95 @@
+@startuml dsd_uc4_closeSession
+title DSD UC4 Close Session - closeSession(), enterClosingCash(amount), confirmCloseSession() (Contracts 19, 20, 21)
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam sequenceMessageAlign left
+skinparam ParticipantPadding 10
+skinparam BoxPadding 6
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B7791F
+hide footbox
+box "ui.api" #EAF2E3
+  participant "ctrl:SessionController" as C
+end box
+box "application" #E8EEF7
+  participant "h:SessionHandler" as H
+end box
+box "domain" #FFF7E0
+  participant "amount:Money" as M
+  participant "reg:Register" as REG
+  participant "s:CashierSession" as S
+  participant "t:Transaction" as T
+end box
+box "technical" #F2F2F2
+  participant "sessions:SessionRepository" as SR
+  participant "CashDrawerDriver" as DRV
+  participant "EventLog" as LOG
+end box
+box "device" #FFFFFF
+  participant "Cash drawer" as HW
+end box
+
+== closeSession() - Contract 19 ==
+[-> C : POST /api/sessions/current/close
+C -> H : closeSession()
+H -> REG : currentSession()
+REG --> H : s
+H -> S : hasOpenTransaction()
+S --> H : result
+alt a sale, return, rental or rental return is in progress (2a, FR-60)
+  H --> C : CloseResult(REFUSED)
+  C -->[ : 409, nothing changes
+else no open transaction
+  H -> DRV : open(CLOSING_COUNT, employeeID)
+  DRV -> HW : open()
+  HW --> DRV : opened or error
+  DRV -> LOG : logDrawerOpening(time, employeeID, CLOSING_COUNT)
+  DRV --> H : DrawerStatus
+  H --> C : CloseResult(OK, drawerStatus)
+  C -->[ : 200 closing count requested\n(if ERROR: "open it with the key", logged as manual, IR-14)
+end
+
+== enterClosingCash(amount) - Contract 20 ==
+[-> C : PUT /api/sessions/current/closing-cash {amount}
+C -> C : check the format
+C -> H : enterClosingCash(amount)
+H -> M : isNegative()
+M --> H : result
+alt amount not valid (3a)
+  H --> C : ClosingResult(INVALID_AMOUNT)
+  C -->[ : 400, nothing changes
+else amount valid
+  H -> REG : currentSession()
+  REG --> H : s
+  H -> S : recordClosingCash(amount)
+  S -> S : closingCash = amount (a value entered before is replaced)
+  S -> S : expectedCash()
+  loop each transaction of the session
+    S -> T : cashReceived()
+    T --> S : sum of its cash Payments
+    S -> T : cashRefunded()
+    T --> S : sum of its cash Refunds
+  end
+  S -> S : expected = openingCash + received - refunded
+  S -> S : difference = closingCash - expected
+  S --> H : CashCount(expected, difference)
+  H --> C : ClosingResult(OK, expected, difference)
+  C -->[ : 200 expected cash and difference
+end
+
+== confirmCloseSession() - Contract 21 ==
+[-> C : POST /api/sessions/current/confirm-close
+C -> H : confirmCloseSession()
+H -> REG : currentSession()
+REG --> H : s
+H -> S : close(now)
+note right of S : requires closingCash (else the request is refused, 409)\nendTime = now\ntoReview = |difference| > 5.00 (BR-17)
+S --> H : toReview
+H -> SR : close(s)
+note right of SR : saved in the local database and queued\nfor the store database (store_sync_list)
+H -> REG : endSession()
+note right of REG : the register has no open session
+H --> C : CloseResult(OK, toReview)
+C -->[ : 200 login screen (S-01);\nwarning when toReview (4b)
+@enduml
