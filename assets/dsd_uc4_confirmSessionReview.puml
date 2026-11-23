@@ -1,0 +1,86 @@
+@startuml dsd_uc4_confirmSessionReview
+title DSD UC4 Session Review - confirmSessionReview(sessionID, managerID, pin, reason) (Contract 29)
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam sequenceMessageAlign left
+skinparam ParticipantPadding 10
+skinparam BoxPadding 6
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B7791F
+hide footbox
+box "ui.api" #EAF2E3
+  participant "ctrl:ManagerController" as C
+end box
+box "application" #E8EEF7
+  participant "h:ManagerHandler" as H
+  participant "ManagerApproval" as MA
+end box
+box "domain" #FFF7E0
+  participant "store:Store" as ST
+  participant "s:CashierSession" as S
+end box
+box "technical" #F2F2F2
+  participant "employees:EmployeeList" as EL
+  participant "HRSystemAdapter" as HA
+  participant "sync:StoreDatabaseSync" as SYNC
+end box
+box "external systems" #FFFFFF
+  participant "HR System" as HR
+  participant "Store database" as DB
+end box
+
+[-> C : POST /api/sessions/{sessionID}/review\n{reason, manager{employeeID, pin}}
+C -> C : check the format
+C -> H : confirmSessionReview(sessionID, managerID, pin, reason)
+alt reason is empty
+  H --> C : ReviewResult(INVALID_REASON)
+  C -->[ : 400
+else reason given
+  H -> MA : check(managerID, pin)
+  MA -> HA : checkEmployee(managerID, pin)
+  HA -> HR : POST /employees/check
+  HR --> HA : {valid, active, name, role}
+  HA --> MA : EmployeeCheck
+  opt NOT_AVAILABLE (UC4 6c4, IR-09)
+    MA -> EL : find(managerID)
+    EL --> MA : Optional<EmployeeEntry>
+    MA -> MA : entry.isActiveStoreManager()\nand entry.pinMatches(pin)
+  end
+  alt manager not valid or wrong PIN
+    MA --> H : ApprovalResult(REFUSED)
+    H --> C : ReviewResult(NOT_APPROVED)
+    C -->[ : 403, nothing changes
+  else store manager valid
+    MA -> ST : findEmployee(managerID)
+    ST --> MA : manager
+    MA --> H : ApprovalResult(OK, manager)
+    H -> SYNC : findSessionToReview(sessionID)
+    SYNC -> DB : read the session
+    DB --> SYNC : session or nothing
+    SYNC --> H : SessionLookup(s | NOT_FOUND | NOT_AVAILABLE)
+    alt store database not available (AD-05)
+      H --> C : ReviewResult(STORE_NOT_AVAILABLE)
+      C -->[ : 409 store database not available
+    else session not found
+      H --> C : ReviewResult(NOT_FOUND)
+      C -->[ : 404
+    else session found
+      H -> S : markReviewed(manager, reason, now)
+      note right of S : requires toReview = true (else 409)\ntoReview = false\nreviewedBy = manager\nreviewReason = reason\nreviewedAt = now
+      H -> SYNC : recordSessionReview(sessionID, managerID, reason)
+      SYNC -> DB : one database transaction: update the session
+      DB --> SYNC : done or not reachable
+      SYNC --> H : StoreResult
+      alt StoreResult is NOT_AVAILABLE
+        H --> C : ReviewResult(STORE_NOT_AVAILABLE)
+        C -->[ : 409 (the copy of the session is discarded)
+      else OK
+        H --> C : ReviewResult(OK)
+        C -->[ : 200 review recorded
+      end
+    end
+  end
+end
+note over MA : The pin is dropped after the check:\nnever stored, logged or returned (NFR-08)
+@enduml
