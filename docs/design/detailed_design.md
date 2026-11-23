@@ -151,7 +151,24 @@ Confirmed by Alfonso: `getSystemStatus` and `listPendingRefunds` stay in `Sessio
 
 ## 4. Activity diagrams – Yasmine
 
-*To do (W11):* card refund of UC2 and UC5 (system_interfaces.md §3.7), and the background jobs (`AccountingSender`, synchronisation with the store database).
+An activity diagram shows the steps of a process that the sequence diagrams show only as calls: the choices, the waits and the loops. The lanes are the actors and the parts of the system that act. The four diagrams are the ones that a sequence diagram cannot show well: the card refund, with its three possible answers and the wait for a store manager, and the background jobs, which loop for as long as the program runs.
+
+| Diagram | What it shows | Sources |
+| --- | --- | --- |
+| [`activity_card_refund`](../../assets/activity_card_refund.puml) | The refund at the confirmation of a return (UC2) or a rental return (UC5): cash, check or card; the card answers `APPROVED`, `DECLINED` and no answer (then the status with the same transaction ID, and *pending* if it is still unknown); the approval of a store manager for a cash refund; the completion in one database transaction | system_interfaces.md §3.7; UC2 and UC5 ext. 9; FR-25, FR-26, FR-55; AD-07, AD-08 |
+| [`activity_pending_refund`](../../assets/activity_pending_refund.puml) | A pending card refund asked again from the menu S-02: the three possible answers, and what the cashier can do | FR-26, FR-55, FR-77 |
+| [`activity_accounting_sender`](../../assets/activity_accounting_sender.puml) | The loop of the `AccountingSender`: take the first record, send it, delete it only after `RECEIVED`; `REJECTED` and `NOT_AVAILABLE` keep the record and wait 5 s, 10 s, 30 s, 60 s and then 5 min; the sender never skips a record | AD-06; IR-06, IR-07, DR-12, FR-76 |
+| [`activity_store_sync`](../../assets/activity_store_sync.puml) | The two jobs of `StoreDatabaseSync` that run side by side: copy the master data down (at start-up, every 5 minutes, when the connection is back) and send the waiting records up in order, with one store database transaction for each record and the conflict of two offline rentals | AD-05; DR-04, DR-13; NFR-02 |
+
+![Card refund](../../assets/activity_card_refund.png)
+
+![Pending card refund](../../assets/activity_pending_refund.png)
+
+![AccountingSender](../../assets/activity_accounting_sender.png)
+
+![StoreDatabaseSync](../../assets/activity_store_sync.png)
+
+The design sequence diagrams of the same operations are in §2.2 (UC2), §2.5 (UC5) and §2.4 (the start-up of the background jobs).
 
 ## 5. State diagrams – Borja
 
