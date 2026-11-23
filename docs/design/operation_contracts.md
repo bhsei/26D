@@ -210,7 +210,7 @@ An operation contract describes the behavior of a system operation. Postconditio
 
 ### Contract 16: startUp
 **Operation:** startUp()
-**Cross References:** Use Case: UC4 Start Up (Steps 1-4, Extensions *a, 2a, 3a, 3b)
+**Cross References:** Use Case: UC4 Start Up (Steps 1-4, Extensions *a, 2a, 3a, 3b; IR-17)
 **Preconditions:**
 - The register is switched on and has a register ID.
 - No `CashierSession` is open on this register.
@@ -218,9 +218,10 @@ An operation contract describes the behavior of a system operation. Postconditio
 - If a `CashierSession` of this register was still open after a failure: `CashierSession.endTime` was set to the time of the restart and `CashierSession.isInterrupted` was set to true (no closing cash, FR-63).
 - Every `AccountingRecord` waiting in the queue that the Accounting System acknowledged was removed from the queue.
 - Every `AccountingRecord` that was not acknowledged (or not sent because the Accounting System is not available) stayed in the queue, in its original order.
+- If a new export file of the product catalog was found (IR-17) and all its fields are valid, and the store database was available, the catalog was written to the store database as the new `ProductCatalog` (product descriptions, prices, rentable items and reorder thresholds) and reaches the register with the next copy of the master data. If the file has missing or invalid fields, or the store database was not available, a warning was logged and the previous `ProductCatalog` was kept unchanged. If no new export file was found, nothing changed.
 - No `CashierSession` was created.
 - Every open card authorization found in the local database after a failure (IR-15) was voided with the Payment Service and removed from the open authorizations; one that could not be voided (`NOT_AVAILABLE`) stayed and is tried again at the next start-up.
-**Responsibilities:** System checks that the product catalog and the stored data are available, recovers the stored data after a failure, sends the waiting records and shows the login screen with the register ID. If the catalog or the stored data are not available (2a), nothing changes and no login screen is shown.
+**Responsibilities:** System imports a new catalog export, if there is one (IR-17), then checks that the product catalog and the stored data are available, recovers the stored data after a failure, sends the waiting records and shows the login screen with the register ID. If the catalog or the stored data are not available (2a), nothing changes and no login screen is shown.
 
 ### Contract 17: logIn
 **Operation:** logIn(employeeID: String, pin: String)
