@@ -1,70 +1,253 @@
 @startuml
-' NewEra POS - Design class diagram, skeleton 2 of 3: domain classes (names only), W11
+' NewEra POS - Design class diagram 2 of 3 (complete): domain classes, W11
 ' Team D - editable source of assets/design_classes_domain.png
 ' Render with: java -jar plantuml.jar -tpng -charset UTF-8 assets/design_classes_domain.puml
-' Sources: logical view (architecture.md 4.2), domain model v0.7, AD-08, system_interfaces.md v0.5.
-' The skeleton has class names, packages and the main links. Attributes and methods are added from the
-' design sequence diagrams (Mon 23 Nov). The UI screens are in assets/ui_classes.puml (ui_design.md 4).
+' Sources: domain model v0.8 (attributes), design sequence diagrams of UC1, UC3, UC4 and UC5 (methods),
+' operation contracts 5 to 9 (UC2, until the design sequence diagrams of UC2 are pushed), AD-08, system_interfaces.md.
+' Visibility: - private, + public. Getters and setters of attributes are not drawn. "new" = method that the
+' design sequence diagrams use and that the logical view did not have. Navigability: the arrow points to the
+' class that the other one knows.
 
 set separator none
 skinparam shadowing false
-skinparam dpi 110
+skinparam dpi 100
 skinparam defaultFontName Arial
 skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
-skinparam nodesep 25
-skinparam ranksep 55
+skinparam nodesep 22
+skinparam ranksep 40
+skinparam ArrowColor #444444
 skinparam NoteBackgroundColor #FFF8DC
 skinparam NoteBorderColor #B8A04A
 skinparam class {
-  BackgroundColor<<controller>> #EAF6EA
-  BorderColor<<controller>> #2E7D32
-  BackgroundColor<<handler>> #F4F8FD
-  BorderColor<<handler>> #1F4E79
-  BackgroundColor<<payment>> #EAF1FB
-  BorderColor<<payment>> #1F4E79
-  BackgroundColor<<domain>> #FFFFFF
-  BorderColor<<domain>> #666666
+  BackgroundColor #FFFFFF
+  BorderColor #666666
+}
+skinparam enum {
+  BackgroundColor #F4F4F4
+  BorderColor #999999
 }
 hide circle
-hide members
 left to right direction
 
-title NewEra POS - Design class diagram (skeleton 2 of 3): domain classes
+title NewEra POS - Design class diagram (2 of 3): domain classes
 
 package "domain.store" {
-  class Store <<domain>>
-  class Register <<domain>>
-  class Employee <<domain>>
-  class CashierSession <<domain>>
-}
-package "domain.catalog" {
-  class ProductCatalog <<domain>>
-  class ProductDescription <<domain>>
-  class Item <<domain>>
-}
-package "domain.transactions" {
-  abstract class Transaction <<domain>>
-  class Sale <<domain>>
-  class SaleLineItem <<domain>>
-  class Return <<domain>>
-  class ReturnLineItem <<domain>>
-  class Rental <<domain>>
-  class RentalLineItem <<domain>>
-  class RentalReturn <<domain>>
-  class Customer <<domain>>
-  class Receipt <<domain>>
-  class AccountingRecord <<domain>>
-}
-package "domain.payments" {
-  abstract class Payment <<domain>>
-  class CashPayment <<domain>>
-  class CreditCardPayment <<domain>>
-  class CheckPayment <<domain>>
-  class Refund <<domain>>
+  class Store {
+    - name : String
+    - defaultTaxRate : Decimal
+    + findEmployee(employeeID : String) : Employee
+  }
+  class Register {
+    - registerID : String
+    + openSession(cashier : Employee, amount : Money) : CashierSession «new»
+    + currentSession() : CashierSession
+    + endSession() : void
+  }
+  class Employee {
+    - employeeID : String
+    - name : String
+    - role : EmployeeRole
+    - isActive : boolean
+  }
+  class CashierSession {
+    - sessionID : String
+    - startTime : DateTime
+    - endTime : DateTime
+    - openingCash : Money
+    - closingCash : Money
+    - difference : Money
+    - toReview : boolean
+    - isInterrupted : boolean
+    - reviewedAt : DateTime
+    - reviewReason : String
+    + createSale(id : String) : Sale
+    + createReturn(id : String) : Return
+    + createRental(id : String) : Rental «new»
+    + createRentalReturn(id : String) : RentalReturn «new»
+    + hasOpenTransaction() : boolean
+    + recordClosingCash(amount : Money) : CashCount
+    + expectedCash() : Money
+    + close(now : DateTime) : boolean
+    + interrupt(restartTime : DateTime) : void
+    + markReviewed(manager : Employee, reason : String, now : DateTime) : void
+  }
 }
 
-' ---------- domain (as in the domain model v0.7) ----------
+package "domain.catalog" {
+  class ProductCatalog {
+    + getProduct(itemID : String) : ProductDescription
+    + isAvailable() : boolean
+  }
+  class ProductDescription {
+    - itemID : String
+    - name : String
+    - price : Money
+    - stockLevel : int
+    - reorderThreshold : int
+    - isRentable : boolean
+    - rentalFeePerDay : Money
+    - deposit : Money
+    + getPrice() : Money
+    + getStockLevel() : int
+    + needsReorder() : boolean
+    + rentalData() : RentalData «new»
+  }
+  class Item {
+    - serialNumber : String
+    - status : ItemStatus
+    + isAvailable() : ItemStatus «new»
+    + description() : ProductDescription
+  }
+}
+
+package "domain.transactions" {
+  abstract class Transaction {
+    - receiptNumber : String
+    - dateTime : DateTime
+    - subtotal : Money
+    - tax : Money
+    - total : Money
+    - isComplete : boolean
+    - taxToBeCorrected : boolean
+    + canBePaid(amount : Money, tender : TenderType) : PayCheck
+    + setPayment(p : Payment) : void
+    + createAccountingRecord() : AccountingRecord
+    + getReceipt() : Receipt
+    + cashReceived() : Money
+    + cashRefunded() : Money
+  }
+  class Sale {
+    - isPaid : boolean
+    + addLineItem(pd : ProductDescription, quantity : int) : SaleLineItem
+    + hasLines() : boolean
+    + toTaxRequest() : TaxRequest
+    + setTax(taxPerLine : List<LineTax>) : void
+    + applyDefaultTaxRate(rate : Decimal) : void
+    + complete() : TotalData
+    + reduceStock() : void
+  }
+  class SaleLineItem {
+    - quantity : int
+    - unitPrice : Money
+    + getSubtotal() : Money
+  }
+  class Return {
+    - refundTotal : Money
+    + setSale(sale : Sale) : void
+    + addLineItem(saleLine : SaleLineItem, quantity : int, condition : ItemCondition) : ReturnLineItem
+    + removeLineItem(lineNumber : int) : Money
+    + addRefund(outcome : RefundOutcome) : Refund
+    + complete() : AccountingRecord
+  }
+  class ReturnLineItem {
+    - quantity : int
+    - condition : ItemCondition
+    - refundAmount : Money
+  }
+  class Rental {
+    - rentalDate : Date
+    - isPaid : boolean
+    + addLine(item : Item) : RentalLineItem «new»
+    + setPeriod(lineNumber : int, days : int) : LineTerms «new»
+    + setCustomer(customer : Customer) : void «new»
+    + registerNewCustomer(customerID : String) : Customer «new»
+    + hasOverdueLine(today : Date) : boolean «new»
+    + taxLines() : List<TaxLine> «new»
+    + setTax(tax : Money, toBeCorrected : boolean) : void «new»
+    + complete() : RentalTotals «new»
+    + setItemsRented() : void «new»
+    + openLine() : RentalLineItem
+    + openLineFor(code : String) : RentalLineItem
+    + payment() : Payment
+    + close() : void
+  }
+  class RentalLineItem {
+    - rentalPeriodDays : int
+    - rentalFee : Money
+    - dueDate : Date
+    - deposit : Money
+    + setPeriod(days : int) : LineTerms «new»
+    + isOverdue(today : Date) : boolean
+    + dueDate() : Date
+    + feePerDay() : Money
+    + deposit() : Money
+  }
+  class RentalReturn {
+    - returnDate : Date
+    - condition : ItemCondition
+    - damageNote : String
+    - daysLate : int
+    - lateFee : Money
+    - lateFeeTax : Money
+    - amountKept : Money
+    - amountDue : Money
+    - refundTotal : Money
+    + setRentalLine(line : RentalLineItem) : RentalData
+    + setCustomer(customer : Customer, openRentals : List<Rental>) : void
+    + openRentalOfCustomer(rentalID : String) : Rental «new»
+    + recordCondition(condition : ItemCondition, damageNote : String, today : Date) : Money «new»
+    + setLateFeeTax(tax : Money, toBeCorrected : boolean) : void «new»
+    + calculateRefund() : RefundData «new»
+    + confirmDamage(manager : Employee) : void «new»
+    + refundTotal() : Money
+    + rentalPayment() : Payment «new»
+    + addRefund(outcome : RefundOutcome) : Refund «new»
+    + complete() : AccountingRecord «new»
+  }
+  class Customer {
+    - customerID : String
+  }
+  class Receipt {
+    - number : String
+    - printedAt : DateTime
+  }
+  class AccountingRecord {
+    - transactionID : String
+    - status : RecordStatus
+    - queuedAt : DateTime
+    - sentAt : DateTime
+  }
+}
+
+package "domain.payments" {
+  abstract class Payment {
+    - amount : Money
+    - dateTime : DateTime
+  }
+  class CashPayment {
+    - amountTendered : Money
+    - changeDue : Money
+  }
+  class CreditCardPayment {
+    - last4 : String
+    - authorizationCode : String
+    - paymentReference : String
+  }
+  class CheckPayment {
+    - authorizationCode : String
+  }
+  class Refund {
+    - amount : Money
+    - tender : TenderType
+    - reference : String
+    - state : RefundState
+    - isApproved : boolean
+    - approvalReason : String
+  }
+}
+
+package "domain.shared" {
+  class Money <<value>> {
+    - cents : long
+    + isNegative() : boolean
+    + plus(other : Money) : Money
+    + minus(other : Money) : Money
+    + times(factor : Decimal) : Money
+  }
+}
+
+' ---------- generalization ----------
 Transaction <|-- Sale
 Transaction <|-- Return
 Transaction <|-- Rental
@@ -72,28 +255,52 @@ Transaction <|-- RentalReturn
 Payment <|-- CashPayment
 Payment <|-- CreditCardPayment
 Payment <|-- CheckPayment
-Store "1" -- "1..*" Register
-Store "1" -- "1" ProductCatalog
-Store "1" -- "*" Employee
-Register "1" -- "*" CashierSession
-Employee "1" -- "*" CashierSession : opens
-CashierSession "*" -- "0..1" Employee : reviewed by
-CashierSession "1" -- "*" Transaction : records
-ProductCatalog "1" o-- "*" ProductDescription
-ProductDescription "1" -- "*" Item
-Sale "1" *-- "1..*" SaleLineItem
-SaleLineItem "*" -- "1" ProductDescription
-Return "*" -- "1" Sale : returns items of
-Return "1" *-- "1..*" ReturnLineItem
-ReturnLineItem "*" -- "1" SaleLineItem
-Rental "*" -- "1" Customer
-Rental "1" *-- "1..*" RentalLineItem
-RentalLineItem "*" -- "1" Item
-RentalReturn "0..1" -- "1" RentalLineItem : closes
-Transaction "1" -- "0..1" Payment
-Return "1" -- "0..1" Refund
-RentalReturn "1" -- "0..1" Refund
-Transaction "1" -- "*" Receipt
-Transaction "1" -- "0..1" AccountingRecord
 
+' ---------- store ----------
+Store "1" --> "1..*" Register
+Store "1" --> "1" ProductCatalog
+Store "1" --> "*" Employee
+Register "1" --> "0..1" CashierSession : current
+CashierSession "*" --> "1" Employee : cashier
+CashierSession "*" --> "0..1" Employee : reviewed by
+CashierSession "1" --> "*" Transaction : creates, knows
+
+' ---------- catalog ----------
+ProductCatalog "1" o--> "*" ProductDescription
+Item "*" --> "1" ProductDescription
+
+' ---------- transactions ----------
+Sale "1" *--> "1..*" SaleLineItem
+SaleLineItem "*" --> "1" ProductDescription
+SaleLineItem "*" --> "0..1" Employee : price approved by
+Return "*" --> "1" Sale : returns items of
+Return "1" *--> "1..*" ReturnLineItem
+ReturnLineItem "*" --> "1" SaleLineItem
+Rental "*" --> "1" Customer
+Rental "1" *--> "1..*" RentalLineItem
+RentalLineItem "*" --> "1" Item
+RentalReturn "0..1" --> "1" RentalLineItem : closes
+RentalReturn "*" --> "0..1" Employee : damage confirmed by
+Transaction "1" --> "0..1" Payment
+Return "1" --> "0..1" Refund
+RentalReturn "1" --> "0..1" Refund
+Refund "*" --> "0..1" Employee : approved by
+Transaction "1" --> "*" Receipt
+Transaction "1" --> "0..1" AccountingRecord
+
+note right of Return
+  The members of Return, ReturnLineItem and the createReturn method
+  come from the operation contracts 5 to 9. The design sequence diagrams
+  of UC2 (Yasmine) are not pushed yet; the members are confirmed with them.
+end note
+
+note bottom of Money
+  Enumerations: ItemStatus (Available, Rented, UnderMaintenance), ItemCondition (Undamaged, Damaged,
+  Resellable, NotResellable), TenderType (Cash, CreditCard, Check), EmployeeRole (Cashier, StoreManager),
+  RefundState (CardRefunded, CashPaid, NeedsApproval, Pending), RecordStatus (Queued, Sent).
+  Value classes used in signatures and not drawn (they only carry data):
+  CashCount, RentalData, LineTerms, LineTax, TaxLine, TaxRequest, RentalTotals,
+  TotalData, RefundData, RefundOutcome, PayCheck. The UI screens are in
+  assets/ui_classes.puml. The handlers are in diagram 1 of 3.
+end note
 @enduml
