@@ -3,7 +3,7 @@
 ' Team D - editable source of assets/dsd_uc3_enter_item.png
 ' Render with: java -jar plantuml.jar -charset UTF-8 -tpng assets/dsd_uc3_enter_item.puml
 ' Participants: classes of the logical view (architecture.md 4.2) and of the design class diagram skeleton. Operations: system_interfaces.md 3.4 and 4.3.
-' Messages marked <<new>> are not in the logical view or in system_interfaces.md yet (sent to Borja for the design class diagram).
+' Messages marked <<new>> are not in the logical view or in system_interfaces.md yet (sent to Borja for the design class diagram). Review #66: finding 3.
 
 skinparam shadowing false
 skinparam dpi 130
@@ -43,6 +43,15 @@ end box
 == enterRentalItem(serialNumber) - Contract 13 ==
 [-> Ctl : POST /api/rentals/{rentalID}/lines {"serialNumber"}
 Ctl -> H : enterRentalItem(serialNumber)
+H -> R : hasItem(serialNumber) <<new>>
+R --> H : true or false
+alt already a line of this rental (double scan)
+  H --> Ctl : already in the rental
+  [<-- Ctl : 409 "This item is already in the rental"
+  note right of H
+    No second putHold for the same rental (review #66).
+  end note
+else not in this rental
 H -> Items : findItem(serialNumber)
 Items --> H : Optional<Item>
 alt serial number not in the item list (7a)
@@ -81,6 +90,7 @@ else item found
     end
   end
 end
+end
 
 == selectRentalPeriod(days) - Contract 14 (also 8a: another period) ==
 [-> Ctl : PUT /api/rentals/{rentalID}/lines/{lineNumber}/period {"days"}
@@ -108,7 +118,7 @@ end
 legend bottom left
   **GRASP**
   Controller: RentalController and RentalHandler, as in the start of the rental.
-  Creator: Rental creates its RentalLineItems, because it contains them (Contract 13).
+  Creator: Rental creates its RentalLineItems, because it contains them (Contract 13); Rental also knows whether an item is already one of its lines.
   Information Expert: Item knows its status (BR-11); ProductDescription knows the rental fee per day and the deposit;
   RentalLineItem calculates its fee and due date (BR-15); Rental adds the fees into its subtotal (Contract 14).
   Low Coupling, Protected Variations: the handler never reads the store database itself; the hold is one call of
