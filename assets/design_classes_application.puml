@@ -2,7 +2,7 @@
 ' NewEra POS - Design class diagram 1 of 3 (complete): controllers and application layer, W11
 ' Team D - editable source of assets/design_classes_application.png
 ' Render with: java -jar plantuml.jar -tpng -charset UTF-8 assets/design_classes_application.puml
-' Sources: system_interfaces.md section 3 (operations), design sequence diagrams of UC1, UC3, UC4 and UC5, AD-01, AD-06, AD-07, AD-08.
+' Sources: system_interfaces.md section 3 (operations), design sequence diagrams of UC1 to UC5, AD-01, AD-06, AD-07, AD-08.
 ' Visibility: - private, + public. "new" = used by a design sequence diagram and not in the logical view or system_interfaces.md.
 
 set separator none
@@ -83,7 +83,7 @@ package "application" {
     - session : CashierSession
     - ret : Return
     + makeNewReturn() : String
-    + findSale(receiptNumber : String) : SaleData
+    + findSale(receiptNumber : String) : SaleView
     + enterReturnItem(itemID : String, quantity : int, condition : ItemCondition) : ReturnLineResult
     + removeReturnItem(lineNumber : int) : Money
     + confirmReturn() : RefundOutcome
@@ -141,6 +141,7 @@ package "application" {
   }
   class PaymentMethods <<payment>> {
     + get(tender : TenderType) : PaymentMethod
+    + cash() : CashPaymentMethod «new»
     + availableTenders() : List<TenderStatus>
   }
   interface PaymentMethod <<payment>> {
@@ -150,6 +151,7 @@ package "application" {
   }
   class CashPaymentMethod <<payment>> {
     - drawer : CashDrawer
+    + payOut(amount : Money, employeeID : String) : RefundOutcome «new»
   }
   class CreditCardPaymentMethod <<payment>> {
     - reader : CardReader
@@ -213,7 +215,6 @@ note bottom of AccountingSender
   The result classes of the handlers (LineResult, TotalResult, PaymentOutcome, RefundOutcome, StartUpResult,
   LoginResult, OpeningResult, CloseResult, ClosingResult, ReviewResult, ApprovalResult...) are not drawn.
   The handlers, ManagerApproval, AccountingSender and the payment methods use the interfaces of
-  application.interfaces (diagram 3 of 3). The members of ReturnHandler come from the operation contracts 5 to 9
-  and are confirmed with the design sequence diagrams of UC2.
+  application.interfaces (diagram 3 of 3). findSale also answers SALE_NOT_AVAILABLE (UC2).
 end note
 @enduml
