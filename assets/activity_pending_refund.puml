@@ -1,0 +1,54 @@
+@startuml activity_pending_refund
+' NewEra POS - Activity diagram: pending card refund asked again (UC2 and UC5), W11
+' Team D - editable source of assets/activity_pending_refund.png
+' Render with: java -jar plantuml.jar -charset UTF-8 -tpng assets/activity_pending_refund.puml
+' Sources: system_interfaces.md 3.7, 3.8; FR-26, FR-55, FR-77; AD-07
+title Activity diagram - pending card refund asked again (UC2 and UC5)
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam ActivityBackgroundColor #EAF1FB
+skinparam ActivityBorderColor #1F4E79
+skinparam ActivityDiamondBackgroundColor #FFF7E0
+skinparam ActivityDiamondBorderColor #B7791F
+skinparam ArrowColor #444444
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B7791F
+skinparam swimlaneTitleFontStyle bold
+skinparam swimlaneWidth same
+skinparam maxMessageSize 160
+|Cashier|
+start
+:Choose "Pending refunds" on S-02;
+|System|
+:List the returns and rental returns of this register\nwith a card refund still pending (listPendingRefunds);
+|Cashier|
+:Choose one; S-07 or S-09 opens in "pending refund" mode;
+|System|
+if (State of the refund?) then (CARD_REFUNDED or NEEDS_APPROVAL)
+  :Show the state; nothing to ask;
+else (PENDING)
+  :Ask the status of the refund to the Payment Service\nwith the same transaction ID of the return;
+  |Payment Service|
+  :Answer within 10 s?;
+  |System|
+  if (Status?) then (APPROVED)
+    :Add CARD_REFUNDED to refund_status;
+    :Show "The refund was made";
+  elseif (DECLINED: failed or unknown) then
+    :Add NEEDS_APPROVAL to refund_status;
+    :Show "The refund failed. A store manager can approve a cash refund";
+    |Cashier|
+    :Call the store manager (D-01: manager ID, PIN, reason);
+    |System|
+    :Pay the cash refund after the check of the manager,\nas in "card refund" (approveCashRefund);
+  else (no answer)
+    :Show "Not confirmed yet. Ask again later";
+    note right
+      The refund stays PENDING.
+      Nothing is paid in cash.
+    end note
+  endif
+endif
+stop
+@enduml
