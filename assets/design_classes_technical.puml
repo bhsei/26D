@@ -62,7 +62,7 @@ package "application.interfaces" {
     + employeeList() : EmployeeListResult
   }
   interface CatalogSource <<interface>> {
-    + importCatalog(exportFile : Path) : CatalogImport
+    + importCatalog(exportFile : Path, lastImported : CatalogFileInfo) : CatalogImport
   }
   interface CardReader <<interface>> {
     + read() : CardReadResult
@@ -90,6 +90,7 @@ package "technical.devices" {
 package "technical.logging" {
   class EventLog <<impl>> {
     + logWarning(message : String, details : String) : void
+    + logRejectedCatalog(fileName : String, rejectedFields : List<String>) : void
     + logDrawerOpening(time : DateTime, employeeID : String, reason : DrawerReason) : void
     + logFailedAttempt(system : String, time : DateTime, error : String) : void
   }
@@ -137,6 +138,7 @@ note bottom of EventLog
   application.interfaces and are not drawn (system_interfaces.md 4.1 to 4.3): PaymentRequest, RefundRequest,
   PaymentResult, TaxRequest, TaxResult, Acknowledgement (RECEIVED, REJECTED, NOT_AVAILABLE), EmployeeCheck,
   EmployeeListResult, CatalogImport, CardReadResult, PrinterStatus, DrawerStatus, DrawerReason.
-  EventLog.logFailedAttempt comes from AD-06; the other two from the design sequence diagrams of UC4.
+  EventLog.logFailedAttempt comes from AD-06, logRejectedCatalog from system_interfaces.md v0.6; the others from UC4.
+  CatalogImport: NO_NEW_FILE, VALID (with the Catalog and its CatalogFileInfo), REJECTED, NOT_AVAILABLE.
 end note
 @enduml
