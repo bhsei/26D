@@ -1,0 +1,71 @@
+@startuml dsd_uc4_logIn
+title DSD UC4 Start Up - logIn(employeeID, pin) (Contract 17)
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam sequenceMessageAlign left
+skinparam ParticipantPadding 10
+skinparam BoxPadding 6
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B7791F
+hide footbox
+box "ui.api" #EAF2E3
+  participant "ctrl:SessionController" as C
+end box
+box "application" #E8EEF7
+  participant "h:SessionHandler" as H
+end box
+box "domain" #FFF7E0
+  participant "store:Store" as ST
+  participant "reg:Register" as REG
+end box
+box "technical.storage" #F2F2F2
+  participant "employees:EmployeeList" as EL
+end box
+box "technical.external" #F6EDF7
+  participant "HRSystemAdapter" as HA
+end box
+box "external system (stub)" #FFFFFF
+  participant "HR System" as HR
+end box
+
+[-> C : POST /api/sessions {employeeID, pin}
+C -> H : logIn(employeeID, pin)
+H -> HA : checkEmployee(employeeID, pin)
+HA -> HR : POST /employees/check
+HR --> HA : {valid, active, name, role}
+HA --> H : EmployeeCheck
+alt VALID (HR System answered)
+  H -> H : accepted = role is cashier
+  note right : a store manager or another role\nis refused as in 6a
+else INVALID: not found, not active or wrong PIN (6a, 6b)
+  H -> H : accepted = false
+else NOT_AVAILABLE: local employee list (6c, IR-09)
+  H -> EL : lastUpdate()
+  EL --> H : Optional<date>
+  alt no local list (6c2)
+    H -> H : accepted = false, reason NO_LOCAL_LIST
+  else list exists
+    H -> EL : find(employeeID)
+    EL --> H : Optional<EmployeeEntry>
+    alt not in the local list (6c1)
+      H -> H : accepted = false (as 6a)
+    else entry found
+      H -> H : accepted = entry.isActiveCashier()\nand entry.pinMatches(pin) (salted hash, DR-11)
+      note right : false when the PIN differs (6c3, as 6b)
+    end
+  end
+end
+alt accepted
+  H -> ST : findEmployee(employeeID)
+  ST --> H : employee
+  H -> REG : assignCashier(employee)
+  note right of REG : the Employee is associated with the Register\nas cashier of the session about to be opened\nNo CashierSession exists yet
+  H --> C : LoginResult(OK, cashierName, localListUsed, lastUpdate)
+  C -->[ : 201 cashier name, request for the opening cash\n(warning with the date when the local list was used, 6c)
+else refused
+  H --> C : LoginResult(REFUSED, reason)
+  C -->[ : 403 message for the cashier (NFR-14)
+end
+note over H : The pin is only a parameter of the checks:\nnever stored, logged or returned (NFR-08)
+@enduml
