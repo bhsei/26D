@@ -102,7 +102,12 @@ end
 
 alt amount = 0, CASH_PAID, CARD_REFUNDED or PENDING
   H -> RR : complete() <<new>>
-  RR -> R : close()
+  RR -> R : close(refundPending) <<new>>
+  note right of R
+    refundPending = true only for PENDING: the rental is
+    "Closed, refund pending" until checkRefundStatus confirms
+    the refund (FR-77); otherwise "Closed" (state diagram 7.2).
+  end note
   R -> R : item.status = Available (undamaged)\nor Under maintenance (damaged)
   RR -> RR : isComplete = true
   RR --> H : AccountingRecord
@@ -145,7 +150,7 @@ legend bottom left
   Controller: RentalReturnController and RentalReturnHandler, as in the other UC5 diagrams.
   Polymorphism, Protected Variations: the refund goes through PaymentMethod (AD-08), so a new tender changes no handler (NFR-09).
   Creator: RentalReturn creates its Refund and its AccountingRecord, because it has their data.
-  Information Expert: Rental closes itself and sets the status of its item; RentalReturn knows the refund amount and the tender of the rental.
+  Information Expert: Rental closes itself (Closed, or Closed with the refund pending) and sets the status of its item; RentalReturn knows the refund amount and the tender of the rental.
   Low Coupling, Indirection: the handler sees only interfaces (PaymentService, CashDrawer, TransactionRepository, ReceiptPrinter);
   the timeouts are in the adapters and the fallbacks in the handler (AD-07).
 endlegend
