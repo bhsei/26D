@@ -1,0 +1,93 @@
+@startuml activity_card_refund
+' NewEra POS - Activity diagram: card refund of a return (UC2) and of a rental return (UC5), at confirmation, W11
+' Team D - editable source of assets/activity_card_refund.png
+' Render with: java -jar plantuml.jar -charset UTF-8 -tpng assets/activity_card_refund.puml
+' Sources: system_interfaces.md 3.7, 4.1; UC2 and UC5 ext. 9; AD-07, AD-08; FR-25, FR-26, FR-55
+title Activity diagram - card refund of a return (UC2) and of a rental return (UC5), at confirmation
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam ActivityBackgroundColor #EAF1FB
+skinparam ActivityBorderColor #1F4E79
+skinparam ActivityDiamondBackgroundColor #FFF7E0
+skinparam ActivityDiamondBorderColor #B7791F
+skinparam ArrowColor #444444
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B7791F
+skinparam swimlaneTitleFontStyle bold
+skinparam swimlaneWidth same
+skinparam maxMessageSize 160
+|Cashier|
+start
+:Confirm the return\n(UC5: the rental return);
+|System|
+if (Amount to refund is 0?\n(UC5: damaged item, or late fee above the deposit)) then (yes)
+  :No Refund is created;
+else (no)
+  if (Tender of the original payment (BR-08)?) then (cash)
+    :Open the cash drawer (IR-14);
+    :outcome = CASH_PAID;
+  elseif (check) then
+    :outcome = NEEDS_APPROVAL\n(cash only with a store manager, FR-25);
+  else (credit card)
+    :Send the refund to the Payment Service\nwith the payment reference and the\ntransaction ID of the return (IR-03);
+    |Payment Service|
+    :Answer within 10 s?;
+    |System|
+    if (Answer?) then (APPROVED)
+      :outcome = CARD_REFUNDED;
+    elseif (DECLINED) then
+      :outcome = NEEDS_APPROVAL (9b2a);
+    else (no answer in 10 s: outcome unknown, 9b2b)
+      :Ask the status of the refund\nwith the same transaction ID;
+      |Payment Service|
+      :Answer within 10 s?;
+      |System|
+      if (Status?) then (APPROVED)
+        :outcome = CARD_REFUNDED;
+      elseif (DECLINED: failed or unknown) then
+        :outcome = NEEDS_APPROVAL;
+      else (no answer)
+        :outcome = PENDING\n(nothing is paid);
+      endif
+    endif
+  endif
+  if (outcome = NEEDS_APPROVAL?) then (yes)
+    |Cashier|
+    :Open D-01 and call the store manager;
+    |Store manager|
+    :Enter the manager ID, the PIN\nand the reason;
+    |System|
+    :Check the store manager\n(HR System, or the local list when it does not answer, IR-08);
+    if (Manager and PIN correct?) then (yes)
+      :Open the cash drawer (IR-14);
+      :outcome = CASH_PAID, Refund approved by the manager\n(tender changed to cash);
+    else (no)
+      :Message "Not a store manager or wrong PIN";
+      note right
+        Nothing changes: the return stays open.
+        The cashier can try again or cancel (FR-24).
+      end note
+      stop
+    endif
+  else (no)
+  endif
+endif
+:Complete the return: stock increases for the resellable items\n(UC5: item status Available or Under maintenance);
+:Save in ONE database transaction: the return, the refund, the stock changes,\nthe record for the Accounting System and the entry for the store database (AD-05, AD-06);
+if (Card refund (CARD_REFUNDED or PENDING)?) then (yes)
+  :Add the state of the refund (refund_status);
+  if (outcome = PENDING?) then (yes)
+    :The return is listed on S-02 "Pending refunds" (FR-77);
+    note right
+      See "pending card refund".
+    end note
+  else (no)
+  endif
+else (no)
+endif
+:Print the receipt (the return is saved also if the printer fails, IR-13);
+|Cashier|
+:Give the receipt and the refund to the customer;
+stop
+@enduml
