@@ -29,6 +29,10 @@ end box
 box "technical.external" #F6EDF7
   participant "PaymentServiceAdapter" as PA
   participant "HRSystemAdapter" as HA
+  participant "CatalogSourceAdapter" as CSA
+end box
+box "technical.logging" #F2F2F2
+  participant "EventLog" as LOG
 end box
 box "external systems (stubs, DC-01)" #FFFFFF
   participant "Payment Service" as PS
@@ -37,6 +41,23 @@ end box
 
 [-> C : POST /api/startup\n(sent once by the POS program)
 C -> H : startUp()
+H -> CSA : importCatalog(exportFile)
+note right of CSA : looks for a new export file of the back-office system (IR-17)\nand checks its fields; waits at most the configured timeout (AD-07)
+CSA --> H : CatalogImport(NO_NEW_FILE | VALID | REJECTED)
+alt VALID: new file, all fields valid
+  H -> SYNC : writeCatalog(catalog, "SYSTEM")
+  note right of SYNC : one store database transaction (AD-05)\nThe register receives it with the next copyMasterDataDown()
+  SYNC --> H : StoreResult
+  opt StoreResult is NOT_AVAILABLE (store database down)
+    H -> LOG : logWarning("catalog import not written: store database not available")
+    note right of H : the previous catalog is kept
+  end
+else REJECTED: missing or invalid fields
+  H -> LOG : logWarning("catalog export rejected", rejected fields)
+  note right of H : the previous catalog is kept
+else NO_NEW_FILE
+  note over H : nothing to import
+end
 H -> CAT : isAvailable()
 CAT --> H : available
 H -> SR : findOpen()
