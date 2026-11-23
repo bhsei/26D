@@ -1,0 +1,158 @@
+@startuml
+' NewEra POS - Design class diagram 3b of 3 (complete): repositories, queue and store database, W11
+' Team D - editable source of assets/design_classes_storage.png
+' Render with: java -jar plantuml.jar -tpng -charset UTF-8 assets/design_classes_storage.puml
+' Sources: system_interfaces.md section 4.2 and 4.3, data_model.md v0.3, design sequence diagrams of UC1, UC3, UC4 and UC5, AD-05, AD-06.
+' "new" = used by a design sequence diagram and not in system_interfaces.md v0.5 (sent to Alfonso for the next version).
+
+set separator none
+skinparam shadowing false
+skinparam dpi 100
+skinparam defaultFontName Arial
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam nodesep 22
+skinparam ranksep 50
+skinparam ArrowColor #444444
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #B8A04A
+skinparam class {
+  BackgroundColor<<handler>> #F4F8FD
+  BorderColor<<handler>> #1F4E79
+  BackgroundColor<<interface>> #EAF1FB
+  BorderColor<<interface>> #1F4E79
+  BackgroundColor<<impl>> #F4F4F4
+  BorderColor<<impl>> #666666
+}
+hide circle
+left to right direction
+
+title NewEra POS - Design class diagram (3b of 3): repositories, accounting queue and store database
+
+package "application (members in diagram 1 of 3)" {
+  class SessionHandler <<handler>>
+  class SaleHandler <<handler>>
+  class ReturnHandler <<handler>>
+  class RentalHandler <<handler>>
+  class RentalReturnHandler <<handler>>
+  class ManagerHandler <<handler>>
+  class ManagerApproval <<handler>>
+  class AccountingSender <<handler>>
+}
+
+package "application.interfaces" {
+  interface TransactionRepository <<interface>> {
+    + nextTransactionID() : String
+    + nextCustomerID() : String «new»
+    + saveCompleted(t : Transaction, record : AccountingRecord) : void
+    + find(transactionID : String) : Optional<Transaction>
+    + findCustomer(customerID : String) : Optional<Customer> «new»
+    + findOpenRentalsOfCustomer(customerID : String) : List<Rental> «new»
+    + findOpenRentalOfItem(serialNumber : String) : Optional<Rental> «new»
+    + addRefundStatus(refundID : String, state : RefundState, reference : String) : void
+    + findPendingRefunds(limit : int, offset : int) : List<PendingRefund>
+    + saveOpenAuthorization(transactionID : String, paymentReference : String) : void
+    + deleteOpenAuthorization(transactionID : String) : void
+    + findOpenAuthorizations() : List<String>
+    + lastReceipt() : Optional<Receipt>
+  }
+  interface SessionRepository <<interface>> {
+    + open(s : CashierSession) : void
+    + close(s : CashierSession) : void
+    + findOpen() : Optional<CashierSession>
+  }
+  interface SettingsRepository <<interface>> {
+    + current() : Settings
+  }
+  interface ItemRepository <<interface>> {
+    + findProduct(itemID : String) : Optional<ProductDescription>
+    + findItem(serialNumber : String) : Optional<Item>
+    + listBelowThreshold(limit : int, offset : int) : List<FlaggedProduct>
+  }
+  interface EmployeeList <<interface>> {
+    + find(employeeID : String) : Optional<EmployeeEntry>
+    + lastUpdate() : Optional<DateTime> «new»
+    + replaceAll(fromHRSystem : List<EmployeeEntry>) : void
+    + setLocallyDisabled(employeeID : String, disabled : boolean, managerID : String) : void
+  }
+  interface AccountingQueue <<interface>> {
+    + add(record : AccountingRecord) : void
+    + takeFirst() : Optional<QueuedRecord>
+    + delete(seq : long) : void
+    + markFailedAttempt(seq : long, rejectedReason : String) : void
+    + status() : QueueStatus
+  }
+  interface StoreDatabaseSync <<interface>> {
+    + copyMasterDataDown() : SyncResult
+    + sendWaitingRecordsUp() : SyncResult
+    + putHold(serialNumber : String, transactionID : String) : HoldResult
+    + removeHold(serialNumber : String, transactionID : String) : void
+    + findTransaction(transactionID : String) : TransactionResult
+    + findOpenRentalsOfCustomer(customerID : String) : RentalSearchResult «new»
+    + findOpenRentalOfItem(serialNumber : String) : RentalSearchResult «new»
+    + findSessionToReview(sessionID : String) : SessionLookup «new»
+    + listStockDifferences(limit : int, offset : int) : Page<StockDifference>
+    + listSessionsToReview(limit : int, offset : int) : Page<SessionToReview>
+    + recordSessionReview(sessionID : String, managerID : String, reason : String) : StoreResult
+    + listRentalConflicts(limit : int, offset : int) : Page<RentalConflict>
+    + resolveRentalConflict(conflictID : String, managerID : String, reason : String) : StoreResult
+    + changeSetting(key : String, value : String, managerID : String) : StoreResult
+    + writeCatalog(catalog : Catalog, managerID : String) : StoreResult
+  }
+}
+
+package "technical.storage" {
+  class SqliteTransactionRepository <<impl>>
+  class SqliteSessionRepository <<impl>>
+  class SqliteSettingsRepository <<impl>>
+  class SqliteItemRepository <<impl>>
+  class SqliteEmployeeList <<impl>>
+  class SqliteAccountingQueue <<impl>>
+  class JdbcStoreDatabaseSync <<impl>>
+}
+
+TransactionRepository <|.. SqliteTransactionRepository
+SessionRepository <|.. SqliteSessionRepository
+SettingsRepository <|.. SqliteSettingsRepository
+ItemRepository <|.. SqliteItemRepository
+EmployeeList <|.. SqliteEmployeeList
+AccountingQueue <|.. SqliteAccountingQueue
+StoreDatabaseSync <|.. JdbcStoreDatabaseSync
+
+' ---------- who uses the interfaces ----------
+SessionHandler --> TransactionRepository
+SessionHandler --> SessionRepository
+SessionHandler --> EmployeeList
+SessionHandler --> StoreDatabaseSync
+SaleHandler --> TransactionRepository
+SaleHandler --> SettingsRepository
+ReturnHandler --> TransactionRepository
+ReturnHandler --> StoreDatabaseSync
+RentalHandler --> TransactionRepository
+RentalHandler --> ItemRepository
+RentalHandler --> SettingsRepository
+RentalHandler --> StoreDatabaseSync
+RentalReturnHandler --> TransactionRepository
+RentalReturnHandler --> SettingsRepository
+RentalReturnHandler --> StoreDatabaseSync
+ManagerHandler --> StoreDatabaseSync
+ManagerHandler --> EmployeeList
+ManagerHandler --> ItemRepository
+ManagerHandler --> AccountingQueue
+ManagerApproval --> EmployeeList
+AccountingSender --> AccountingQueue
+
+' ---------- the storage classes call each other only here (AD-05, AD-06) ----------
+SqliteTransactionRepository ..> SqliteAccountingQueue : same database transaction
+SqliteSessionRepository ..> SqliteTransactionRepository : same list of records for the store database
+JdbcStoreDatabaseSync ..> SqliteTransactionRepository : reads the waiting records
+
+note bottom of JdbcStoreDatabaseSync
+  Only JdbcStoreDatabaseSync knows the store database (PostgreSQL over JDBC, AD-05). The other
+  implementations use the local SQLite file of the register. saveCompleted is one database transaction:
+  transaction, lines, payments, refunds, stock change, accounting record and store_sync_list entry.
+  Result classes (SyncResult, HoldResult, TransactionResult, StoreResult, RentalSearchResult, SessionLookup,
+  QueueStatus, Settings, EmployeeEntry with isActiveCashier(), isActiveStoreManager() and pinMatches(pin)) are not drawn.
+  The names of the implementations (Sqlite..., Jdbc...) are proposals.
+end note
+@enduml
