@@ -20,44 +20,22 @@ box "domain" #FFF7E0
   participant "catalog:ProductCatalog" as CAT
   participant "s:CashierSession" as S
 end box
-box "technical.storage" #F2F2F2
+box "application.interfaces" #F2F2F2
   participant "sessions:SessionRepository" as SR
   participant "tx:TransactionRepository" as TR
   participant "employees:EmployeeList" as EL
+  participant "settings:SettingsRepository" as SET
   participant "sync:StoreDatabaseSync" as SYNC
+  participant "pay:PaymentService" as PAY
+  participant "hr:HRSystem" as HR
+  participant "src:CatalogSource" as CSRC
 end box
-box "technical.external" #F6EDF7
-  participant "PaymentServiceAdapter" as PA
-  participant "HRSystemAdapter" as HA
-  participant "CatalogSourceAdapter" as CSA
-end box
-box "technical.logging" #F2F2F2
+box "technical.logging" #F6EDF7
   participant "EventLog" as LOG
-end box
-box "external systems (stubs, DC-01)" #FFFFFF
-  participant "Payment Service" as PS
-  participant "HR System" as HR
 end box
 
 [-> C : POST /api/startup\n(sent once by the POS program)
 C -> H : startUp()
-H -> CSA : importCatalog(exportFile)
-note right of CSA : looks for a new export file of the back-office system (IR-17)\nand checks its fields; waits at most the configured timeout (AD-07)
-CSA --> H : CatalogImport(NO_NEW_FILE | VALID | REJECTED)
-alt VALID: new file, all fields valid
-  H -> SYNC : writeCatalog(catalog, "SYSTEM")
-  note right of SYNC : one store database transaction (AD-05)\nThe register receives it with the next copyMasterDataDown()
-  SYNC --> H : StoreResult
-  opt StoreResult is NOT_AVAILABLE (store database down)
-    H -> LOG : logWarning("catalog import not written: store database not available")
-    note right of H : the previous catalog is kept
-  end
-else REJECTED: missing or invalid fields
-  H -> LOG : logWarning("catalog export rejected", rejected fields)
-  note right of H : the previous catalog is kept
-else NO_NEW_FILE
-  note over H : nothing to import
-end
 H -> CAT : isAvailable()
 CAT --> H : available
 H -> SR : findOpen()
@@ -71,32 +49,50 @@ else data available
     H -> S : interrupt(restartTime)
     note right of S : endTime = restartTime\nisInterrupted = true\nno closing cash
     H -> SR : close(s)
+    note right of SR : saved in the local database; the entry of store_sync_list is written\nin the same local transaction and sent later (AD-05)
   end
   H ->> AS : start()
   H ->> SYNC : copyMasterDataDown()
-  H ->> SYNC : startSendingWaitingRecords()
+  H ->> SYNC : sendWaitingRecordsUp()
+  note right of SYNC : background jobs started by SessionHandler\n(never waited for, NFR-02, AD-05)
   H --> C : StartUpResult(OK, registerID)
   C -->[ : 200 registerID, S-01 shows the login screen
   group background thread: start-up never waits (NFR-02, AD-07)
     H -> TR : findOpenAuthorizations()
     TR --> H : transaction IDs
     loop each open authorization (IR-15)
-      H -> PA : voidAuthorization(transactionID)
-      PA -> PS : POST /payments/voids
-      PS --> PA : result
-      PA --> H : PaymentResult
+      H -> PAY : voidAuthorization(transactionID)
+      PAY --> H : PaymentResult
       opt result is not NOT_AVAILABLE
         H -> TR : deleteOpenAuthorization(transactionID)
       end
     end
-    H -> HA : employeeList()
-    HA -> HR : GET /employees
-    HR --> HA : employee list
-    HA --> H : EmployeeListResult
-    opt OK (FR-46)
+    H -> HR : employeeList()
+    HR --> H : EmployeeListResult
+    opt OK (FR-46, IR-09)
       H -> EL : replaceAll(list)
+    end
+    group catalog import (IR-17)
+      H -> SET : current()
+      SET --> H : Settings
+      H -> CSRC : importCatalog(settings.exportFile(), settings.lastCatalogFile())
+      note right of H : exportFile() and lastCatalogFile() are <<new>> methods of Settings\n(CatalogFileInfo of the last imported file: name and date)
+      CSRC --> H : CatalogImport(NO_NEW_FILE | VALID | REJECTED | NOT_AVAILABLE)
+      alt VALID: new file, all fields valid
+        H -> SYNC : writeCatalog(catalog, file, null)
+        note right of SYNC : one store database transaction with the CatalogFileInfo\n(AD-05); no store manager at start-up (null)\nThe register gets the catalog with the next copyMasterDataDown()
+        SYNC --> H : StoreResult
+        opt StoreResult is NOT_AVAILABLE (store database down)
+          H -> LOG : logWarning("catalog not written: store database not available")
+        end
+      else REJECTED (missing or invalid fields) or NOT_AVAILABLE (file location not reached in time)
+        H -> LOG : logWarning("catalog export not imported", reason)
+      else NO_NEW_FILE
+        note over H : nothing to import
+      end
+      note over H : In every case except VALID with StoreResult OK the previous catalog is kept
     end
   end
 end
-note over HA, PA : On a timeout (10 s / 5 s) each adapter logs the failed call in the EventLog\nwithout card data (IR-10) and returns NOT_AVAILABLE (AD-07).
+note over HR, CSRC : The adapters behind these interfaces apply the timeouts (10 s Payment Service, 5 s HR System,\nimport timeout of the Settings for the catalog), log a failed call in the EventLog (IR-10)\nand return NOT_AVAILABLE (AD-07). The handler never calls an adapter class.
 @enduml
