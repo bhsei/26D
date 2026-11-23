@@ -67,15 +67,15 @@ This matrix links the official SRS requirements (FR-01 to FR-77) to the design a
 | FR-37 | Accept cash payment for rental | UC3 (Process Rental) | UI: Payment screen, Drawer API | TC-37: Pay cash, lower amount rejected, change shown, drawer opens |
 | FR-38 | Save rental and update status | UC3 (Process Rental) | DB Schema: Rentals | TC-38: Check DB and item status |
 | FR-39 | Print rental receipt | UC3 (Process Rental) | UI: Receipt Layout | TC-39: Verify rental receipt details |
-| FR-40 | Open cashier session | UC4 (Start Up) | Class Diagram: Session | TC-40: Login and open session |
-| FR-41 | Check catalog at start-up | UC4 (Start Up) | Startup script | TC-41: Simulate missing DB |
-| FR-42 | Send queued records at start | UC4 (Start Up) | Interface: Accounting | TC-42: Check queue processing |
-| FR-43 | Login with valid employee | UC4 (Start Up) | Interface: HR System | TC-43: Login active/inactive user |
-| FR-44 | Require PIN for login | UC4 (Start Up) | UI: Login screen | TC-44: Verify PIN masking |
-| FR-45 | Fallback for HR System | UC4 (Start Up) | Local Cache DB | TC-45: Simulate HR down, test local |
-| FR-46 | Save local employee copy | UC4 (Start Up) | DB Schema: Employees | TC-46: Connect to HR, check sync |
-| FR-47 | Record opening cash | UC4 (Start Up) | UI: Cash input | TC-47: Enter invalid/valid amounts |
-| FR-48 | Recover data after crash | UC4 (Start Up) | Recovery Module | TC-48: Force crash, restart |
+| FR-40 | Open cashier session | UC4 (Start Up) | DSD: dsd_uc4_enterOpeningCash; Class Diagram: CashierSession | TC-40: Login and open session |
+| FR-41 | Check catalog at start-up | UC4 (Start Up) | DSD: dsd_uc4_startUp | TC-41: Simulate missing DB |
+| FR-42 | Send queued records at start | UC4 (Start Up) | DSD: dsd_uc4_startUp (AccountingSender) | TC-42: Check queue processing |
+| FR-43 | Login with valid employee | UC4 (Start Up) | DSD: dsd_uc4_logIn; UI: Login screen | TC-43: Login active/inactive user |
+| FR-44 | Require PIN for login | UC4 (Start Up) | DSD: dsd_uc4_logIn; UI: Login screen | TC-44: Verify PIN masking |
+| FR-45 | Fallback for HR System | UC4 (Start Up) | DSD: dsd_uc4_logIn, dsd_uc4_startUp; Local Cache DB | TC-45: Simulate HR down, test local |
+| FR-46 | Save local employee copy | UC4 (Start Up) | DSD: dsd_uc4_logIn, dsd_uc4_startUp; Local Cache DB | TC-46: Connect to HR, check sync |
+| FR-47 | Record opening cash | UC4 (Start Up) | DSD: dsd_uc4_enterOpeningCash; UI: Cash input | TC-47: Enter invalid/valid amounts |
+| FR-48 | Recover data after crash | UC4 (Start Up) | DSD: dsd_uc4_startUp (interrupted session, open authorizations) | TC-48: Force crash, restart |
 | FR-49 | Show main screen | UC4 (Start Up) | UI: Main Screen | TC-49: Verify user and register ID |
 | FR-50 | Start rental return in session | UC5 (Return Rental) | Class Diagram: RentalReturn | TC-50: Verify return starts in session |
 | FR-51 | Find open rental | UC5 (Return Rental) | Sequence Diagram: FindRental | TC-51: Scan valid/invalid serial/receipt |
@@ -87,10 +87,10 @@ This matrix links the official SRS requirements (FR-01 to FR-77) to the design a
 | FR-57 | Save return and close rental | UC5 (Return Rental) | DB Schema: RentalReturns | TC-57: Check DB, item status, rental closed |
 | FR-58 | Send return to Accounting | UC5 (Return Rental) | Interface: Accounting | TC-58: Verify JSON payload sent |
 | FR-59 | Print rental return receipt | UC5 (Return Rental) | UI: Receipt Layout | TC-59: Verify receipt details |
-| FR-60 | Close cashier session (no open transaction) | UC4 (Start Up) | UI: Close session screen | TC-60: Try to close with an open sale (refused), close without open transaction |
-| FR-61 | Open drawer, record closing cash | UC4 (Start Up) | UI: Cash input, Drawer API | TC-61: Enter invalid/valid closing cash |
-| FR-62 | Calculate cash difference | UC4 (Start Up) | Component: SessionCashCalc | TC-62: Opening 100, cash payments 50, cash refunds 20, closing 125: expected 130, 5 short |
-| FR-63 | Record session end time, interrupted session | UC4 (Start Up) | Recovery Module, DB Schema: Sessions | TC-63: Close normally; crash and restart (end time = next start-up, interrupted) |
+| FR-60 | Close cashier session (no open transaction) | UC4 (Start Up) | DSD: dsd_uc4_closeSession | TC-60: Try to close with an open sale (refused), close without open transaction |
+| FR-61 | Open drawer, record closing cash | UC4 (Start Up) | DSD: dsd_uc4_closeSession | TC-61: Enter invalid/valid closing cash |
+| FR-62 | Calculate cash difference | UC4 (Start Up) | DSD: dsd_uc4_closeSession | TC-62: Opening 100, cash payments 50, cash refunds 20, closing 125: expected 130, 5 short |
+| FR-63 | Record session end time, interrupted session | UC4 (Start Up) | DSD: dsd_uc4_startUp, dsd_uc4_closeSession | TC-63: Close normally; crash and restart (end time = next start-up, interrupted) |
 | FR-64 | Complete rental card payment after approval | UC3 (Process Rental) | Interface: Payment Service | TC-64: Mock approval, verify auth code saved |
 | FR-65 | Accept rental check payment (Could) | UC3 (Process Rental) | Interface: Payment Service | TC-65: Mock check authorization |
 | FR-66 | Declined or failed rental card payment | UC3 (Process Rental) | UI: Error state | TC-66: Mock decline (rental stays open), no answer (retry) |
@@ -101,6 +101,10 @@ This matrix links the official SRS requirements (FR-01 to FR-77) to the design a
 | FR-71 | Common receipt contents | UC1, UC2, UC3, UC5 | UI: Receipt Layout | TC-71: Print one receipt of each type, check common fields and last 4 digits |
 | FR-72 | Damaged rental item: deposit kept, refund zero | UC5 (Return Rental) | Component: RefundCalc | TC-72: Return damaged and late, refund 0, late fee recorded not charged |
 | FR-73 | Late fee larger than deposit: amount still due | UC5 (Return Rental) | Component: RefundCalc | TC-73: Late fee and tax above deposit, amount due shown |
+| FR-74 | Mark a session to review when the difference is larger than 5.00 | UC4 (Close session) | DSD: `dsd_uc4_closeSession`; State: cashier session; UI: S-03, M-02 | TC-74: Close with a difference of 5.01, plus and minus (to review) and of 5.00 (not to review) |
+| FR-75 | Store manager reviews a session with a reason | UC4 (Close session) | DSD: `dsd_uc4_confirmSessionReview`; UI: M-02, D-01 | TC-75: Review without reason (refused), with a cashier PIN (refused), as manager (who and when recorded) |
+| FR-76 | Status of the Accounting queue for the store manager | UC1 to UC5 (AD-06) | UI: M-06; Interface: `getAccountingQueueStatus` | TC-76: Accounting System down, records waiting longer than the limit: number, age and warning shown |
+| FR-77 | List pending card refunds and ask the status again | UC2, UC5 (ext. 9b2b) | State: card refund; UI: S-02, S-07 and S-09 in *pending refund* mode | TC-77: Refund without answer is listed; asking again after the answer gives CARD_REFUNDED |
 | BR-01 | Calculated by Tax Calculator (see glossary) | UC1 (Process Sale) | Interface: TaxCalculator | TC-08: Verify tax matches external system |
 | NFR-06 | Usability: <= 3 clicks for standard sale | UC1 (Process Sale) | UI: Checkout flow | TC-NFR-06: Measure clicks from item entry to sale completion (<= 3) |
 | NFR-07 | Security: Role-based access control | UC1 (Process Sale) | UI: Manager authentication modal | TC-06: Attempt override as cashier (fail) and manager (pass) |
