@@ -140,8 +140,13 @@ else NEEDS_APPROVAL (card declined, or check)
   [<-- Ctl : 200 NEEDS_APPROVAL, D-01 opens
   ref over Ctl, RR
     approveCashRefund(managerID, pin, reason): the same operation as in UC2 (Contract 9),
-    see the design sequence diagram of UC2. ManagerApproval checks the store manager,
-    CashPaymentMethod opens the drawer, then the completion above.
+    see dsd_uc2_approveCashRefund. ManagerApproval checks the store manager, the Refund is approved,
+    the cash PaymentMethod opens the drawer. Then, as in UC2:
+    - rental return not saved yet (card declined, or check): the completion above;
+    - rental return already saved (the card refund was PENDING, then failed): no complete() and
+      no saveCompleted again, only Refund.setState(CASH_PAID) and addRefundStatus(refundID, CASH_PAID),
+      then the receipt. With that row the rental goes from "Closed, refund pending" to "Closed"
+      (state diagram 7.2); the item status was already set at the confirmation.
   end ref
 end
 
