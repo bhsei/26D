@@ -3,12 +3,14 @@
 | | |
 | --- | --- |
 | **Maintainer** | Alfonso Pinto |
-| **Version** | 0.5 (draft for review; after the internal review #60 and the data model v0.2) |
-| **Last updated** | W10 |
+| **Version** | 0.6 (draft for review; catalog import at start-up) |
+| **Last updated** | W11 |
 | **Part of** | Increment 2 – Design (milestone W11); step 2 of the architecture process |
 | **Inputs** | [System sequence diagrams](system_sequence_diagrams.md), [operation contracts](operation_contracts.md), [SRS](../requirements/SRS.md) §3.1 and §3.2, [architecture](architecture.md) AD-01 to AD-10; [UI design](ui_design.md) §1 |
 
 > **Status: draft.** The operations of all five use cases have the names of the [system sequence diagrams](system_sequence_diagrams.md) v0.10, and each one refers to its [operation contract](operation_contracts.md) (contracts 1 to 29).
+>
+> **v0.6 (W11, Contract 16):** catalog import at start-up in the background (IR-17, NFR-02): `CatalogImport` with `NO_NEW_FILE`, `VALID`, `REJECTED` and `NOT_AVAILABLE`; the last imported file is kept with the catalog; `writeCatalog` without a store manager at start-up; rejected files in the `EventLog`.
 >
 > **v0.5 (review #60, data model v0.2):** pending refunds with their kind and a *pending refund* mode of S-07 and S-09; S-05 with `getAvailableTenders()` and cancel for the three use cases; `reprintLastReceipt()`; session and settings repositories, catalog import and rental conflicts; the local disable of an employee kept after a refresh; `UNKNOWN` status and the time of the last call; `REJECTED` records of the Accounting System; retention of pending refunds; store manager lists and session review read the store database (`409` when it is not available); `sendWaitingRecordsUp`, `refund_status`, `open_authorization`; screens M-03 to M-06 (ui_design.md v0.2).
 >
@@ -51,7 +53,7 @@ The column *Operation* gives the name of the system operation in the SSD; *Contr
 
 | Operation | Request | Answer | Contract | Requirements |
 | --- | --- | --- | --- | --- |
-| `startUp()` | `POST /api/startup` (sent once by the POS program when it starts, before any session) | Register ID and the login screen; or an error and no login when the catalog or the stored data are not available (2a). Records waiting for the Accounting System are sent or stay in the queue; a session interrupted by a crash is ended | 16 | FR-41, FR-42, FR-48, FR-63, IR-15 |
+| `startUp()` | `POST /api/startup` (sent once by the POS program when it starts, before any session) | Register ID and the login screen; or an error and no login when the catalog or the stored data are not available (2a). Records waiting for the Accounting System are sent or stay in the queue; a session interrupted by a crash is ended; a new catalog export file is imported in the background (IR-17) | 16 | FR-41, FR-42, FR-48, FR-63, IR-15, IR-17 |
 | `logIn(employeeID, pin)` | `POST /api/sessions` `{"employeeID", "pin"}` | `201` session ID, cashier name, request for the opening cash; a warning when the local employee list was used (6c). `403` not found or not an active cashier (6a), or wrong PIN (6b) | 17 | FR-40, FR-43–FR-46, FR-49, IR-08, IR-09 |
 | `enterOpeningCash(amount)` | `PUT /api/sessions/current/opening-cash` `{"amount"}` | Session open, main screen. `400` amount not valid (8a) | 18 | FR-47 |
 | `closeSession()` | `POST /api/sessions/current/close` | The cash drawer opens for the closing count. `409` a sale, return, rental or rental return is still open (2a) | 19 | FR-60, IR-14 |
@@ -215,7 +217,7 @@ public interface HRSystem {                                         // timeout 5
 }
 
 public interface CatalogSource {
-    CatalogImport importCatalog(Path exportFile);                   // IR-17
+    CatalogImport importCatalog(Path exportFile, CatalogFileInfo lastImported); // IR-17: lastImported is null for M-04 (always imported)
 }
 ```
 
@@ -229,7 +231,8 @@ public interface CatalogSource {
 | `Acknowledgement` | `RECEIVED` with the transaction ID; `REJECTED` with a reason, when the Accounting System answers but refuses the record (for example a field it cannot read); or `NOT_AVAILABLE`. The queue removes the record only after `RECEIVED` (FR-42) and keeps it otherwise (IR-07); a `REJECTED` record stays first, is marked with the reason and is shown in M-06 |
 | `EmployeeCheck` | `VALID` (with name and role, *cashier* or *store manager*), `INVALID` (not found, not active or wrong PIN) or `NOT_AVAILABLE`, after which the handler checks the local employee list (UC4 6c, IR-09) |
 | `EmployeeListResult` | `OK` with the list of `EmployeeEntry` (employee ID, name, role, active, PIN as a salted hash only, DR-11), or `NOT_AVAILABLE`, after which the local copy is kept as it is |
-| `CatalogImport` | products imported, or the list of rejected fields |
+| `CatalogImport` | `NO_NEW_FILE` (no file, or the same name and date as `lastImported`), `VALID` with the `Catalog` and its `CatalogFileInfo`, `REJECTED` with the list of missing or invalid fields, or `NOT_AVAILABLE` (the file location cannot be reached within the timeout) |
+| `CatalogFileInfo` | name and date of the export file; written with the catalog to the store database and copied to every register, so that no register imports the same file twice |
 
 ### 4.2 Devices (AD-10)
 
@@ -320,14 +323,15 @@ public interface StoreDatabaseSync {                              // the only cl
     Page<RentalConflict> listRentalConflicts(int limit, int offset);           // sync_conflict
     StoreResult resolveRentalConflict(String conflictID, String managerID, String reason);
     StoreResult changeSetting(String key, String value, String managerID);     // FR-69
-    StoreResult writeCatalog(Catalog catalog, String managerID);               // IR-17: one store database transaction; the old catalog is kept on error
+    StoreResult writeCatalog(Catalog catalog, CatalogFileInfo file, String managerID); // IR-17: one store database transaction; the old catalog is kept on error;
+                                                                               // managerID is null for the import at start-up
 }
 ```
 
 | Rule | Detail | Source |
 | --- | --- | --- |
 | One save | `saveCompleted` is one database transaction: everything or nothing, also after a power cut. | AD-05, DR-13, IR-07 |
-| Background jobs | `AccountingSender` (application) calls `takeFirst`, `send`, then `delete` or `markFailedAttempt` (also for `REJECTED`, which keeps the record first and is shown in M-06), and waits 5 s, 10 s, 30 s, 60 s and then 5 min between attempts; it never skips a record. A background job of `StoreDatabaseSync` sends the waiting records (`sendWaitingRecordsUp`). Both are started by `SessionHandler` and never delay the start-up. | AD-06, AD-05, NFR-02 |
+| Background jobs | `AccountingSender` (application) calls `takeFirst`, `send`, then `delete` or `markFailedAttempt` (also for `REJECTED`, which keeps the record first and is shown in M-06), and waits 5 s, 10 s, 30 s, 60 s and then 5 min between attempts; it never skips a record. A background job of `StoreDatabaseSync` sends the waiting records (`sendWaitingRecordsUp`). Both are started by `SessionHandler` and never delay the start-up. The catalog import of the start-up is a third background job: `importCatalog` with the last imported file, `writeCatalog` when `VALID`, and the `EventLog` when `REJECTED` or `NOT_AVAILABLE`; the register gets the new catalog with the next `copyMasterDataDown`. | AD-06, AD-05, NFR-02, IR-17 |
 | Store database down | The repositories keep working on the local copy. `putHold` and `findTransaction` answer `NOT_AVAILABLE`; the operations marked * in §3.6 answer `409`, because the store database is the master of settings and catalog. | AD-05, DC-09 |
 | Conflicts | Stock levels are changed by quantities and transactions never change, so the only conflict is two offline rentals of the same item; it is recorded in `sync_conflict` and the store manager sees and resolves it in M-01 (`listRentalConflicts`, `resolveRentalConflict`). | AD-05, SRS §5.3 Q6 |
 | Employee list | `replaceAll` replaces the copy with the list of the HR System but keeps the local disable mark of a store manager, until the HR System also marks the employee inactive or a store manager enables the employee again. | FR-70, IR-09 |
@@ -360,3 +364,4 @@ In our project the four external systems are stubs: small HTTP servers that answ
 8. ~~**Status of the external systems**~~ (ui_design.md §1.6 point 1 and §4.3 point 3): `getSystemStatus()` (§3.8). The tax warning of S-08 and S-09 comes from the answers of `endRental()` and `recordCondition()`, which carry `taxToBeCorrected` like `endSale()`.
 9. **Accounting record refused** (review #60, finding 8): `REJECTED` keeps the order of the queue (IR-07), so a refused record blocks the others until it is fixed. AD-06 has only `RECEIVED` and `NOT_AVAILABLE`; to add `REJECTED` there (Borja).
 10. **Repositories in the logical view**: `SessionRepository` and `SettingsRepository` (Haifa, architecture.md §4.2).
+11. **Catalog import at start-up** (Contract 16): the `CatalogFileInfo` of the last import in the data model, with the catalog (Borja); `EventLog` also logs rejected catalog files, not only the failed communications of IR-10 (Haifa, architecture.md §4.2).
