@@ -50,10 +50,13 @@ package "Application / domain layer" as APP {
       rectangle "ProductCatalog\nProductDescription · Item" as DCatalog
     }
     package "domain.transactions" as dtrans {
-      rectangle "Transaction · Sale · Return · Rental · RentalReturn\n(line items) · Customer · Receipt · AccountingRecord" as DTrans
+      rectangle "Transaction · Sale · Return · Rental · RentalReturn\nSaleLineItem · ReturnLineItem · RentalLineItem\nCustomer · Receipt · AccountingRecord" as DTrans
     }
     package "domain.payments" as dpay {
       rectangle "Payment · CashPayment · CreditCardPayment\nCheckPayment · Refund" as DPay
+    }
+    package "domain.shared" as dshared {
+      rectangle "Money (value)" as DShared
     }
   }
 }
@@ -66,7 +69,7 @@ package "Technical services layer" as TECH {
     rectangle "CardReaderDriver · ReceiptPrinterDriver\nCashDrawerDriver" as Drivers
   }
   package "technical.storage" as storage {
-    rectangle "TransactionRepository · ItemRepository\nAccountingQueue · EmployeeList" as Repos
+    rectangle "TransactionRepository · ItemRepository\nSessionRepository · SettingsRepository\nAccountingQueue · EmployeeList" as Repos
     rectangle "StoreDatabaseSync\n(only link to the store database, AD-05)" as Sync
   }
   package "technical.logging" as logging {
@@ -87,6 +90,7 @@ PayMethods -down-> DPay : creates Payment
 DStore -[hidden]right- DCatalog
 DTrans -[hidden]right- DPay
 DStore -[hidden]down- DTrans
+DTrans -[hidden]down- DShared
 Repos -[hidden]right- Sync
 Adapters -up-|> Interfaces : implements
 Drivers -up-|> Interfaces : implements
