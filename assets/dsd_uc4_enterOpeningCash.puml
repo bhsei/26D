@@ -28,18 +28,19 @@ end box
 [-> C : PUT /api/sessions/current/opening-cash {amount}
 C -> C : check the format (not empty, a number)
 C -> H : enterOpeningCash(amount)
-H -> REG : cashier()
-REG --> H : Employee of the login (logIn was accepted)
+H -> H : cashier = pendingCashier
+note right of H : empty if logIn was not accepted: the request is refused (409)
 H -> M : isNegative()
 M --> H : result
 alt amount not valid (8a)
   H --> C : OpeningResult(INVALID_AMOUNT)
   C -->[ : 400 message for the cashier, nothing changes
 else amount valid
-  H -> REG : openSession(amount)
+  H -> REG : openSession(cashier, amount)
   REG -> S : <<create>> CashierSession(cashier, register, now, amount)
-  note right of S : startTime = now\nopeningCash = amount\nendTime not set
+  note right of S : associated with the cashier (Employee) and the Register\nstartTime = now\nopeningCash = amount\nendTime not set
   REG --> H : s
+  H -> H : pendingCashier = none
   H -> SR : open(s)
   SR -> SYNC : addToStoreSyncList(s)
   note right of SYNC : the session is sent to the store database\nlater, in the background (AD-05)
