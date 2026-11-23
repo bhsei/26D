@@ -81,13 +81,21 @@ GRASP patterns: Controller (`SessionHandler`, `ManagerHandler`), Creator (`Regis
 
 ### 2.5 UC5 Return Rental (contracts 22–28) – Haifa
 
-| Diagram | Operations | Contract |
-| --- | --- | --- |
-| [`dsd_uc5_find_rental`](../../assets/dsd_uc5_find_rental.puml) | `makeNewRentalReturn()`, `findRental(code)`, `findRentalsOfCustomer(customerID)`, `selectRental(rentalID)` | 22–25 |
-| [`dsd_uc5_record_condition`](../../assets/dsd_uc5_record_condition.puml) | `recordCondition(condition, damageNote)`, `confirmDamage(managerID, pin)` | 26, 27 |
-| [`dsd_uc5_confirm_rental_return`](../../assets/dsd_uc5_confirm_rental_return.puml) | `confirmRentalReturn()`, `approveCashRefund(managerID, pin, reason)` | 28, 9 |
+| Diagram | Operations | Contract | Main design choices |
+| --- | --- | --- | --- |
+| [`dsd_uc5_find_rental`](../../assets/dsd_uc5_find_rental.puml) | `makeNewRentalReturn()`, `findRental(code)`, `findRentalsOfCustomer(customerID)`, `selectRental(rentalID)` | 22–25 | `TransactionRepository` gives the transaction ID (AD-05); `CashierSession` creates the `RentalReturn`; the code is a rental receipt number or a serial number; a rental of another register is found through `StoreDatabaseSync` (AD-05); the `Rental` gives its open line (one line item per rental return); with the customer ID (ext. 5b) the open rentals of this register and, when reachable, of the other registers are listed, as in UC3 |
+| [`dsd_uc5_record_condition`](../../assets/dsd_uc5_record_condition.puml) | `recordCondition(condition, damageNote)`, `confirmDamage(managerID, pin)` | 26, 27 | `RentalReturn` calculates the days late, the late fee (BR-16), the refund and the amount still due (BR-10, ext. 7b); tax on the late fee through `TaxCalculator`, after the 5 s timeout the default tax rate and *tax to be corrected* (IR-05, AD-07), as in UC1; a damaged item needs a store manager: `ManagerApproval.check` as in UC4, with the local employee list when the HR System is not available (IR-09); the deposit is kept and the refund is 0 (FR-52) |
+| [`dsd_uc5_confirm_rental_return`](../../assets/dsd_uc5_confirm_rental_return.puml) | `confirmRentalReturn()`, `approveCashRefund(managerID, pin, reason)` | 28, 9 | The refund goes through the `PaymentMethod` of the tender of the rental (BR-08, AD-08), as the payment in UC1 and UC3; cash opens the drawer (IR-14); a card refund that gets no answer asks the refund status with the same transaction ID and stays PENDING, with no cash paid (AD-07, FR-77); declined card or check: NEEDS_APPROVAL and `approveCashRefund` of UC2 (Contract 9); one `saveCompleted` with the rental return, the refund, the item status, the Accounting record and the sync entry (AD-05, AD-06); with PENDING the rental is *Closed, refund pending* (state diagram 7.2) |
 
-*To complete by Haifa: main design choices and GRASP of each diagram.*
+![UC5 find the rental](../../assets/dsd_uc5_find_rental.png)
+
+![UC5 condition and late fee](../../assets/dsd_uc5_record_condition.png)
+
+![UC5 confirm and refund](../../assets/dsd_uc5_confirm_rental_return.png)
+
+GRASP patterns: Controller (`RentalReturnController`, `RentalReturnHandler`), Creator (`CashierSession` creates the `RentalReturn`; the `RentalReturn` creates its `Refund` and its `AccountingRecord`), Information Expert (`Rental` for its open line and for closing itself and setting the item status, `RentalLineItem` for the due date, the fee and the deposit, `RentalReturn` for the late fee, the refund and the tender of the rental), Polymorphism (`PaymentMethod`), Pure Fabrication and High Cohesion (`ManagerApproval`, `PaymentMethods`, `TransactionRepository`), Indirection, Low Coupling and Protected Variations (repositories, `StoreDatabaseSync`, `TaxCalculator`, `HRSystem`, `PaymentService`, devices). The justification is in the legend under each diagram.
+
+Methods marked «new» in the diagrams are not yet in the logical view or system_interfaces.md (sent to Borja for the design class diagram, §3): `CashierSession.createRentalReturn`; `RentalReturn.openRentalOfCustomer`, `recordCondition`, `setLateFeeTax`, `calculateRefund`, `confirmDamage`, `rentalPayment`, `addRefund`, `complete`; `Rental.close(refundPending)`; `TransactionRepository.findOpenRentalOfItem` and `StoreDatabaseSync.findOpenRentalOfItem`; `findOpenRentalsOfCustomer` as in UC3.
 
 ## 3. Design class diagram – Borja
 
