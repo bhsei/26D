@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Maintainer** | Borja Nicolás |
-| **Version** | 1.0 (aligned with the design class diagram; `REJECTED` records of the Accounting queue, review #60) |
+| **Version** | 1.0 (aligned with the design class diagram and system_interfaces v0.6; `REJECTED` records of the Accounting queue; catalog file of the last import) |
 | **Last updated** | W11 |
 | **Part of** | Increment 2 (Design): data view ([architecture.md](architecture.md) §4.5), decision records AD-05 and AD-06 |
 
@@ -39,7 +39,7 @@ _22 of 22 tables shown. Editable source: [`assets/data_model.puml`](../../assets
 | `item` | `Item`: one rentable unit | `serial_number` (PK), `item_id` (FK), `status` (`AVAILABLE`, `RENTED`, `UNDER_MAINTENANCE`), `is_active` | Both. Master: store database | DR-02 |
 | `item_hold` | A rental that is open at a register has a hold on the item (AD-05). `serial_number` is the primary key, so only one register can hold an item. The hold is removed in the store database transaction that stores the completed rental. | `serial_number` (PK, FK), `register_id` (FK), `transaction_id` (the open rental), `held_since` | Store database only | BR-11, DC-09 |
 | `stock_difference` | The store database changes the stock level by quantities; when the result would be below zero it sets zero and records the missing quantity here, for a stock check by the store manager (FR-19, FR-68). The ID is made by the store database, so two registers cannot make the same one. The register does not keep this table. | `difference_id` (PK), `item_id` (FK), `register_id` (FK), `transaction_id` (FK), `missing_quantity`, `recorded_at`, `is_checked` | Store database only | FR-19, FR-68 |
-| `settings` | Default tax rate, reorder threshold, currency code, timeouts that a store manager may change. | `setting_key` (PK), `setting_value`, `updated_at` | Both. Master: store database | DR-15, BR-02, BR-04 |
+| `settings` | Default tax rate, reorder threshold, currency code, timeouts that a store manager may change. Two more keys, `catalog_file_name` and `catalog_file_date`, hold the `CatalogFileInfo` of the last imported catalog export (IR-17); they are written with the catalog in the same store database transaction and copied to every register, so that no register imports the same file twice. | `setting_key` (PK), `setting_value`, `updated_at` | Both. Master: store database | DR-15, BR-02, BR-04 |
 
 ### 4.2 Store, registers and sessions
 
@@ -93,7 +93,7 @@ The register connects to the store database with one user. The rule of DR-04 is 
 | `item_hold` | Insert and delete |
 | `item` | Update `status` (rental, rental return) |
 | `product` | Update `stock_level` (by quantity); insert and update for the catalog import (IR-17); no delete |
-| `settings` | Update (only for a store manager request, BR-04) |
+| `settings` | Update (for a store manager request, BR-04; and the two catalog file keys at the catalog import, IR-17) |
 | `register` | Read |
 
 ## 5. Traceability: DR to tables
@@ -143,6 +143,7 @@ The [design class diagram](detailed_design.md) (`assets/design_classes_domain.pu
 | `TransactionRepository.nextCustomerID()` | `register_state.customer_counter` | Register ID + counter, like the transaction ID |
 | `TransactionRepository.findOpenRentalsOfCustomer`, `findOpenRentalOfItem` | `rental_line` without a row in `rental_return_line` | Local copy only; the other registers through `StoreDatabaseSync` |
 | `StoreDatabaseSync.putHold`, `removeHold` | `item_hold` | Store database only |
+| `CatalogSource.importCatalog(file, lastImported)`, `StoreDatabaseSync.writeCatalog(catalog, file, managerID)` | `settings` keys `catalog_file_name`, `catalog_file_date` | `CatalogFileInfo` of the last import; `managerID` is null at start-up (system_interfaces.md v0.6) |
 | `Rental.hasOverdueLine(today)` | `rental_line.due_date` | |
 | `AccountingQueue.markFailedAttempt` | `accounting_queue.attempts`, `last_attempt_at`, `status`, `rejected_reason` | `REJECTED` records stay first (AD-06) |
 
