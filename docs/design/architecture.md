@@ -3,12 +3,12 @@
 |                  |                                                                                                     |
 | ---------------- | --------------------------------------------------------------------------------------------------- |
 | **Maintainer**   | Haifa Chkoundali                                                                                    |
-| **Version**      | 0.5                                                                                                 |
-| **Last updated** | W10 (consistency pass with AD-05, AD-06 and AD-08)                                                  |
+| **Version**      | 1.0                                                                                                 |
+| **Last updated** | W11 (checked against the detailed design; AD-04 to AD-10 accepted)                                  |
 | **Part of**      | Increment 2 – Design (milestone W11)                                                                |
 | **Structure**    | ISO/IEC/IEEE 42010:2022 – Architecture description                                                  |
 
-> **Status: draft.** This document gives the views of the architecture description (§4), their correspondences (§5) and the decisions with their records (§6.1). All the views and the correspondences are written. AD-01 to AD-03 were accepted by the team in W09. AD-04 to AD-10 are proposals until the team confirms them; AD-05, AD-06 and AD-08 were written in W10. The inputs are the architecture drivers ([architecture_drivers.md](architecture_drivers.md), Alfonso), the domain model ([domain_model.md](domain_model.md), Borja) and the data model ([data_model.md](data_model.md), Borja).
+> **Status: v1.0 (W11).** This document gives the views of the architecture description (§4), their correspondences (§5) and the decisions with their records (§6.1). The views and the correspondences are checked against the [detailed design](detailed_design.md): the design sequence diagrams of UC1 to UC5, the design class diagram and the state diagrams. All the decisions are accepted: AD-01 to AD-03 by the team in W09, AD-04 to AD-10 in W11. The inputs are the architecture drivers ([architecture_drivers.md](architecture_drivers.md), Alfonso), the domain model ([domain_model.md](domain_model.md), Borja), the data model ([data_model.md](data_model.md), Borja) and the system interfaces ([system_interfaces.md](system_interfaces.md), Alfonso).
 
 ## 1. Introduction
 
@@ -267,7 +267,7 @@ The **master copy** of a data item is the place where its value is decided; the 
 
 **Open points of this view**
 
-Decided in W10 (AD-05, AD-06, Borja), as proposals until the team confirms them:
+Decided in W10 (AD-05, AD-06, Borja) and accepted by the team in W11:
 
 1. **Copies and conflicts.** The register copies the master data down at start-up, every 5 minutes and when the connection is back, and sends its transactions up in order. Stock levels change by quantities, an item is put on hold in the store database while a rental is open, and a conflict of two offline rentals is recorded for the store manager (AD-05, SRS question 6).
 2. **Receipt numbers, transaction IDs and customer IDs** are built from the register ID and a counter of the register that is increased in the same database transaction as the record (AD-05).
@@ -343,24 +343,24 @@ How the views and the other documents are linked (ISO/IEC/IEEE 42010 _correspond
 
 ## 6. Architecture decisions
 
-The decisions of the architecture. Each one is recorded in §6.1 with: context, options, decision, rationale, consequences, related requirements. AD-01 to AD-03 are accepted; the others are proposals until the team confirms them.
+The decisions of the architecture. Each one is recorded in §6.1 with: context, options, decision, rationale, consequences, related requirements. AD-01 to AD-03 were accepted by the team in W09 and AD-04 to AD-10 in W11.
 
 | ID    | Decision to take                          | Options to compare                                                                                                       | Drivers                                      | Status          |
 | ----- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- | --------------- |
 | AD-01 | Architectural style of the POS            | Layered (UI / domain / technical services); MVC; client–server                                                           | NFR-09, DC-02                                | Accepted (W09)  |
 | AD-02 | Kind of application                       | Desktop application; web application in a browser on the register                                                        | DC-03, DC-04, NFR-02                         | Accepted (W09)  |
 | AD-03 | Programming language and frameworks       | Tools the team already knows (Java, Python, JavaScript…)                                                                 | DC-04, team skills                           | Accepted (W09)  |
-| AD-04 | How the POS talks to the external systems | One adapter per system behind an interface (stubs replaceable by real systems); direct calls                             | DC-01, DC-02, IR-01 to IR-10, IR-15 to IR-17 | Proposed (§6.1) |
-| AD-05 | Local storage and shared store database   | SQLite on the register and PostgreSQL for the store; files; H2; shared SQLite file                                       | NFR-04, IR-07, FR-48, DC-05, DC-09, DR-13    | Proposed (§6.1) |
-| AD-06 | Accounting System queue                   | Table in the local database, saved with the transaction; files; message broker                                           | IR-07, FR-42, BR-14, DR-12                   | Proposed (§6.1) |
-| AD-07 | Timeouts and fallbacks                    | Where timeouts (10 s / 5 s) and fallbacks are handled: in each adapter or in a common component                          | IR-02, IR-05, IR-09, NFR-19                  | Proposed (§6.1) |
-| AD-08 | Payment methods                           | One class per tender behind a common interface, so a new method can be added easily                                      | NFR-09, FR-09 to FR-12                       | Proposed (§6.1) |
-| AD-09 | Security of card data and PINs            | Card data only in memory until the Payment Service answers; PINs stored as a salted hash; role check for manager actions | NFR-07, NFR-08, NFR-11, DC-06                | Proposed (§6.1) |
-| AD-10 | Device access                             | Scanner as keyboard input; printer and drawer through a device service                                                   | NFR-10, IR-11 to IR-14                       | Proposed (§6.1) |
+| AD-04 | How the POS talks to the external systems | One adapter per system behind an interface (stubs replaceable by real systems); direct calls                             | DC-01, DC-02, IR-01 to IR-10, IR-15 to IR-17 | Accepted (W11)  |
+| AD-05 | Local storage and shared store database   | SQLite on the register and PostgreSQL for the store; files; H2; shared SQLite file                                       | NFR-04, IR-07, FR-48, DC-05, DC-09, DR-13    | Accepted (W11)  |
+| AD-06 | Accounting System queue                   | Table in the local database, saved with the transaction; files; message broker                                           | IR-07, FR-42, BR-14, DR-12                   | Accepted (W11)  |
+| AD-07 | Timeouts and fallbacks                    | Where timeouts (10 s / 5 s) and fallbacks are handled: in each adapter or in a common component                          | IR-02, IR-05, IR-09, NFR-19                  | Accepted (W11)  |
+| AD-08 | Payment methods                           | One class per tender behind a common interface, so a new method can be added easily                                      | NFR-09, FR-09 to FR-12                       | Accepted (W11)  |
+| AD-09 | Security of card data and PINs            | Card data only in memory until the Payment Service answers; PINs stored as a salted hash; role check for manager actions | NFR-07, NFR-08, NFR-11, DC-06                | Accepted (W11)  |
+| AD-10 | Device access                             | Scanner as keyboard input; printer and drawer through a device service                                                   | NFR-10, IR-11 to IR-14                       | Accepted (W11)  |
 
 ### 6.1 Decision records
 
-One subsection per decision, with this template. AD-01 to AD-03 were proposed in W08 and accepted by the team in W09.
+One subsection per decision, with this template. AD-01 to AD-03 were proposed in W08 and accepted by the team in W09. AD-04 to AD-10 were proposed in W09 and W10, reviewed in #51, #53, #56 and #59, and accepted by the team in W11.
 
 ```
 #### AD-xx – <title>
@@ -415,7 +415,7 @@ One subsection per decision, with this template. AD-01 to AD-03 were proposed in
   1. One adapter per external system. Each adapter implements a Java interface of `application.interfaces` (system_interfaces.md §4) and lives in `technical.external`.
   2. Direct calls: each handler sends the HTTP requests of the stubs itself.
   3. One common gateway class for all the external systems.
-- Decision (proposal): option 1.
+- Decision: option 1.
 - Rationale: With direct calls (option 2), the protocol of the stubs would be spread over every handler, so replacing a stub by the real system would change every use case. That breaks DC-02. A common gateway (option 3) is one class that knows four protocols: every change touches it, and the tests can't simulate one system alone. With option 1 the stub and the real system are two implementations of the same interface, and the handlers don't see the difference. The tests can also use a simple fake of each interface, without any network.
 - Consequences: There are five adapters: `PaymentServiceAdapter`, `TaxCalculatorAdapter`, `AccountingSystemAdapter`, `HRSystemAdapter` and `CatalogSourceAdapter`. The POS chooses the stub or the real implementation in its configuration at start-up. Each adapter turns the answer of its system into the result classes of system_interfaces.md (`PaymentResult`, `TaxResult`…) and logs a failed communication in the `EventLog`, without card data (IR-10). The `AccountingSystemAdapter` is called only by the `AccountingSender`, which takes the records from the `AccountingQueue` in the background (IR-06, IR-07, AD-06). The card token goes from the card reader to the `PaymentServiceAdapter` only (DC-06).
 - Related requirements: DC-01, DC-02, DC-06, IR-01 to IR-10, IR-15 to IR-17, NFR-09; QA-14; system_interfaces.md §4 and §5.
@@ -427,7 +427,7 @@ One subsection per decision, with this template. AD-01 to AD-03 were proposed in
   1. Local database of the register. (A) An embedded SQL database, SQLite. (B) Another embedded SQL database, for example H2. (C) Plain files (JSON or CSV), one per kind of data.
   2. Store database. (A) A PostgreSQL server in the store, reached by the register with JDBC. (B) The same server behind a small store service that the registers call over HTTP. (C) A SQLite file on a shared folder of the network.
   3. Synchronisation. (A) Each register copies the master data down and sends its own transactions up, and shared values are changed by quantities and by checks, not by overwriting. (B) Copy the whole database in both directions and keep the newest value of each row.
-- Decision (proposal): 1A, 2A and 3A, with these rules:
+- Decision: 1A, 2A and 3A, with these rules:
   - **Local database.** One SQLite file for each register (WAL mode, full synchronous writes). Saving a completed transaction is **one database transaction**: the transaction with its lines, payments and refunds, the stock changes, the record for the Accounting System (AD-06) and the entry in the list for the store database. Either everything is saved or nothing, also after a power cut (DR-13). Money is stored as whole cents (DR-17).
   - **Store database.** One PostgreSQL database for the store, installed by the system administrator. It has the same tables as the local database for the shared data (see [data model](data_model.md)), with the rows of all registers. The local database also has five tables that exist only on the register: the Accounting queue, the list of records waiting for the store database, the open payment authorizations (IR-15), the copy of the employee list and the state of the register (counters, last synchronisation).
   - **Store database access.** Only `StoreDatabaseSync` talks to the store database, through JDBC. The repositories of `technical.storage` read and write only the local database and do not know whether a value comes from the store database. The database user that the register uses in the **store database** may only insert the rows of transactions, lines, payments, refunds and refund statuses, and never changes or deletes them (DR-04); on the other tables it may do only what `StoreDatabaseSync` needs ([data model](data_model.md) §4.6 lists it for each table). The local database has no such user: it is a file of the register, protected by the operating system, and its repositories never change a completed transaction (only the open one while it is open, and the deletion after 90 days).
@@ -454,7 +454,7 @@ One subsection per decision, with this template. AD-01 to AD-03 were proposed in
   2. One file for each record in a folder of the register.
   3. A message broker (a queue server) in the store.
   4. Send the record at the end of the transaction and retry from memory.
-- Decision (proposal): option 1, with these rules:
+- Decision: option 1, with these rules:
   - **Table.** `accounting_queue` has a sequence number (the order), the transaction ID (unique), the record as JSON, the time it was queued, the number of attempts, the time of the last attempt, the status (_waiting_ or _rejected_) and the reason of the last refusal. It exists only in the local database and never goes to the store database (data view §4.5).
   - **Same save.** The record is inserted in the same database transaction that saves the transaction (AD-05), so there is no transaction without a record and no record without a transaction. A correction of a transaction marked _tax to be corrected_ is a new record that refers to the first one, queued in the same way (DR-04).
   - **Sending.** The `AccountingSender`, a background job started by `SessionHandler` at start-up, takes the record with the lowest sequence number and calls `AccountingSystemAdapter.send`. Only when the answer is `RECEIVED` does it delete the record, in one database transaction. If the answer is `NOT_AVAILABLE`, the record stays, the number of attempts goes up and the sender waits before the next attempt: 5 s, 10 s, 30 s, 60 s and then every 5 minutes (configurable). If the answer is `REJECTED`, the record also stays, its status becomes _rejected_ and the reason is stored; the sender goes on with the same waiting times, because the accountant can correct the cause at the receiver, and the record is deleted when it is finally `RECEIVED`. The sender does not skip a record, because the order must be kept (IR-07): a rejected record at the front blocks the others until it is accepted.
@@ -473,7 +473,7 @@ One subsection per decision, with this template. AD-01 to AD-03 were proposed in
   1. Timeout and fallback both in each adapter.
   2. Timeout in each adapter, fallback in the handler of the use case.
   3. One common component that handles the timeouts and the fallbacks of all the systems.
-- Decision (proposal): option 2.
+- Decision: option 2.
 - Rationale: The timeout belongs to the call, so the adapter that makes the call applies it and returns `NOT_AVAILABLE` instead of an error (system_interfaces.md, business results). The fallback is a business decision: which tender the cashier may use, which transactions get the mark _tax to be corrected_, what the cashier sees. It depends on the use case and its SSD extension, so it belongs to the handler. With option 1 these business rules would sit in the technical layer, and the adapter of the real system would have to repeat them. Option 3 puts everything in one place, but that component would need to know the extensions of every use case.
 - Consequences: Every method of the adapter interfaces returns a result that can be `NOT_AVAILABLE`, and each handler deals with it as its SSD extension says. The timeout values are in the configuration of the POS, with the values of NFR-19 as defaults. The Accounting System and the catalog import also get a timeout in the configuration (proposed: 10 s), so that one call that never answers can't block the `AccountingSender` or the import. NFR-19 asks for no value here, so this is a design choice and not a requirement. The adapter logs the failure (IR-10).
   - For a payment or a refund, `NOT_AVAILABLE` means _outcome unknown_, not _declined_: the Payment Service may have approved the request after the timeout. An answer that arrives after the timeout is logged and ignored.
@@ -490,7 +490,7 @@ One subsection per decision, with this template. AD-01 to AD-03 were proposed in
   1. One `Payment` class with a `tender` field. Each handler checks the tender with a `switch` and calls the cash drawer, the card reader or the Payment Service itself.
   2. One `Payment` subclass per tender for the data, as in the domain model, but the logic of each tender stays in the handlers (a `switch` on the subclass).
   3. One `Payment` subclass per tender for the data, and one class per tender for the logic behind a common interface `PaymentMethod`. The handlers choose the `PaymentMethod` by its tender type and call only the interface.
-- Decision (proposal): option 3.
+- Decision: option 3.
 - Rationale: With options 1 and 2 the rules of each tender are repeated in `SaleHandler`, `RentalHandler`, `RentalReturnHandler` and `ReturnHandler`, so a new tender changes four handlers and their tests. That breaks NFR-09, which allows no change in the sale, return and rental code. With option 3 a new tender is a new class that implements `PaymentMethod`, and the handlers don't change. The rules of a tender are in one place (BR-06 in the cash class, BR-05 in the card class), and the card data stays inside the card class and its adapter (AD-09). It is the same idea as AD-04 for the external systems: one implementation behind one interface, chosen in the configuration. Each `PaymentMethod` can also be tested alone against a stub, which is how NFR-09 is verified (a dummy gift card method, SRS §4).
 - Consequences: The interface is in `application`, next to the handlers, because the implementations use the device and external-system interfaces of `application.interfaces`; the domain layer calls none of them (AD-01). A first sketch:
 
@@ -516,7 +516,7 @@ One subsection per decision, with this template. AD-01 to AD-03 were proposed in
   1. Card data. (A) The card data stays in memory, from `CardReaderDriver` to `PaymentServiceAdapter` only, and is discarded when the Payment Service answers; a later refund uses the payment reference (DR-19). (B) The card data is stored encrypted in the local database, so that a retry or a refund needs no new card reading.
   2. PINs. (A) The HR System checks the PIN, and the local employee list keeps it only as a salted hash, for the login when the HR System is not available. (B) The local list keeps the PIN encrypted (reversible). (C) The POS keeps no PIN, so no login is possible without the HR System.
   3. Manager functions. (A) The UI hides the manager functions from cashiers. (B) Every manager function is checked in the handler on the server side: the role of the employee, and the employee ID and PIN of the store manager entered for that action.
-- Decision (proposal): 1A, 2A and 3B, with these rules:
+- Decision: 1A, 2A and 3B, with these rules:
   - Card data lives only in memory, goes from `CardReaderDriver` to `PaymentServiceAdapter` and nowhere else (not to the screens, the repositories, the `EventLog` or the `AccountingSystemAdapter`). Only the last 4 digits, the authorization code and the payment reference are stored (DR-05, DR-19).
   - Payment data that is stored (NFR-20) is encrypted by `TransactionRepository` at field level, with the standard Java cryptography, so the rule does not depend on the database product of AD-05. The key is in the configuration of the register, not in the source code. `PaymentServiceAdapter` talks to the Payment Service through an encrypted connection (TLS) in the real system; the stub may use plain HTTP in our tests (DC-01).
   - A PIN is stored only as a salted hash (a slow function with a different salt for each employee). It is sent in the body of a request to `localhost`, never in a URL, and is not written to any log. The handler gives it to the `HRSystem` interface, or compares it with `EmployeeList` when the HR System is not available (IR-09), and drops it.
@@ -533,7 +533,7 @@ One subsection per decision, with this template. AD-01 to AD-03 were proposed in
   1. Every device behind its own interface in a Device Service of the technical services layer, scanner included.
   2. The scanner as keyboard input; the card reader, the printer and the cash drawer behind interfaces in the Device Service.
   3. The browser talks to the devices directly, with browser interfaces for USB or serial devices.
-- Decision (proposal): option 2.
+- Decision: option 2.
 - Rationale: A standard scanner works as a keyboard, so a scanned item identifier, serial number or receipt number is typed into the browser, which has the focus, and reaches the POS application in the same way as a typed code: the screen sends it through the system API (IR-11). It needs no driver, and the cashier can always type the code when the scanner fails. A web page cannot control the printer and the cash drawer in a reliable way (AD-02), and the cash drawer may only be opened for the reasons of IR-14, so the Device Service on the register does it, checks the reason and logs it. The interfaces (`ReceiptPrinter`, `CashDrawer`, `CardReader`) let the team test with simulated devices and change a device model without changing the rest of the POS (QA-15, NFR-10).
 - Consequences: A scanned code reaches the POS through the screen and the system API (for example `enterItem`), the same way as a typed code; the POS application does not read the scanner. The technical services layer has a Device Service with three interfaces. The application layer gives a reason with every request to open the cash drawer, and the Device Service logs the time, the cashier and the reason (IR-14). The card reader passes the card data only to the Payment adapter, never to the local database or to the logs (IR-12, NFR-11). The Device Service reports the printer status (ready, no paper, error), and the application layer shows the message and the fallback of SRS §3.1.2 (IR-13). The tests use simulated devices. The cabling and the operating system drivers are part of the installation of each register (system administrator).
 - Related requirements: NFR-10, NFR-11; IR-11 to IR-14; DC-03, DC-06; QA-15; AD-02.
@@ -543,4 +543,5 @@ One subsection per decision, with this template. AD-01 to AD-03 were proposed in
 1. Closed in W09: the architecture drivers and the utility tree are done ([architecture_drivers.md](architecture_drivers.md) v0.2, Alfonso).
 2. Closed in W09: the rental deposit by card is charged and refunded, not held (SRS §5.3, question 2). The `PaymentService` interface needs no hold or release operation.
 3. Closed in W09: the team accepted AD-01 to AD-03. The web framework and the build tool of AD-03 are fixed at the start of increment 3.
-4. Closed in W10: AD-05 and AD-06 (Borja) and AD-08 (Avni) are written, with the [data model](data_model.md) and the storage interfaces of system_interfaces.md §4.3. They stay proposals until the team confirms them.
+4. Closed in W10: AD-05 and AD-06 (Borja) and AD-08 (Avni) are written, with the [data model](data_model.md) and the storage interfaces of system_interfaces.md §4.3.
+5. Closed in W11: the team accepted AD-04 to AD-10. The views and the correspondences are checked against the detailed design (v1.0).
