@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Maintainer** | Borja Nicolás |
-| **Version** | 0.3 (draft for review; `REJECTED` records of the Accounting queue, review #60) |
+| **Version** | 1.0 (aligned with the design class diagram; `REJECTED` records of the Accounting queue, review #60) |
 | **Last updated** | W11 |
 | **Part of** | Increment 2 (Design): data view ([architecture.md](architecture.md) §4.5), decision records AD-05 and AD-06 |
 
@@ -58,7 +58,7 @@ _22 of 22 tables shown. Editable source: [`assets/data_model.puml`](../../assets
 | `return_line` | `ReturnLineItem`: refers to one line of the original sale | `transaction_id`, `line_no` (PK), `original_transaction_id`, `original_line_no` (FK), `quantity`, `condition`, `price_paid_cents`, `refund_cents`, `refund_tax_cents` | DR-08 |
 | `rental_line` | `RentalLineItem` | `transaction_id`, `line_no` (PK), `serial_number` (FK), `rental_period_days`, `rental_fee_cents`, `fee_tax_cents`, `due_date`, `deposit_cents` | DR-06, DR-20 |
 | `rental_return_line` | `RentalReturn`: one row for each returned rental line | `transaction_id`, `line_no` (PK), `rental_transaction_id`, `rental_line_no` (FK), `returned_at`, `condition`, `damage_note`, `days_late`, `late_fee_cents`, `late_fee_tax_cents`, `amount_kept_cents`, `amount_due_cents`, `refund_total_cents`, `confirmed_by` | DR-07 |
-| `payment` | `Payment`, `CashPayment`, `CreditCardPayment` in one table | `payment_id` (PK), `transaction_id` (FK), `tender`, `amount_cents`, `paid_at`, `cash_tendered_cents`, `change_due_cents`, `card_last4`, `authorization_code`, `payment_service_transaction_id`, `payment_reference` | DR-05, DR-19 |
+| `payment` | `Payment`, `CashPayment`, `CreditCardPayment` and `CheckPayment` in one table (`tender` tells which; the columns of the other tenders are empty) | `payment_id` (PK), `transaction_id` (FK), `tender`, `amount_cents`, `paid_at`, `cash_tendered_cents`, `change_due_cents`, `card_last4`, `authorization_code`, `payment_service_transaction_id`, `payment_reference` | DR-05, DR-19 |
 | `refund` | `Refund`. Written once, when the return or the rental return is saved | `refund_id` (PK), `transaction_id` (FK), `amount_cents`, `tender`, `is_approved`, `approved_by`, `approval_reason` | DR-08, FR-25 |
 | `refund_status` | The states of a refund, one new row for each change. The current state is the row with the highest `status_no`. A card refund without an answer starts as `PENDING`; later it becomes `CARD_REFUNDED` or `NEEDS_APPROVAL` (system_interfaces.md §3.7); a cash refund has `CASH_PAID`. | `refund_id`, `status_no` (PK), `status`, `reference` (Payment Service reference of the card refund), `changed_at` | FR-26, FR-55, FR-77, IR-03 |
 
@@ -128,8 +128,28 @@ The register connects to the store database with one user. The rule of DR-04 is 
 - **Tax of a return.** The refunded tax of a return line is the stored tax of the sale line for the returned quantity: tax of the line × quantity returned ÷ quantity sold, rounded half up. The last return of a line takes what is left of the tax, so that the refunded taxes of all returns of a line add up to the tax of the sale.
 - **Retention.** The accounting record is deleted after the acknowledgement (DR-12). The register deletes from its local database the transactions that the store database has acknowledged, after **90 days**: the refund period is 30 days, a rental lasts 7 days at most, and a session is reviewed within days. Transactions that the store database has not acknowledged are never deleted. A rental that is still open (a `rental_line` without a `rental_return_line`) is never deleted either, however old it is: the overdue check (BR-12) and the rental return need it also when the store database is not available. The store database keeps every transaction and the POS never deletes one. The legal retention period of the accounting data (for example 7 years in many countries) has to be confirmed with the owner of the store; it concerns the store database and its backup, not the registers.
 
-## 7. Open points
+## 7. Alignment with the design class diagram (W11)
+
+The [design class diagram](detailed_design.md) (`assets/design_classes_domain.puml`) has the attributes of the domain model v0.8. Every attribute of a domain class is a column of the table in the last column below; the table lists only what is not a column with the same name.
+
+| Class (design class diagram) | Table and columns | Note |
+| --- | --- | --- |
+| `Money` (`cents`) | all `*_cents` columns | Money is an integer number of cents (§6); `Money` in the code hides it |
+| `Refund.state`, `Refund.reference` | `refund_status.status`, `refund_status.reference` | The state is the row with the highest `status_no`; `refund` itself never changes (DR-04) |
+| `CashierSession.createSale`, `createRental`... | `pos_transaction.session_id` | The session that creates a transaction is the `session_id` of its row |
+| `Register.openSession` | `cashier_session` | One row for each session; `employee_id` is the cashier of `SessionHandler.pendingCashier` at the moment the opening cash is entered |
+| `CashierSession.markReviewed` | `cashier_session.reviewed_by`, `reviewed_at`, `review_reason` | Written in the store database only (AD-05) |
+| `EmployeeList.lastUpdate()` | `register_state.employee_list_updated_at` | |
+| `TransactionRepository.nextCustomerID()` | `register_state.customer_counter` | Register ID + counter, like the transaction ID |
+| `TransactionRepository.findOpenRentalsOfCustomer`, `findOpenRentalOfItem` | `rental_line` without a row in `rental_return_line` | Local copy only; the other registers through `StoreDatabaseSync` |
+| `StoreDatabaseSync.putHold`, `removeHold` | `item_hold` | Store database only |
+| `Rental.hasOverdueLine(today)` | `rental_line.due_date` | |
+| `AccountingQueue.markFailedAttempt` | `accounting_queue.attempts`, `last_attempt_at`, `status`, `rejected_reason` | `REJECTED` records stay first (AD-06) |
+
+The design class diagram has no class for a table of the local state (`open_authorization`, `register_state`, `store_sync_list`, `accounting_queue`, `employee_copy`): they are used only by the repositories (`TransactionRepository`, `SessionRepository`, `EmployeeList`, `AccountingQueue`).
+
+## 8. Open points
 
 1. The size of the local database with 90 days of transactions has not been measured; it is checked with the performance test of NFR-01 and NFR-02 (10,000 products).
 2. The data model has no table for the repair of an item (DR-02): the SRS has no function for it yet (domain model §7.5, gap 1). The pending card refund (domain model §7.5, gap 2) is covered since FR-77 by `refund_status`.
-3. The columns and the keys are the logical design. Indexes, the exact column types of PostgreSQL and SQLite and the schema script are written in the detailed design (W11).
+3. The columns and the keys are the logical design. Indexes, the exact column types of PostgreSQL and SQLite and the schema script are written in increment 3 (coding).
