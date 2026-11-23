@@ -3,12 +3,14 @@
 | | |
 | --- | --- |
 | **Maintainer** | Alfonso Pinto |
-| **Version** | 0.7 (draft for review; aligned with the design class diagram) |
+| **Version** | 0.8 (draft for review; UC2 design sequence diagrams) |
 | **Last updated** | W11 |
 | **Part of** | Increment 2 – Design (milestone W11); step 2 of the architecture process |
 | **Inputs** | [System sequence diagrams](system_sequence_diagrams.md), [operation contracts](operation_contracts.md), [SRS](../requirements/SRS.md) §3.1 and §3.2, [architecture](architecture.md) AD-01 to AD-10; [UI design](ui_design.md) §1 |
 
 > **Status: draft.** The operations of all five use cases have the names of the [system sequence diagrams](system_sequence_diagrams.md) v0.10, and each one refers to its [operation contract](operation_contracts.md) (contracts 1 to 29).
+>
+> **v0.8 (W11, UC2 design sequence diagrams):** `findSale` answers `SALE_NOT_AVAILABLE` (`409`); `TransactionRepository.returnedQuantities(receiptNumber)`.
 >
 > **v0.7 (W11, design class diagram, review #65):** `SessionRepository.open` and `close` take the `CashierSession` that `Register` creates (UC4); `selectRentalPeriod` has the line number (UC3); `CatalogFileInfo` in the `settings` of the data model v1.0; customers and open rentals in `TransactionRepository` and `StoreDatabaseSync` (UC3, UC5), with `409` for a sale or rental of another register when the store database is not available; `CARD_NOT_READ` answer of `makePayment`; timeout of `CatalogSource`; open points 9 and 11 closed.
 >
@@ -84,7 +86,7 @@ One payment per sale (BR-18): after `DECLINED` or `NOT_AVAILABLE` no payment is 
 | Operation | Request | Answer | Contract | Requirements |
 | --- | --- | --- | --- | --- |
 | `makeNewReturn()` | `POST /api/returns` | `201` return ID | 5 | FR-20 |
-| `findSale(receiptNumber)` | `PUT /api/returns/{returnID}/sale` `{"receiptNumber"}` | Lines of the sale with the quantity bought and already returned, and the tender. `404` no sale · `409` older than 30 days, or the sale is from another register and the store database is not available ("try again later") | 6 | FR-21, BR-07 |
+| `findSale(receiptNumber)` | `PUT /api/returns/{returnID}/sale` `{"receiptNumber"}` | Lines of the sale with the quantity bought and already returned, and the tender. `404` no sale · `409` older than 30 days, or `SALE_NOT_AVAILABLE`: the sale is from another register and the store database is not available ("try again later") | 6 | FR-21, BR-07 |
 | `enterReturnItem(itemID, quantity, condition)` | `POST /api/returns/{returnID}/lines` `{"itemID", "quantity", "condition": "RESELLABLE" \| "NOT_RESELLABLE"}` | Return line, refund total, tender of the sale. `409` not in the sale or quantity too large | 7 | FR-22, FR-23 |
 | `removeReturnItem(lineNumber)` | `DELETE /api/returns/{returnID}/lines/{lineNumber}` | New refund total | – | FR-22 |
 | `confirmReturn()` | `POST /api/returns/{returnID}/confirm` | `"refund"`: `CASH_PAID` (drawer opens) · `CARD_REFUNDED` · `NEEDS_APPROVAL` · `PENDING` (see §3.7); receipt number when the return is complete | 8 | FR-25–FR-29, IR-03, BR-08 |
@@ -278,6 +280,7 @@ public interface TransactionRepository {
     void deleteOpenAuthorization(String transactionID);           // in saveCompleted, or after voidAuthorization
     List<String> findOpenAuthorizations();                        // voided at start-up (IR-15)
     Optional<Receipt> lastReceipt();                              // register_state (FR-17)
+    Map<Integer, Integer> returnedQuantities(String receiptNumber); // quantity already returned per line number, returns of this register (UC2, FR-22)
     Optional<Customer> findCustomer(String customerID);           // local copy of the customers (UC3 step 4)
     String nextCustomerID();                                      // register ID + counter, like the transaction ID (UC3 4a, question 5)
     List<Rental> findOpenRentalsOfCustomer(String customerID);    // local copy: overdue check (BR-12), UC5 5b
