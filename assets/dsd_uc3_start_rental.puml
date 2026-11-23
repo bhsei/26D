@@ -1,0 +1,133 @@
+@startuml
+' NewEra POS - Design sequence diagram: UC3 Process Rental, start the rental and identify the customer (Contracts 10 to 12), W11 draft
+' Team D - editable source of assets/dsd_uc3_start_rental.png
+' Render with: java -jar plantuml.jar -charset UTF-8 -tpng assets/dsd_uc3_start_rental.puml
+' Participants: classes of the logical view (architecture.md 4.2) and of the design class diagram skeleton. Operations: system_interfaces.md 3.4 and 4.3.
+' Messages marked <<new>> are not in the logical view or in system_interfaces.md yet (sent to Borja for the design class diagram).
+
+skinparam shadowing false
+skinparam dpi 130
+skinparam defaultFontName Arial
+skinparam ArrowColor #444444
+skinparam SequenceLifeLineBorderColor #444444
+skinparam ParticipantBorderColor #1F4E79
+skinparam ParticipantBackgroundColor #EAF1FB
+skinparam BoxPadding 6
+skinparam SequenceGroupBackgroundColor #F4F8FD
+skinparam SequenceGroupBorderColor #1F4E79
+skinparam SequenceDividerBackgroundColor #EAF1FB
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #B8A04A
+skinparam LegendBackgroundColor #FFFFFF
+skinparam LegendBorderColor #1F4E79
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 190
+
+title NewEra POS - Design sequence diagram: UC3 Process Rental, start and customer (Contracts 10-12)
+
+box "UI layer (ui.api)" #F4F8FD
+  participant ":Rental\nController" as Ctl
+end box
+box "Application / domain layer" #F4F8FD
+  participant ":Rental\nHandler" as H
+  participant "session:\nCashierSession" as S
+  participant "rental:\nRental" as R
+  participant "open:\nRental" as O
+  participant "customer:\nCustomer" as C
+end box
+box "application.interfaces (storage, AD-05)" #F4F8FD
+  participant ":Transaction\nRepository" as Repo
+  participant ":StoreDatabase\nSync" as Sync
+end box
+
+== makeNewRental() - Contract 10 ==
+[-> Ctl : POST /api/rentals
+Ctl -> H : makeNewRental()
+H -> Repo : nextTransactionID()
+Repo --> H : id (e.g. R03-000161)
+H -> S : createRental(id) <<new>>
+S -> R ** : create(id, session)
+note right of R
+  isComplete = false, rentalDate = today.
+  The session records its transactions (Creator).
+  Nothing is saved yet: a rental exists in the
+  database only from the payment (state diagram 7.2).
+end note
+S --> H : rental
+H --> Ctl : rental ID
+[<-- Ctl : 201 rental ID
+
+== enterCustomerID(customerID) - Contract 11 ==
+[-> Ctl : PUT /api/rentals/{rentalID}/customer {"customerID"}
+Ctl -> H : enterCustomerID(customerID)
+H -> Repo : findCustomer(customerID) <<new>>
+note right of Repo
+  Local copy of the table customer, copied down
+  from the store database every 5 min (AD-05).
+end note
+Repo --> H : Optional<Customer>
+alt customer not found (4a)
+  H --> Ctl : unknown customer
+  [<-- Ctl : 404 "Customer ID not found":\nenter it again or register a new customer
+else customer found
+  H -> Repo : findOpenRentalsOfCustomer(customerID) <<new>>
+  Repo --> H : open rentals on this register
+  opt store database reachable
+    H -> Sync : findOpenRentalsOfCustomer(customerID) <<new>>
+    Sync --> H : open rentals at the other registers
+  end
+  loop each open rental
+    H -> O : hasOverdueLine(today) <<new>>
+    note right of O
+      Information Expert: each RentalLineItem
+      knows /isOverdue from its due date (DR-06).
+    end note
+    O --> H : true or false
+  end
+  alt an open rental is overdue (5a)
+    H --> Ctl : overdue rental
+    [<-- Ctl : 409 "This customer has an overdue rental\nand cannot start a new one" (BR-12)
+  else no overdue rental
+    H -> R : setCustomer(customer) <<new>>
+    H --> Ctl : customer accepted
+    [<-- Ctl : 200 customer accepted
+  end
+end
+note over H, Sync
+  Store database NOT_AVAILABLE: only the rentals of this register are checked. The store accepts
+  this risk and relies on the deposit, as for a customer who registers again (BR-12, SRS 5.3 Q5).
+end note
+
+== registerCustomer() - Contract 12 (ext. 4a.3) ==
+[-> Ctl : POST /api/rentals/{rentalID}/customer
+Ctl -> H : registerCustomer()
+H -> Repo : nextCustomerID() <<new>>
+note right of Repo
+  register ID + customer_counter of
+  register_state, e.g. R03-000012 (data model, DC-09)
+end note
+Repo --> H : customerID
+H -> R : registerNewCustomer(customerID) <<new>>
+R -> C ** : create(customerID)
+note right of C
+  The customer ID only, no other personal data
+  (DR-18, NFR-12). A new customer has no rental
+  history, so no overdue check (UC3 4a.3).
+  The customer is saved with the rental
+  (saveCompleted): a cancelled rental saves none.
+end note
+R --> H : customer
+H --> Ctl : new customer ID
+[<-- Ctl : 201 new customer ID, linked to the rental
+
+legend bottom left
+  **GRASP**
+  Controller: RentalController receives the system operations of S-08 and gives them to RentalHandler (one handler per use case).
+  Creator: CashierSession creates the Rental, because the session records its transactions (Contract 10); Rental creates the new Customer,
+  because the rental is the first to use it and the customer is saved with it (Contract 12).
+  Information Expert: each open Rental answers whether it has an overdue line, from the due dates of its RentalLineItems (BR-12).
+  Indirection, Protected Variations: the handler sees only TransactionRepository and StoreDatabaseSync; the local and the store
+  database (AD-05) can change without changing the handler.
+  Pure Fabrication: TransactionRepository makes the IDs and keeps the customers; it is not a concept of the store.
+endlegend
+@enduml
