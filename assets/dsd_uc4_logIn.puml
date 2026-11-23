@@ -18,22 +18,16 @@ end box
 box "domain" #FFF7E0
   participant "store:Store" as ST
 end box
-box "technical.storage" #F2F2F2
+box "application.interfaces" #F2F2F2
+  participant "hr:HRSystem" as HR
   participant "employees:EmployeeList" as EL
-end box
-box "technical.external" #F6EDF7
-  participant "HRSystemAdapter" as HA
-end box
-box "external system (stub)" #FFFFFF
-  participant "HR System" as HR
 end box
 
 [-> C : POST /api/sessions {employeeID, pin}
 C -> H : logIn(employeeID, pin)
-H -> HA : checkEmployee(employeeID, pin)
-HA -> HR : POST /employees/check
-HR --> HA : {valid, active, name, role}
-HA --> H : EmployeeCheck
+H -> HR : checkEmployee(employeeID, pin)
+note right of HR : the adapter applies the 5 s timeout and logs a failed call (IR-10)
+HR --> H : EmployeeCheck
 alt VALID (HR System answered)
   H -> H : accepted = role is cashier
   note right : a store manager or another role\nis refused as in 6a
