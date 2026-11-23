@@ -141,13 +141,11 @@ The attributes are those of the [domain model](domain_model.md) v0.8 and the met
 
 | Point | Where | Proposal |
 | --- | --- | --- |
-| `Item.isAvailable()` returns the status, not a boolean | UC3 (Avni) | Keep the name and return `ItemStatus`, or call it `status()`; the diagram has the first |
 | `ManagerApproval.approve(managerID, pin)` in UC2 and `ManagerApproval.check(managerID, pin)` in UC4 and UC5 | UC2 (Yasmine) | One name for the same class: `check`, which returns `ApprovalResult` (UC4, UC5); Yasmine renames it in `dsd_uc2_approveCashRefund` |
 | `PaymentMethods.get(CASH)` returns the interface `PaymentMethod`, which has no `payOut` | UC2 (Yasmine) | `payOut(amount, employeeID)` is in `CashPaymentMethod`; the diagram adds `PaymentMethods.cash()` that returns it |
 | `approveCashRefund` calls `complete()` and `saveCompleted` again for a return that was already saved with a *pending* card refund and then failed | UC2 (Yasmine), UC5 (Haifa, Contract 28) | A return that is already saved only gets the new row of `refund_status` (`CASH_PAID`) and the stock and the receipt; `saveCompleted` and the Accounting record are done once. See the state diagram of the refund (domain model §7.4) |
-| `findSale` also answers `SALE_NOT_AVAILABLE` (409) and `returnedQuantities` | UC2 (Yasmine) | Alfonso adds both to system_interfaces.md |
 
-Confirmed by Alfonso: `getSystemStatus` and `listPendingRefunds` stay in `SessionHandler`; `ProductCatalog` reads through `ItemRepository` (not drawn); `SessionRepository.open(s)` and `close(s)` and `selectRentalPeriod(lineNumber, days)` will be in system_interfaces.md v0.7 (Alfonso, to be pushed).
+Closed: `Item.status() : ItemStatus` instead of `isAvailable()` (Avni, UC3); `findSale` with `SALE_NOT_AVAILABLE` and `TransactionRepository.returnedQuantities` (system_interfaces.md v0.8); `SessionRepository.open(s)` and `close(s)` and `selectRentalPeriod(lineNumber, days)` (v0.7); `getSystemStatus` and `listPendingRefunds` stay in `SessionHandler`; `ProductCatalog` reads the products through `ItemRepository` (UC1, shown in diagram 3b).
 
 ## 4. Activity diagrams – Yasmine
 
