@@ -1,0 +1,70 @@
+@startuml activity_accounting_sender
+' NewEra POS - Activity diagram: background job AccountingSender (IR-06, IR-07), W11
+' Team D - editable source of assets/activity_accounting_sender.png
+' Render with: java -jar plantuml.jar -charset UTF-8 -tpng assets/activity_accounting_sender.puml
+' Sources: architecture.md AD-06; system_interfaces.md 4.1, 4.3; DR-12; FR-76
+title Activity diagram - background job AccountingSender (IR-06, IR-07)
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam ActivityBackgroundColor #EAF1FB
+skinparam ActivityBorderColor #1F4E79
+skinparam ActivityDiamondBackgroundColor #FFF7E0
+skinparam ActivityDiamondBorderColor #B7791F
+skinparam ArrowColor #444444
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B7791F
+skinparam swimlaneTitleFontStyle bold
+skinparam swimlaneWidth same
+skinparam maxMessageSize 160
+|SessionHandler|
+start
+:Start the AccountingSender at start-up\n(the login screen never waits for it, NFR-02);
+|AccountingSender|
+:waiting = 5 s;
+repeat
+  :Take the first record of accounting_queue\n(lowest sequence number, takeFirst);
+  if (Queue empty?) then (yes)
+    :Wait for a new record;
+  else (no)
+    :Send the record to the Accounting System\n(timeout in the adapter, AD-07);
+    |Accounting System|
+    :Answer?;
+    |AccountingSender|
+    if (Answer?) then (RECEIVED)
+      :Delete the record\n(one database transaction, DR-12);
+      :waiting = 5 s;
+    elseif (REJECTED:\nthe system refuses the record) then
+      :Keep the record first;
+      :Mark it "rejected" with the reason\n(markFailedAttempt);
+      :Log the attempt in the EventLog (IR-10);
+      note right
+        The record blocks the others (IR-07):
+        the store manager sees it and the reason in M-06.
+        It is deleted when it is finally RECEIVED.
+      end note
+      :Wait (waiting), then waiting = next step;
+    else (NOT_AVAILABLE)
+      :Keep the record;
+      :Add one attempt (markFailedAttempt);
+      :Log the attempt in the EventLog (IR-10);
+      :Wait (waiting), then waiting = next step;
+      note right
+        Waiting times: 5 s, 10 s, 30 s, 60 s,
+        then 5 min between attempts (configurable).
+        The sender never skips a record.
+      end note
+    endif
+  endif
+repeat while (Program running?) is (yes)
+->no;
+:Stop the job;
+note right
+  Records still waiting stay in the local queue
+  and are sent at the next start-up (UC4 step 3, FR-42).
+  A crash between the sending and the delete sends
+  the record again; the receiver ignores a known
+  transaction ID (at-least-once, AD-06).
+end note
+stop
+@enduml
