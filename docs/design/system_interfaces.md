@@ -8,7 +8,7 @@
 | **Part of** | Increment 2 – Design (milestone W11); step 2 of the architecture process |
 | **Inputs** | [System sequence diagrams](system_sequence_diagrams.md), [operation contracts](operation_contracts.md), [SRS](../requirements/SRS.md) §3.1 and §3.2, [architecture](architecture.md) AD-01 to AD-10; [UI design](ui_design.md) §1 |
 
-> **Status: draft.** The operations of all five use cases have the names of the [system sequence diagrams](system_sequence_diagrams.md) v0.7, and each one refers to its [operation contract](operation_contracts.md) (contracts 1 to 28).
+> **Status: draft.** The operations of all five use cases have the names of the [system sequence diagrams](system_sequence_diagrams.md) v0.10, and each one refers to its [operation contract](operation_contracts.md) (contracts 1 to 29).
 >
 > **v0.5 (review #60, data model v0.2):** pending refunds with their kind and a *pending refund* mode of S-07 and S-09; S-05 with `getAvailableTenders()` and cancel for the three use cases; `reprintLastReceipt()`; session and settings repositories, catalog import and rental conflicts; the local disable of an employee kept after a refresh; `UNKNOWN` status and the time of the last call; `REJECTED` records of the Accounting System; retention of pending refunds; store manager lists and session review read the store database (`409` when it is not available); `sendWaitingRecordsUp`, `refund_status`, `open_authorization`; screens M-03 to M-06 (ui_design.md v0.2).
 >
