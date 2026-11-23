@@ -3,7 +3,7 @@
 ' Team D - editable source of assets/dsd_uc3_start_rental.png
 ' Render with: java -jar plantuml.jar -charset UTF-8 -tpng assets/dsd_uc3_start_rental.puml
 ' Participants: classes of the logical view (architecture.md 4.2) and of the design class diagram skeleton. Operations: system_interfaces.md 3.4 and 4.3.
-' Messages marked <<new>> are not in the logical view or in system_interfaces.md yet (sent to Borja for the design class diagram).
+' Messages marked <<new>> are not in the logical view or in system_interfaces.md yet (sent to Borja and Alfonso). Review #66: findings 1 and 2.
 
 skinparam shadowing false
 skinparam dpi 130
@@ -60,21 +60,42 @@ H --> Ctl : rental ID
 == enterCustomerID(customerID) - Contract 11 ==
 [-> Ctl : PUT /api/rentals/{rentalID}/customer {"customerID"}
 Ctl -> H : enterCustomerID(customerID)
-H -> Repo : findCustomer(customerID) <<new>>
+H -> Repo : findCustomer(customerID)
 note right of Repo
   Local copy of the table customer, copied down
   from the store database every 5 min (AD-05).
 end note
 Repo --> H : Optional<Customer>
-alt customer not found (4a)
+opt not in the local copy (registered less than 5 min ago at another register)
+  H -> Sync : findCustomer(customerID) <<new>>
+  Sync --> H : FOUND (customer), NOT_FOUND or NOT_AVAILABLE
+end
+alt NOT_FOUND, or not in the local copy and NOT_AVAILABLE (4a)
   H --> Ctl : unknown customer
   [<-- Ctl : 404 "Customer ID not found":\nenter it again or register a new customer
-else customer found
-  H -> Repo : findOpenRentalsOfCustomer(customerID) <<new>>
+  note right of H
+    Store database not available: a customer registered less
+    than 5 min ago at another register is not found. The store
+    accepts this risk, as for a customer who registers again
+    (BR-12, SRS 5.3 Q5); the deposit covers it.
+  end note
+else customer found (local copy or store database)
+  H -> Repo : findOpenRentalsOfCustomer(customerID)
   Repo --> H : open rentals on this register
-  opt store database reachable
-    H -> Sync : findOpenRentalsOfCustomer(customerID) <<new>>
+  H -> Sync : findOpenRentalsOfCustomer(customerID)
+  note right of Sync
+    Timeout in the adapter (AD-07):
+    the cashier never waits for the store database.
+  end note
+  alt FOUND or NOT_FOUND
     Sync --> H : open rentals at the other registers
+  else NOT_AVAILABLE
+    Sync --> H : NOT_AVAILABLE
+    note right of H
+      Only the rentals of this register are
+      checked (BR-12, SRS 5.3 Q5): the store
+      accepts the risk and relies on the deposit.
+    end note
   end
   loop each open rental
     H -> O : hasOverdueLine(today) <<new>>
@@ -93,15 +114,11 @@ else customer found
     [<-- Ctl : 200 customer accepted
   end
 end
-note over H, Sync
-  Store database NOT_AVAILABLE: only the rentals of this register are checked. The store accepts
-  this risk and relies on the deposit, as for a customer who registers again (BR-12, SRS 5.3 Q5).
-end note
 
 == registerCustomer() - Contract 12 (ext. 4a.3) ==
 [-> Ctl : POST /api/rentals/{rentalID}/customer
 Ctl -> H : registerCustomer()
-H -> Repo : nextCustomerID() <<new>>
+H -> Repo : nextCustomerID()
 note right of Repo
   register ID + customer_counter of
   register_state, e.g. R03-000012 (data model, DC-09)
