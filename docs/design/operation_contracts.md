@@ -229,7 +229,7 @@ An operation contract describes the behavior of a system operation. Postconditio
 - `startUp` has shown the login screen and no `CashierSession` is open on this register.
 - `employeeID` belongs to a valid, active cashier, and `pin` is correct. The HR System checks both; when it is not available, the local employee list is used (the PIN is compared with its salted hash, DR-11).
 **Postconditions:**
-- The `Employee` identified by `employeeID` was associated with the `Register` as the cashier of the session that is about to be opened (no `CashierSession` exists yet).
+- The `Employee` identified by `employeeID` was recorded as the cashier of the login in progress, for the `CashierSession` that `enterOpeningCash` creates (no `CashierSession` exists yet, and no association with the `Register` is kept).
 - The `pin` was not stored, logged or shown (NFR-08).
 **Responsibilities:** System checks the employee and the PIN and asks for the opening cash. If the employee is not found or not an active cashier (6a), or the PIN is wrong (6b, 6c3), or the employee is not in the local list (6c1), nothing changes. If the HR System is not available (6c), the System shows the warning with the date of the last update of the local list.
 
