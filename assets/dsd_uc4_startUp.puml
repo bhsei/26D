@@ -1,0 +1,81 @@
+@startuml dsd_uc4_startUp
+title DSD UC4 Start Up - startUp() (Contract 16)
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam sequenceMessageAlign left
+skinparam ParticipantPadding 10
+skinparam BoxPadding 6
+skinparam NoteBackgroundColor #FFFBE6
+skinparam NoteBorderColor #B7791F
+hide footbox
+box "ui.api" #EAF2E3
+  participant "ctrl:SessionController" as C
+end box
+box "application" #E8EEF7
+  participant "h:SessionHandler" as H
+  participant "AccountingSender" as AS
+end box
+box "domain" #FFF7E0
+  participant "catalog:ProductCatalog" as CAT
+  participant "s:CashierSession" as S
+end box
+box "technical.storage" #F2F2F2
+  participant "sessions:SessionRepository" as SR
+  participant "tx:TransactionRepository" as TR
+  participant "employees:EmployeeList" as EL
+  participant "sync:StoreDatabaseSync" as SYNC
+end box
+box "technical.external" #F6EDF7
+  participant "PaymentServiceAdapter" as PA
+  participant "HRSystemAdapter" as HA
+end box
+box "external systems (stubs, DC-01)" #FFFFFF
+  participant "Payment Service" as PS
+  participant "HR System" as HR
+end box
+
+[-> C : POST /api/startup\n(sent once by the POS program)
+C -> H : startUp()
+H -> CAT : isAvailable()
+CAT --> H : available
+H -> SR : findOpen()
+note right of SR : throws StorageException when the\nlocal database cannot be read
+SR --> H : Optional<CashierSession>
+alt catalog or stored data not available (2a)
+  H --> C : StartUpResult(ERROR)
+  C -->[ : error message, no login screen
+else data available
+  opt a session of this register is still open after a failure (FR-63)
+    H -> S : interrupt(restartTime)
+    note right of S : endTime = restartTime\nisInterrupted = true\nno closing cash
+    H -> SR : close(s)
+  end
+  H ->> AS : start()
+  H ->> SYNC : copyMasterDataDown()
+  H ->> SYNC : startSendingWaitingRecords()
+  H --> C : StartUpResult(OK, registerID)
+  C -->[ : 200 registerID, S-01 shows the login screen
+  group background thread: start-up never waits (NFR-02, AD-07)
+    H -> TR : findOpenAuthorizations()
+    TR --> H : transaction IDs
+    loop each open authorization (IR-15)
+      H -> PA : voidAuthorization(transactionID)
+      PA -> PS : POST /payments/voids
+      PS --> PA : result
+      PA --> H : PaymentResult
+      opt result is not NOT_AVAILABLE
+        H -> TR : deleteOpenAuthorization(transactionID)
+      end
+    end
+    H -> HA : employeeList()
+    HA -> HR : GET /employees
+    HR --> HA : employee list
+    HA --> H : EmployeeListResult
+    opt OK (FR-46)
+      H -> EL : replaceAll(list)
+    end
+  end
+end
+note over HA, PA : On a timeout (10 s / 5 s) each adapter logs the failed call in the EventLog\nwithout card data (IR-10) and returns NOT_AVAILABLE (AD-07).
+@enduml
