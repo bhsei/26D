@@ -21,13 +21,9 @@ box "domain" #FFF7E0
   participant "s:CashierSession" as S
   participant "t:Transaction" as T
 end box
-box "technical" #F2F2F2
+box "application.interfaces" #F2F2F2
+  participant "drawer:CashDrawer" as DRV
   participant "sessions:SessionRepository" as SR
-  participant "CashDrawerDriver" as DRV
-  participant "EventLog" as LOG
-end box
-box "device" #FFFFFF
-  participant "Cash drawer" as HW
 end box
 
 == closeSession() - Contract 19 ==
@@ -42,9 +38,7 @@ alt a sale, return, rental or rental return is in progress (2a, FR-60)
   C -->[ : 409, nothing changes
 else no open transaction
   H -> DRV : open(CLOSING_COUNT, employeeID)
-  DRV -> HW : open()
-  HW --> DRV : opened or error
-  DRV -> LOG : logDrawerOpening(time, employeeID, CLOSING_COUNT)
+  note right of DRV : CashDrawerDriver (technical.devices) checks the reason and logs the\nopening in the EventLog with time, cashier and reason (IR-14)
   DRV --> H : DrawerStatus
   H --> C : CloseResult(OK, drawerStatus)
   C -->[ : 200 closing count requested\n(if ERROR: "open it with the key", logged as manual, IR-14)
@@ -87,7 +81,7 @@ H -> S : close(now)
 note right of S : requires closingCash (else the request is refused, 409)\nendTime = now\ntoReview = |difference| > 5.00 (BR-17)
 S --> H : toReview
 H -> SR : close(s)
-note right of SR : saved in the local database and queued\nfor the store database (store_sync_list)
+note right of SR : saved in the local database; the entry of store_sync_list is written\nin the same local transaction and sent later (AD-05)
 H -> REG : endSession()
 note right of REG : the register has no open session
 H --> C : CloseResult(OK, toReview)
