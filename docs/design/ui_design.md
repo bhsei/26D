@@ -3,10 +3,10 @@
 |                  |                                                                                                                                                             |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Maintainer**   | Yasmine Chkoundali                                                                                                                                          |
-| **Version**      | 0.2                                                                                                                                                         |
-| **Last updated** | W10 (A1 complete)                                                                                                                                           |
+| **Version** | 1.0 |
+| **Last updated** | W11 |
 | **Part of**      | Increment 2 – Design (W10, user interface design)                                                                                                           |
-| **Inputs**       | SRS v1.2 (§3.1.1, §3.3), [`ui_prototype.md`](ui_prototype.md), [`system_interfaces.md`](system_interfaces.md) §3, [`architecture.md`](architecture.md) §4.2 |
+| **Inputs**       | SRS v1.3 (§3.1.1, §3.3), [`ui_prototype.md`](ui_prototype.md), [`system_interfaces.md`](system_interfaces.md) §3, [`architecture.md`](architecture.md) §4.2 |
 
 ### Version history
 
@@ -14,6 +14,7 @@
 | ------- | -------------------------------------------------------------------------------------------------------------------------- |
 | 0.1     | §1 Screens: the screens of the cashier and of the store manager, with their use case and system operations.                |
 | 0.2     | §2 Navigation between the screens of UC1 to UC5 with the error and fallback messages; §3 UI rules from the usability NFRs. |
+| 1.0     | Milestone version (W11): pending refund mode of S-07 and S-09, S-05 with the tenders and the cancel of the three use cases, reprint of the last receipt from the menu S-02, prototype column updated, open points of §1 to §3 closed. |
 
 This document describes the user interface of NewEra POS: the screens, how the user moves between them, the rules that every screen follows, the classes of the UI and the navigation sequence of UC1. Each section has one owner. The names of the screens and of the controllers are those of the logical view (`ui.screens` and `ui.api`, [`architecture.md`](architecture.md) §4.2), and the operations are those of [`system_interfaces.md`](system_interfaces.md) §3.
 
@@ -31,14 +32,14 @@ This document describes the user interface of NewEra POS: the screens, how the u
 | ID   | Screen            | Use case                               | System operations (system_interfaces.md §3)                                                                                                                                                                                                                                                                    | Controller                                                     | Prototype                                          |
 | ---- | ----------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------- |
 | S-01 | **Login** | UC4 Start Up | `logIn(employeeID, pin)`, `enterOpeningCash(amount)`. S-01 does not send `startUp()`: the POS program sends it once when it starts (system_interfaces.md §3.1) and S-01 shows its result: the login form, the error of UC4 2a (catalog or stored data not available: no login form, call the store manager) or the warning of UC4 6c (HR System not available: the saved employee list is used) | `SessionController` | `index.html` |
-| S-02 | **Menu** | UC4 (end), entry to UC1, UC2, UC3, UC5 | `getSystemStatus()` and `listPendingRefunds()` (system_interfaces.md §3.8). It shows the cashier, the register ID and the status of the external systems. Entries: _New sale_ (S-04), _New return_ (S-07), _New rental_ (S-08), _Rental return_ (S-09), _Pending refunds_ (S-07 or S-09), _Reprint last receipt_ (S-06), _Close session_ (S-03), _Manager functions_ (D-01, then M-01 to M-06) | – | `menu.html` |
+| S-02 | **Menu** | UC4 (end), entry to UC1, UC2, UC3, UC5 | `getSystemStatus()`, `listPendingRefunds()` (system_interfaces.md §3.8) and `reprintLastReceipt()` (§3.2). It shows the cashier, the register ID and the status of the external systems. Entries: _New sale_ (S-04), _New return_ (S-07), _New rental_ (S-08), _Rental return_ (S-09), _Pending refunds_ (S-07 or S-09), _Reprint last receipt_ (sends `reprintLastReceipt()` itself and shows the state of the printer; S-06 does not open), _Close session_ (S-03), _Manager functions_ (D-01, then M-01 to M-06) | `SessionController` | `menu.html` |
 | S-03 | **Close session** | UC4 close session                      | `closeSession()`, `enterClosingCash(amount)`, `confirmCloseSession()`                                                                                                                                                                                                                                          | `SessionController`                                            | new                                                |
 | S-04 | **Sale**          | UC1 Process Sale                       | `makeNewSale()`, `enterItem(itemID, quantity)`, `removeItem(lineNumber)`, `endSale()`, `cancelSale()`; price change: `overridePrice(...)` with the dialog D-01                                                                                                                                                 | `SaleController`                                               | `sale.html`                                        |
-| S-05 | **Payment**       | UC1, UC3 and UC5 (amount still due)    | `makePayment(amount, tenderType)` for a sale, a rental or a rental return                                                                                                                                                                                                                                      | `SaleController`, `RentalController`, `RentalReturnController` | `payment.html`                                     |
-| S-06 | **Receipt** | UC1, UC2, UC3, UC5 | `reprintReceipt()`. The data of the receipt come from the answers of `makePayment`, `confirmReturn` and `confirmRentalReturn`. S-06 opens after a payment or a refund, and from the S-02 entry _Reprint last receipt_ (FR-17) | The controller of the use case that made the receipt: `SaleController`, `ReturnController`, `RentalController` or `RentalReturnController` | `receipt.html` |
-| S-07 | **Return**        | UC2 Handle Returns                     | `makeNewReturn()`, `findSale(receiptNumber)`, `enterReturnItem(itemID, quantity, condition)`, `removeReturnItem(lineNumber)`, `confirmReturn()`, `checkRefundStatus()`, `cancelReturn()`; cash refund: `approveCashRefund(...)` with D-01                                                                      | `ReturnController`                                             | `return.html` (without the condition of the item)  |
+| S-05 | **Payment**       | UC1, UC3 and UC5 (amount still due)    | `getAvailableTenders()` when it opens (always to `SaleController`); `makePayment(amount, tenderType)` for a sale, a rental or a rental return; _Cancel_: `cancelSale()`, `cancelRental()` or `cancelRentalReturn()` for the transaction that opened it | `SaleController`, `RentalController`, `RentalReturnController` | `payment.html`                                     |
+| S-06 | **Receipt** | UC1, UC2, UC3, UC5 | `reprintReceipt(receiptNumber)` (_Print again_). The data of the receipt come from the answers of `makePayment`, `confirmReturn`, `confirmRentalReturn` and `approveCashRefund`. S-06 opens after a payment or a refund; the reprint of the last receipt from the menu S-02 does not open it (FR-17) | The controller of the use case that made the receipt: `SaleController`, `ReturnController`, `RentalController` or `RentalReturnController` | `receipt.html` |
+| S-07 | **Return**        | UC2 Handle Returns                     | `makeNewReturn()`, `findSale(receiptNumber)`, `enterReturnItem(itemID, quantity, condition)`, `removeReturnItem(lineNumber)`, `confirmReturn()`, `checkRefundStatus()`, `cancelReturn()`; cash refund: `approveCashRefund(...)` with D-01. _Pending refund_ mode (opened from S-02): it shows the saved return and sends only `checkRefundStatus()` and, when the state is _needs approval_, `approveCashRefund(...)` with D-01 | `ReturnController` | `return.html` |
 | S-08 | **Rental**        | UC3 Process Rental                     | `makeNewRental()`, `enterCustomerID(customerID)`, `registerCustomer()`, `enterRentalItem(serialNumber)`, `selectRentalPeriod(days)`, `endRental()`, `cancelRental()`                                                                                                                                           | `RentalController`                                             | `rental.html`                                      |
-| S-09 | **Rental return** | UC5 Return Rental                      | `makeNewRentalReturn()`, `findRental(code)`, `findRentalsOfCustomer(customerID)`, `selectRental(rentalID)`, `recordCondition(condition, damageNote)`, `confirmRentalReturn()`, `checkRefundStatus()`, `cancelRentalReturn()`; damage and cash refund: `confirmDamage(...)`, `approveCashRefund(...)` with D-01 | `RentalReturnController`                                       | `return-rental.html` (without damage confirmation) |
+| S-09 | **Rental return** | UC5 Return Rental                      | `makeNewRentalReturn()`, `findRental(code)`, `findRentalsOfCustomer(customerID)`, `selectRental(rentalID)`, `recordCondition(condition, damageNote)`, `confirmRentalReturn()`, `checkRefundStatus()`, `cancelRentalReturn()`; damage and cash refund: `confirmDamage(...)`, `approveCashRefund(...)` with D-01. _Pending refund_ mode (opened from S-02): only `checkRefundStatus()` and `approveCashRefund(...)` | `RentalReturnController` | `return-rental.html` |
 
 ### 1.3 Dialog of the store manager
 
@@ -69,9 +70,9 @@ These are the "Manager screens" of the logical view. Each operation carries the 
 
 1. ~~**Status of the external systems (NFR-15).**~~ Closed (W10): `getSystemStatus()` (system_interfaces.md §3.8), sent by S-02.
 2. ~~**How a store manager opens M-01 to M-06.**~~ Closed (W10): the menu S-02 has the entry _Manager functions_; D-01 asks for the manager ID and the PIN, and each screen M-xx repeats them with its action (BR-04; system_interfaces.md §3.6).
-3. **Pending card refund.** The list exists (`listPendingRefunds()`, §3.8) and S-02 has the entry _Pending refunds_. The list must return the ID and the kind of each return (review #60), and S-07 and S-09 need a mode that opens a saved return. To decide with Alfonso.
-4. **Reprint last receipt (review #57).** `reprintReceipt()` takes a receipt number (system_interfaces.md §3.2), but the entry of S-02 has no receipt number. The API needs a way to give the last receipt of the register (Alfonso).
-5. **Changes for the other sections (review #57).** M-03 is split into M-03, M-05 and M-06: the class diagram and the count of classes of section 4 (Josué) and the screen table of system_interfaces.md §3.9 (Alfonso) must follow. D-01 carries `reason` only for `approveCashRefund(...)`: section 4.1 repeats the old text (Josué).
+3. ~~**Pending card refund.**~~ **Closed in W11.** `listPendingRefunds()` returns the kind and the ID of each return (system_interfaces.md §3.8), and S-07 and S-09 have the _pending refund_ mode (section 1.2; system_interfaces.md §3.8 and §3.9).
+4. ~~**Reprint last receipt (review #57).**~~ **Closed in W11.** `reprintLastReceipt()` (`POST /api/receipts/last/print`, system_interfaces.md §3.2) is sent by the menu S-02; S-06 sends `reprintReceipt(receiptNumber)`.
+5. ~~**Changes for the other sections (review #57).**~~ **Closed in W11.** The split of M-03 is in the class diagram of section 4 (22 classes) and in the screen table of system_interfaces.md §3.9; D-01 carries `reason` only for `approveCashRefund(...)`.
 
 ## 2. Navigation between the screens
 
@@ -92,7 +93,7 @@ Source: [`assets/ui_navigation.puml`](../../assets/ui_navigation.puml).
 | UC5 Return rental              | S-02 → S-09 → (D-01) → S-06 → S-02; with an amount still due: S-09 → S-05 → S-06 | UC5                            |
 | Manager functions              | S-02 → D-01 → M-01 to M-06 → S-02                                                | FR-68 to FR-70, FR-74 to FR-76 |
 
-The cashier can cancel from S-04, S-05, S-07, S-08 and S-09 at any time before the payment or the refund is completed; the cancel always leads back to S-02 and the cashier session stays open. A pending card refund (UC2 and UC5, ext. 9b2b) is found again from S-02 (open point 1).
+The cashier can cancel from S-04, S-05, S-07, S-08 and S-09 at any time before the payment or the refund is completed; the cancel always leads back to S-02 and the cashier session stays open. A pending card refund (UC2 and UC5, ext. 9b2b) is found again from S-02 with the entry _Pending refunds_.
 
 ### 2.2 Error and fallback messages
 
@@ -120,8 +121,8 @@ Every message is shown on the screen where the error happens, says what happened
 
 ### 2.3 Open points
 
-1. **Pending card refund.** S-02 shows the list of pending refunds (`listPendingRefunds()`, system_interfaces.md §3.8) and opens S-07 or S-09 for the chosen return. This mode needs the ID of the return in the list (review of system_interfaces.md v0.4) and a short description in §1.2 (Yasmine).
-2. **E7 on S-09.** The warning of the default tax rate comes from the answer of `recordCondition()`, not from `endRental()` (system_interfaces.md §6 point 8).
+1. ~~**Pending card refund.**~~ **Closed in W11.** The list returns the kind and the ID of each return, and S-07 and S-09 have the _pending refund_ mode (section 1.2).
+2. ~~**E7 on S-09.**~~ **Closed in W11.** The warning of the default tax rate comes from the answer of `recordCondition()`, which carries `taxToBeCorrected` (system_interfaces.md §6 point 8).
 
 ## 3. UI rules
 
@@ -153,8 +154,8 @@ These rules apply to every screen of section 1. Each rule comes from one usabili
 
 ### 3.2 Open points
 
-1. **Sizes (UI-01, UI-02).** The 135 pixels per inch and the font sizes are assumptions: they must be checked on the real register screen before the prototype is judged.
-2. **UI-04.** The place of Confirm, Cancel and Back to menu is a proposal. The prototype ([`ui_prototype.md`](ui_prototype.md)) must be checked against it before the screens are built (Yasmine, with Josué for the classes of section 4).
+1. ~~**Sizes (UI-01, UI-02).**~~ **Closed in W11.** The sizes are design decisions for the register screen of 15 inches (about 135 pixels per inch); they are checked on the real screen in the verification of NFR-13 (increment 3).
+2. ~~**UI-04.**~~ **Closed in W11.** The place of Confirm, Cancel and Back to menu is a rule of the real screens of increment 3; the prototype ([`ui_prototype.md`](ui_prototype.md)) stays a throw-away prototype and is not changed (process model).
 
 ## 4. UML class diagram of the UI
 
