@@ -17,7 +17,6 @@ box "application" #E8EEF7
 end box
 box "domain" #FFF7E0
   participant "store:Store" as ST
-  participant "reg:Register" as REG
 end box
 box "technical.storage" #F2F2F2
   participant "employees:EmployeeList" as EL
@@ -42,7 +41,7 @@ else INVALID: not found, not active or wrong PIN (6a, 6b)
   H -> H : accepted = false
 else NOT_AVAILABLE: local employee list (6c, IR-09)
   H -> EL : lastUpdate()
-  EL --> H : Optional<date>
+  EL --> H : Optional<dateTime>
   alt no local list (6c2)
     H -> H : accepted = false, reason NO_LOCAL_LIST
   else list exists
@@ -59,10 +58,10 @@ end
 alt accepted
   H -> ST : findEmployee(employeeID)
   ST --> H : employee
-  H -> REG : assignCashier(employee)
-  note right of REG : the Employee is associated with the Register\nas cashier of the session about to be opened\nNo CashierSession exists yet
+  H -> H : pendingCashier = employee
+  note right of H : login in progress: the cashier waits here for the opening cash\n(enterOpeningCash). No CashierSession exists yet and the\ndomain model has no Employee-Register association
   H --> C : LoginResult(OK, cashierName, localListUsed, lastUpdate)
-  C -->[ : 201 cashier name, request for the opening cash\n(warning with the date when the local list was used, 6c)
+  C -->[ : 201 cashier name, request for the opening cash\n(warning with the date and time of the last update when the local list was used, 6c)
 else refused
   H --> C : LoginResult(REFUSED, reason)
   C -->[ : 403 message for the cashier (NFR-14)
