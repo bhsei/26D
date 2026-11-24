@@ -22,7 +22,7 @@ box "application" #E8EEF7
   participant "h:ReturnHandler" as H
   participant ":ManagerApproval" as MA
   participant ":PaymentMethods" as PMS
-  participant "cash:CashPayment\nMethod" as PM
+  participant "cash:PaymentMethod" as PM
 end box
 box "domain" #FFF7E0
   participant "r:Return" as R
@@ -65,12 +65,15 @@ else f waits for approval
     MA --> H : manager (Employee, role StoreManager)
     H -> F : approve(manager, reason)
     note right of F : isApproved = true, approvedBy = manager, approvalReason = reason,\ntender = CASH (Contract 9). Information Expert: the Refund changes its own state.
-    H -> PMS : cash() <<new>>
-    PMS --> H : cash (CashPaymentMethod)
-    H -> PM : payOut(f.amount, employeeID) <<new>>
+    H -> R : originalPayment()
+    R --> H : original
+    H -> PMS : get(CASH)
+    PMS --> H : cash
+    H -> PM : refund(original, f.amount)
+    note right of PM : the same PaymentMethod interface as in confirmReturn (AD-08): the handler does not depend on a tender class
     PM -> DR : open(CASH_REFUND, employeeID)
     DR --> PM : OPENED (logged, IR-14)
-    PM --> H : CASH_PAID
+    PM --> H : RefundOutcome CASH_PAID
     alt the return is not saved yet (the card was declined or the original payment was a check)
       H -> R : complete()
       loop each ReturnLineItem with condition RESELLABLE
@@ -78,7 +81,7 @@ else f waits for approval
       end
       R --> H : AccountingRecord
       H -> TR : saveCompleted(r, record)
-      note right of TR : ONE database transaction, as in confirmReturn (AD-05, AD-06)
+      note right of TR : ONE database transaction, as in confirmReturn (AD-05, AD-06), with the first row of refund_status (CASH_PAID)
     else the return is already saved (the card refund was PENDING and then failed)
       note over H, TR : complete(), the stock and saveCompleted are NOT done again: the transaction and its Accounting record exist (accounting_queue.transaction_id is unique).
       H -> F : setState(CASH_PAID) <<new>>
