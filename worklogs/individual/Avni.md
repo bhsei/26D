@@ -105,3 +105,17 @@
   - Yasmine's navigation diagram was not ready when I drew mine, so I listed three open points (where the total is shown, the cancel from the payment screen and the screen after a cancelled sale) to align with it.
   - I posted the review of the prototype one day late, because the prototype was pushed on Monday afternoon.
 - **Next:** In W11, draw the design sequence diagrams of UC3 Process Rental (contracts 10 to 15) after Borja's skeleton of the design class diagram, and help decide open question 5.
+
+## W11
+- **What I did:**
+  - Drew the design sequence diagrams of UC3 Process Rental (`detailed_design.md` §2.3): start of the rental and the customer (contracts 10–12), the item and the rental period with the hold in the store database (13, 14), the total and the cancel (15), and the payment of a rental through `PaymentMethods`, aligned with Alfonso's `makePayment` of UC1. I wrote the GRASP patterns under each diagram and sent the new methods to Borja for the design class diagram.
+  - Decided open question 5 in SRS §5.3: the customer is identified only by the customer ID, printed on the rental receipt as text and as a barcode. I updated FR-39, IR-11, UC3 ext. 4a.3 and the glossary (v0.7).
+  - Renamed `Item.isAvailable()` to `Item.status()` after Borja's point on the design class diagram.
+  - Answered Yasmine's review of my diagrams and question 5 (#66, 7 findings, all accepted): the store database is asked for a new customer, a double scan is refused, the cancel voids a card payment with no answer, and the default tax rate is applied by the `Rental`, as in UC1.
+  - Reviewed Yasmine's design sequence diagrams of UC2 and her activity diagrams in Issue #67 (6 findings), and updated AD-08 after finding 4: the handler always uses `get(tenderType)` and the `PaymentMethod` interface.
+  - Sent Alfonso the summary of my work in increment 2 and wrote the team work log W11.
+- **Hours:** 6 h
+- **Problems:**
+  - `detailed_design.md` was created only on Monday, so I pushed my diagrams one day after the draft deadline.
+  - The payment diagram had to be changed to follow the UC1 diagram, and it was too tall for one image, so I lowered its resolution.
+- **Next:** In W12, take part in the cross-team review of the design and answer the findings on UC3, AD-08 and question 5.
