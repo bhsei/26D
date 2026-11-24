@@ -60,7 +60,7 @@ Diagrams are in PlantUML in `assets/` (`.puml` + `.png`), named `dsd_uc<N>_<oper
 
 ![checkRefundStatus](../../assets/dsd_uc2_checkRefundStatus.png)
 
-Each diagram has the GRASP patterns used in its own note. Messages marked `<<new>>` are not in the logical view or in `system_interfaces.md` yet: `CashierSession.createReturn(id)`, `TransactionRepository.returnedQuantities(receiptNumber)`, `SaleLineItem.refundValue(quantity)`, `Return.addRefund(outcome)`, `Return.complete()`, `Refund.setState(...)`, `CashPaymentMethod.payOut(amount, employeeID)` and the answer `SALE_NOT_AVAILABLE` of `findSale`. They are sent to Borja (design class diagram) and to Alfonso (`system_interfaces.md`).
+Each diagram has the GRASP patterns used in its own note. Messages marked `<<new>>` are not in the logical view or in `system_interfaces.md` yet: `CashierSession.createReturn(id)`, `TransactionRepository.returnedQuantities(receiptNumber)`, `StoreDatabaseSync.returnedQuantities(receiptNumber)`, `SaleLineItem.refundValue(quantity)`, `Return.addRefund(outcome)`, `Return.complete()`, `Refund.setState(...)` and the answer `SALE_NOT_AVAILABLE` of `findSale`. They are sent to Borja (design class diagram) and to Alfonso (`system_interfaces.md`).
 
 ### 2.3 UC3 Process Rental (contracts 10–15) – Avni
 
@@ -143,7 +143,7 @@ The attributes are those of the [domain model](domain_model.md) v0.8 and the met
 | --- | --- | --- |
 | A return that was already saved with a *pending* card refund and then failed must not call `complete()` and `saveCompleted` again: only the row `CASH_PAID` of `refund_status` and the receipt | UC5 (Haifa, Contract 28) | UC2 does it in `dsd_uc2_approveCashRefund`; UC5 does the same (see the state diagram of the refund, domain model §7.4) |
 
-Closed: `ManagerApproval.check` in UC2, UC4 and UC5; `PaymentMethods.cash()` and the saved return that is paid in cash (UC2, Yasmine); `Item.status() : ItemStatus` instead of `isAvailable()` (Avni, UC3); `findSale` with `SALE_NOT_AVAILABLE` and `TransactionRepository.returnedQuantities` (system_interfaces.md v0.8); `SessionRepository.open(s)` and `close(s)` and `selectRentalPeriod(lineNumber, days)` (v0.7); `getSystemStatus` and `listPendingRefunds` stay in `SessionHandler`; `ProductCatalog` reads the products through `ItemRepository` (UC1, shown in diagram 3b).
+Closed: `ManagerApproval.check` in UC2, UC4 and UC5; the saved return that is paid in cash (UC2, Yasmine; review #67: the cash refund uses `PaymentMethods.get(CASH)` and `PaymentMethod.refund`, so `PaymentMethods.cash()` and `CashPaymentMethod.payOut` are removed); `Item.status() : ItemStatus` instead of `isAvailable()` (Avni, UC3); `findSale` with `SALE_NOT_AVAILABLE` and `TransactionRepository.returnedQuantities` (system_interfaces.md v0.8); `SessionRepository.open(s)` and `close(s)` and `selectRentalPeriod(lineNumber, days)` (v0.7); `getSystemStatus` and `listPendingRefunds` stay in `SessionHandler`; `ProductCatalog` reads the products through `ItemRepository` (UC1, shown in diagram 3b).
 
 ## 4. Activity diagrams – Yasmine
 
@@ -189,4 +189,4 @@ The state diagrams are in the [domain model](domain_model.md) §7:
 
 ## 7. Open points
 
-None at the moment.
+1. **Second return of the same sale at another register (review #67).** `findSale` asks the store database for the quantities already returned (`StoreDatabaseSync.returnedQuantities`). When it does not answer, only the returns of this register are known and the risk of a second refund at another register is accepted, as for the overdue check of UC3. Owner: Yasmine (UC2); Alfonso adds the operation to `system_interfaces.md`.
