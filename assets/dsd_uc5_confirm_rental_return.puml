@@ -139,16 +139,13 @@ alt amount = 0, CASH_PAID, CARD_REFUNDED or PENDING
   H -> Repo : saveCompleted(rr, record)
   note right of Repo
     ONE database transaction (AD-05, AD-06): rental return, refund,
+    the FIRST row of refund_status (state and reference of the refund),
     item status, the AccountingQueue record and the entry of
     store_sync_list. The Accounting System gets it later (IR-06).
+    PENDING: listed on S-02 (findPendingRefunds, FR-77); checkRefundStatus
+    (POST /api/rental-returns/{id}/refund-status) asks again later.
+    Nothing is paid in cash.
   end note
-  opt card refund (CARD_REFUNDED or PENDING)
-    H -> Repo : addRefundStatus(refundID, state, reference)
-    note right of Repo
-      PENDING: listed on S-02 (findPendingRefunds, FR-77);
-      checkRefundStatus asks again later. Nothing is paid in cash.
-    end note
-  end
   H -> RR : getReceipt()
   RR --> H : receipt (FR-71, last 4 digits only)
   H -> Pr : print(receipt)
@@ -169,10 +166,11 @@ else NEEDS_APPROVAL (card declined, or check)
   ref over Ctl, RR
     approveCashRefund(managerID, pin, reason): the same operation as in UC2 (Contract 9),
     see dsd_uc2_approveCashRefund. ManagerApproval checks the store manager, the Refund is approved,
-    the cash PaymentMethod opens the drawer. Then, as in UC2:
-    - rental return not saved yet (card declined, or check): the completion above;
+    PaymentMethods.get(CASH) gives the cash PaymentMethod and refund(...) opens the drawer. Then, as in UC2:
+    - rental return not saved yet (card declined, or check): the completion above, with the first
+      row of refund_status (CASH_PAID) inside saveCompleted;
     - rental return already saved (the card refund was PENDING, then failed): no complete() and
-      no saveCompleted again, only Refund.setState(CASH_PAID) and addRefundStatus(refundID, CASH_PAID),
+      no saveCompleted again, only Refund.setState(CASH_PAID) and the new row addRefundStatus(refundID, CASH_PAID),
       then the receipt. With that row the rental goes from "Closed, refund pending" to "Closed"
       (state diagram 7.2); the item status was already set at the confirmation.
   end ref
