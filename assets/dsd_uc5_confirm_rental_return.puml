@@ -1,9 +1,9 @@
 @startuml
-' NewEra POS - Design sequence diagram: UC5 Return Rental, confirm and refund (Contract 28), W11 draft
+' NewEra POS - Design sequence diagram: UC5 Return Rental, confirm and refund (Contract 28), W11, review #68
 ' Team D - editable source of assets/dsd_uc5_confirm_rental_return.png
 ' Render with: java -jar plantuml.jar -charset UTF-8 -tpng assets/dsd_uc5_confirm_rental_return.puml
 ' Participants: classes of the logical view (architecture.md 4.2). Operations: system_interfaces.md 3.5, 3.7, 4.1 to 4.3; PaymentMethod of AD-08.
-' Messages marked <<new>> are not in the logical view or in system_interfaces.md yet (sent to Borja for the design class diagram).
+' Messages marked <<new>> are not in the design class diagram yet, or have a new signature there (review #68, sent to Borja).
 
 skinparam shadowing false
 skinparam dpi 130
@@ -26,17 +26,21 @@ skinparam maxMessageSize 190
 
 title NewEra POS - Design sequence diagram: UC5 Return Rental, confirm and refund (Contract 28)
 
-box "UI layer (ui.api)" #F4F8FD
+box "ui.api" #EAF2E3
   participant ":RentalReturn\nController" as Ctl
 end box
-box "Application / domain layer" #F4F8FD
+box "application" #E8EEF7
   participant ":RentalReturn\nHandler" as H
   participant ":Payment\nMethods" as PMs
   participant "pm:\nPaymentMethod" as PM
+end box
+box "domain" #FFF7E0
   participant "rr:\nRentalReturn" as RR
   participant "rental:\nRental" as R
+  participant "line:\nRentalLineItem" as L
+  participant "item:\nItem" as I
 end box
-box "application.interfaces" #F4F8FD
+box "application.interfaces" #F6EDF7
   participant ":PaymentService" as Pay
   participant ":CashDrawer" as Dr
   participant ":Transaction\nRepository" as Repo
@@ -65,16 +69,26 @@ else amount > 0
   RR --> H : original (tender of the rental, BR-08)
   H -> PMs : get(original.tenderType)
   PMs --> H : pm
-  H -> PM : refund(original, amount)
+  H -> PM : refund(original, amount, employeeID) <<new>>
   note right of PM
     Polymorphism (AD-08): the handler never checks the tender.
     Cash: CashPaymentMethod. Card: CreditCardPaymentMethod.
     Check: CheckPaymentMethod answers NEEDS_APPROVAL (9c, FR-25).
+    employeeID: the cashier of the current session
+    (CashierSession --> Employee), needed by the cash drawer.
   end note
   alt cash (9a)
     PM -> Dr : open(CASH_REFUND, employeeID)
-    Dr --> PM : OPENED (logged, IR-14)
-    PM --> H : RefundOutcome CASH_PAID
+    Dr --> PM : DrawerStatus
+    alt OPENED (logged, IR-14)
+      PM --> H : RefundOutcome CASH_PAID, drawerStatus OPENED
+    else ERROR
+      PM --> H : RefundOutcome CASH_PAID, drawerStatus ERROR
+      note right of PM
+        The cashier opens it with the key and the
+        opening is logged as manual (IR-14), as in UC4.
+      end note
+    end
   else credit card (9b)
     PM -> Pay : refund(RefundRequest)
     note right of Pay
@@ -108,7 +122,14 @@ alt amount = 0, CASH_PAID, CARD_REFUNDED or PENDING
     "Closed, refund pending" until checkRefundStatus confirms
     the refund (FR-77); otherwise "Closed" (state diagram 7.2).
   end note
-  R -> R : item.status = Available (undamaged)\nor Under maintenance (damaged)
+  RR -> L : item() <<new>>
+  L --> RR : item
+  RR -> I : markReturned(condition) <<new>>
+  note right of I
+    The rental return knows the condition; the Item
+    changes its own status: Available (UNDAMAGED)
+    or Under maintenance (DAMAGED), Contract 28.
+  end note
   RR -> RR : isComplete = true
   RR --> H : AccountingRecord
   note right of RR
@@ -128,10 +149,17 @@ alt amount = 0, CASH_PAID, CARD_REFUNDED or PENDING
       checkRefundStatus asks again later. Nothing is paid in cash.
     end note
   end
+  H -> RR : getReceipt()
+  RR --> H : receipt (FR-71, last 4 digits only)
   H -> Pr : print(receipt)
-  Pr --> H : READY, NO_PAPER or ERROR
-  H --> Ctl : refund state, receipt number
-  [<-- Ctl : 200 CASH_PAID, CARD_REFUNDED or PENDING;\nrental return receipt (S-06)
+  Pr --> H : printerStatus: READY, NO_PAPER or ERROR
+  note right of Pr
+    NO_PAPER or ERROR: the rental return is saved,
+    S-06 shows the printer message and the cashier
+    can reprint (IR-13).
+  end note
+  H --> Ctl : ConfirmResult(refund state, receipt number,\nprinterStatus, drawerStatus) <<new>>
+  [<-- Ctl : 200 CASH_PAID, CARD_REFUNDED or PENDING;\nreceipt number, printerStatus, drawerStatus (S-06)
 else NEEDS_APPROVAL (card declined, or check)
   note over H, RR
     No cash is paid and nothing is saved yet: the Refund stays unpaid (Contract 28).
@@ -154,8 +182,9 @@ legend bottom left
   **GRASP**
   Controller: RentalReturnController and RentalReturnHandler, as in the other UC5 diagrams.
   Polymorphism, Protected Variations: the refund goes through PaymentMethod (AD-08), so a new tender changes no handler (NFR-09).
-  Creator: RentalReturn creates its Refund and its AccountingRecord, because it has their data.
-  Information Expert: Rental closes itself (Closed, or Closed with the refund pending) and sets the status of its item; RentalReturn knows the refund amount and the tender of the rental.
+  Creator: RentalReturn creates its Refund and its AccountingRecord, because it has their data; the receipt comes from RentalReturn.getReceipt() (Transaction), as in UC1 and UC2.
+  Information Expert: Rental closes itself (Closed, or Closed with the refund pending); RentalReturn knows the condition, the refund amount and the tender of the rental,
+  so it tells the Item of the rental line how it came back; the Item changes its own status.
   Low Coupling, Indirection: the handler sees only interfaces (PaymentService, CashDrawer, TransactionRepository, ReceiptPrinter);
   the timeouts are in the adapters and the fallbacks in the handler (AD-07).
 endlegend
