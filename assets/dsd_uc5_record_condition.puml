@@ -1,9 +1,9 @@
 @startuml
-' NewEra POS - Design sequence diagram: UC5 Return Rental, condition, late fee and damage (Contracts 26 and 27), W11 draft
+' NewEra POS - Design sequence diagram: UC5 Return Rental, condition, late fee and damage (Contracts 26 and 27), W11, review #68
 ' Team D - editable source of assets/dsd_uc5_record_condition.png
 ' Render with: java -jar plantuml.jar -charset UTF-8 -tpng assets/dsd_uc5_record_condition.puml
 ' Participants: classes of the logical view (architecture.md 4.2). Operations: system_interfaces.md 3.5, 4.1 and 4.3.
-' Messages marked <<new>> are not in the logical view or in system_interfaces.md yet (sent to Borja for the design class diagram).
+' Messages marked <<new>> are not in the design class diagram yet, or have a new signature there (review #68, sent to Borja).
 
 skinparam shadowing false
 skinparam dpi 130
@@ -25,16 +25,18 @@ skinparam maxMessageSize 190
 
 title NewEra POS - Design sequence diagram: UC5 Return Rental, condition and late fee (Contracts 26-27)
 
-box "UI layer (ui.api)" #F4F8FD
+box "ui.api" #EAF2E3
   participant ":RentalReturn\nController" as Ctl
 end box
-box "Application / domain layer" #F4F8FD
+box "application" #E8EEF7
   participant ":RentalReturn\nHandler" as H
   participant ":Manager\nApproval" as MA
+end box
+box "domain" #FFF7E0
   participant "rr:\nRentalReturn" as RR
   participant "line:\nRentalLineItem" as L
 end box
-box "application.interfaces" #F4F8FD
+box "application.interfaces" #F6EDF7
   participant ":TaxCalculator" as Tax
   participant ":Settings\nRepository" as Set
   participant ":HRSystem" as HR
@@ -57,21 +59,24 @@ note right of RR
 end note
 
 opt daysLate > 0
-  H -> Tax : calculateTax(TaxRequest: late fee line)
+  H -> RR : toTaxRequest() <<new>>
+  RR --> H : TaxRequest (late fee line)
+  H -> Tax : calculateTax(request)
   note right of Tax
     Timeout 5 s in the adapter (AD-07).
   end note
   Tax --> H : TaxResult
   alt TaxResult OK
-    H -> RR : setLateFeeTax(tax, false) <<new>>
+    H -> RR : setLateFeeTax(tax, false)
   else NOT_AVAILABLE (7a1)
     H -> Set : current()
     Set --> H : Settings (default tax rate)
-    H -> H : tax = lateFee x default rate
-    H -> RR : setLateFeeTax(tax, true) <<new>>
+    H -> RR : applyDefaultTaxRate(rate) <<new>>
+    RR -> RR : lateFeeTax = lateFee x rate\ntaxToBeCorrected = true
     note right of RR
-      true: tax to be corrected (BR-02, IR-05).
-      The fallback is decided by the handler (AD-07).
+      Tax to be corrected (BR-02, IR-05), as Sale in UC1.
+      The handler only decides on the fallback (AD-07);
+      the rental return calculates the tax.
     end note
   end
 end
@@ -125,7 +130,7 @@ end
 legend bottom left
   **GRASP**
   Controller: RentalReturnController and RentalReturnHandler, as in the other UC5 diagrams.
-  Information Expert: RentalReturn calculates the days late, the late fee, the refund and the amount still due; RentalLineItem gives the due date, the fee and the deposit.
+  Information Expert: RentalReturn calculates the days late, the late fee, its tax request, the default tax (as Sale in UC1), the refund and the amount still due; RentalLineItem gives the due date, the fee and the deposit.
   Pure Fabrication, High Cohesion: ManagerApproval checks the store manager for UC1, UC2, UC5 and the manager functions, so the check is written once.
   Protected Variations: TaxCalculator and HRSystem are interfaces; the adapter applies the timeout and the handler chooses the fallback (AD-04, AD-07).
 endlegend
