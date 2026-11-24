@@ -43,7 +43,7 @@ H -> R : originalPayment()
 R --> H : original (the Payment of the sale: tender and payment reference, DR-19)
 H -> PMS : get(original.tenderType)
 PMS --> H : pm
-H -> PM : refund(original, amount)
+H -> PM : refund(original, amount, employeeID)
 note right of PM : Polymorphism (AD-08): the handler never tests the tender (BR-08, NFR-09).\nThe return has no card reader: the refund uses the payment reference, not the card (AD-09).
 
 alt CASH (9a)
@@ -98,11 +98,11 @@ alt CASH_PAID, CARD_REFUNDED or PENDING
   R --> H : receipt (FR-71, last 4 digits only)
   H -> PRT : print(receipt)
   PRT --> H : READY (NO_PAPER or ERROR: the return is saved, reprint later, IR-13)
-  H --> C : refund state, receiptNumber
+  H --> C : ConfirmResult(refund state, receiptNumber,\nprinterStatus, drawerStatus) <<new>>
   C -->[ : 200 CASH_PAID, CARD_REFUNDED or PENDING; receipt number
 else NEEDS_APPROVAL (card declined, or check)
   note over H, R : No cash is paid and nothing is saved yet: the Refund stays unpaid and the return stays open (Contract 8).
-  H --> C : NEEDS_APPROVAL, reason
+  H --> C : ConfirmResult(NEEDS_APPROVAL, reason) <<new>>
   C -->[ : 200 NEEDS_APPROVAL: D-01 opens
   ref over C, R : approveCashRefund(managerID, pin, reason), see dsd_uc2_approveCashRefund
 end
