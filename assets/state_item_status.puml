@@ -22,7 +22,7 @@ title NewEra POS - State diagram: status of a rentable item (Item.status)
 Available --> Rented : rental paid and saved\n(UC3 step 15, FR-38)
 Rented --> Available : rental return confirmed,\nitem undamaged\n(UC5 step 10, FR-57)
 Rented --> UnderMaintenance : rental return confirmed,\ndamage confirmed by a store manager\n(UC5 ext. 6a, FR-52, FR-57)
-UnderMaintenance --> Available : a store manager confirms\nthat the item can be rented again\n(DR-02)
+UnderMaintenance --> Available : the item is in the item list of the next\ncatalog import from the back-office system\n(IR-17, DR-02); an operation of the store\nmanager is left for increment 3
 
 state "Under maintenance" as UnderMaintenance
 
@@ -36,7 +36,8 @@ end note
 
 note bottom of UnderMaintenance
   Not drawn because no requirement or decision exists yet:
-  - the function with which the store manager confirms the repair (no FR yet);
+  - the operation with which a store manager confirms the repair (no FR yet):
+    until then the item comes back with the catalog import (review #69);
   - retiring an item. An item that is no longer used is marked inactive,
     not deleted (DR-16); this is not an item status.
   The status Reserved was removed in W08 (B-D03).

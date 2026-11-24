@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Maintainer** | Borja Nicolás |
-| **Version** | 0.8 (draft for review; state diagrams of the cashier session and of the refund) |
+| **Version** | 0.9 (draft for review; review #69: maintenance transition and record status) |
 | **Last updated** | W11 |
 | **Part of** | Increment 2 (Design), input to the SRS section 3.5, the [system sequence diagram](system_sequence_diagrams.md) and the [operation contracts](operation_contracts.md) |
 
@@ -44,7 +44,7 @@ Names follow the glossary. The names used in the [operation contracts](operation
 | **Receipt** | Printed record of a transaction; it can be printed again. | `number`, `printedAt` | FR-16, FR-17 |
 | **AccountingRecord** | The record of a completed transaction sent, or queued to be sent, to the Accounting System. The transaction ID lets the Accounting System ignore a record that arrives twice. | `transactionID`, `status`, `queuedAt`, `sentAt` | BR-14, IR-06, IR-07 |
 
-**Enumeration types** (not drawn): `ItemStatus` = Available, Rented, UnderMaintenance (*Reserved* was removed in W08, review #50, B-D03: no use case reserves an item); `ItemCondition` = Undamaged, Damaged; `TenderType` = Cash, CreditCard, Check; `EmployeeRole` = Cashier, StoreManager; `RecordStatus` = Queued, Sent.
+**Enumeration types** (not drawn): `ItemStatus` = Available, Rented, UnderMaintenance (*Reserved* was removed in W08, review #50, B-D03: no use case reserves an item); `ItemCondition` = Undamaged, Damaged; `TenderType` = Cash, CreditCard, Check; `EmployeeRole` = Cashier, StoreManager; `RecordStatus` = Waiting, Rejected (a record is deleted after the acknowledgement, DR-12; a `Rejected` one stays first with its reason, AD-06).
 
 The four external systems (Payment Service, Tax Calculator, Accounting System, HR System) are actors and are **not** part of the domain model. Their data appears here only as attributes (`authorizationCode`, `tax`, `AccountingRecord`, `Employee`).
 
@@ -110,7 +110,7 @@ The state diagrams show how the **status of an item**, the **life of a rental**,
 | Available → Rented | A rental is paid and saved (UC3 step 15) | FR-38, BR-11 |
 | Rented → Available | A rental return of an undamaged item is confirmed (UC5 step 10) | FR-57 |
 | Rented → Under maintenance | A rental return of a damaged item is confirmed, with the damage confirmed by a store manager (UC5 ext. 6a) | FR-52, FR-57 |
-| Under maintenance → Available | A store manager confirms that the item can be rented again | DR-02 |
+| Under maintenance → Available | The item is in the item list of the next catalog import from the back-office system; an operation of the store manager is left for increment 3 (review #69) | DR-02, IR-17 |
 
 ### 7.2 Life of a rental
 
@@ -165,6 +165,6 @@ A return that is already saved (the pending case) stays in NEEDS_APPROVAL until 
 
 Drawing the diagrams showed three points that the SRS did not cover. Point 2 is closed since SRS v1.3 (FR-77); points 1 and 3 are still open.
 
-1. **Repair of an item.** DR-02 says that a store manager confirms the change from *Under maintenance* to *Available*, but no functional requirement describes this function.
+1. **Repair of an item.** DR-02 says that a store manager confirms the change from *Under maintenance* to *Available*, but no functional requirement describes this function. Until it exists, the item becomes *Available* with the next catalog import (IR-17); the operation of the store manager is left for increment 3 (review #69).
 2. ~~**Pending refund.**~~ Closed (SRS v1.3, FR-77, W10): the cashier asks the Payment Service again for the status of a pending refund; if it turns out to have failed, a store manager approves a cash refund (FR-25, FR-55). The state diagram of the refund (§7.4) shows it.
 3. **Item that is never returned.** The SRS keeps it as an open point (section 3.5): the item stays *Rented* and the rental stays *Overdue*, so the customer is blocked (BR-12) and the deposit is not settled. The status transitions of a lost or stolen item depend on the answer of the store manager (interview before W11).
