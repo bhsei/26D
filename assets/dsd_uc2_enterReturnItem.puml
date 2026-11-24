@@ -48,7 +48,7 @@ else valid line
   R -> RLI ** : create(sli, quantity, condition)
   RLI -> SLI : refundValue(quantity) <<new>>
   SLI --> RLI : price + tax charged in the sale
-  note right of SLI : Information Expert: the sale line knows its price and the tax of the sale;\nthe refund is the tax of the original sale, not a new calculation (FR-27, Q-06)
+  note right of SLI : Information Expert: the sale line knows its price and the tax of the sale;\nthe refund is the tax of the original sale, not a new calculation (FR-27, Q8)
   R -> R : refundTotal = refundTotal + rli.refundValue
   R --> H : rli, refundTotal
   H --> C : LineResult(lineNumber, description, quantity, condition, refundValue, refundTotal, tender of the sale)
