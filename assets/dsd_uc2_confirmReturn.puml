@@ -93,11 +93,7 @@ alt CASH_PAID, CARD_REFUNDED or PENDING
   R --> H : AccountingRecord
   note right of R : Creator: the return has the data of the record\n(refund, tax refunded, tender, refund state)
   H -> TR : saveCompleted(r, record)
-  note right of TR : ONE database transaction (AD-05, AD-06): return, lines, refund,\nstock changes, the AccountingQueue record and the store_sync_list entry
-  opt card refund (CARD_REFUNDED or PENDING)
-    H -> TR : addRefundStatus(refundID, state, reference)
-    note right of TR : PENDING: listed on S-02 (findPendingRefunds, FR-77);\ncheckRefundStatus asks again later. No cash is paid.
-  end
+  note right of TR : ONE database transaction (AD-05, AD-06): return, lines, refund, the FIRST row of refund_status\n(state and reference of the refund), stock changes, the AccountingQueue record and the store_sync_list entry.\nPENDING: listed on S-02 (findPendingRefunds, FR-77); checkRefundStatus asks again later. No cash is paid.
   H -> R : getReceipt()
   R --> H : receipt (FR-71, last 4 digits only)
   H -> PRT : print(receipt)
