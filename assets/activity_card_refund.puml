@@ -74,9 +74,8 @@ else (no)
   endif
 endif
 :Complete the return: stock increases for the resellable items\n(UC5: item status Available or Under maintenance);
-:Save in ONE database transaction: the return, the refund, the stock changes,\nthe record for the Accounting System and the entry for the store database (AD-05, AD-06);
+:Save in ONE database transaction: the return, the refund with the first row of refund_status, the stock changes,\nthe record for the Accounting System and the entry for the store database (AD-05, AD-06);
 if (Card refund (CARD_REFUNDED or PENDING)?) then (yes)
-  :Add the state of the refund (refund_status);
   if (outcome = PENDING?) then (yes)
     :The return is listed on S-02 "Pending refunds" (FR-77);
     note right
