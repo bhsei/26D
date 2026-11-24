@@ -31,7 +31,7 @@ box "application.interfaces" #F6EDF7
 end box
 
 == checkRefundStatus() for one return ==
-[-> C : GET /api/returns/{returnID}/refund
+[-> C : POST /api/returns/{returnID}/refund-status
 C -> H : checkRefundStatus()
 H -> TR : find(returnID)
 TR --> H : r
