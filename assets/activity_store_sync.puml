@@ -48,6 +48,7 @@ fork again
     if (Record found?) then (yes)
       if (Store database reachable?) then (yes)
         :Write its rows in ONE store database transaction\n(transaction: INSERT ... ON CONFLICT DO NOTHING on the ID;\nsession: update of the session ID);
+        :Update the store data in the same transaction:\nitem status and removal of the hold (rental, rental return),\nstock levels (sale, return) (AD-05, SRS Q6);
         if (Second offline rental of the same item?) then (yes)
           :Both rentals stay saved (DR-04);\nwrite the conflict in sync_conflict;
           note right
