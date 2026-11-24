@@ -93,6 +93,8 @@ package "application.interfaces" {
     + putHold(serialNumber : String, transactionID : String) : HoldResult
     + removeHold(serialNumber : String, transactionID : String) : void
     + findTransaction(transactionID : String) : TransactionResult
+    + findCustomer(customerID : String) : CustomerResult «new»
+    + returnedQuantities(receiptNumber : String) : QuantitiesResult «new»
     + findOpenRentalsOfCustomer(customerID : String) : RentalsResult «new»
     + findOpenRentalOfItem(serialNumber : String) : RentalResult «new»
     + findSessionToReview(sessionID : String) : SessionLookup «new»
@@ -129,10 +131,12 @@ SessionHandler --> TransactionRepository
 SessionHandler --> SessionRepository
 SessionHandler --> EmployeeList
 SessionHandler --> StoreDatabaseSync
+SessionHandler --> SettingsRepository : catalog file of the import
 SaleHandler --> TransactionRepository
 SaleHandler --> SettingsRepository
 ReturnHandler --> TransactionRepository
 ReturnHandler --> StoreDatabaseSync
+ReturnHandler --> SettingsRepository : refund period
 RentalHandler --> TransactionRepository
 RentalHandler --> ItemRepository
 RentalHandler --> SettingsRepository
@@ -157,7 +161,9 @@ note bottom of JdbcStoreDatabaseSync
   Only JdbcStoreDatabaseSync knows the store database (PostgreSQL over JDBC, AD-05). The other
   implementations use the local SQLite file of the register. saveCompleted is one database transaction:
   transaction, lines, payments, refunds, stock change, accounting record and store_sync_list entry.
-  Result classes (SyncResult, HoldResult, TransactionResult, StoreResult, SessionLookup,
+  StoreResult (OK, NOT_TO_REVIEW, NOT_AVAILABLE); SessionLookup (TO_REVIEW, NOT_TO_REVIEW, NOT_AVAILABLE);
+  CustomerResult, RentalsResult, RentalResult (FOUND, NOT_FOUND, NOT_AVAILABLE); QuantitiesResult (quantities, NOT_AVAILABLE).
+  Other result classes (SyncResult, HoldResult, TransactionResult,
   QueueStatus, RentalsResult, RentalResult, Settings, EmployeeEntry with isActiveCashier(), isActiveStoreManager() and pinMatches(pin)) are not drawn.
   The names of the implementations (Sqlite..., Jdbc...) are proposals.
 end note
