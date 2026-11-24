@@ -77,7 +77,16 @@ opt s found
     S --> H : true
     H -> TR : returnedQuantities(s.receiptNumber) <<new>>
     TR --> H : quantity already returned for each line
-    note right of TR : returns of this register; a return of the same sale at another\nregister is known only after the synchronisation (open point)
+    note right of TR : returns of this register
+    H -> SY : returnedQuantities(s.receiptNumber) <<new>>
+    note right of SY : returns of the same sale at the other registers (FR-22); the adapter applies the timeout (AD-07)
+    alt the store database answers
+      SY --> H : quantity already returned for each line
+      H -> H : keep the larger quantity of the two for each line
+    else NOT_AVAILABLE
+      SY --> H : NOT_AVAILABLE
+      note over H, SY : Only the returns of this register are known: the risk of a second refund at another register is accepted, as for the overdue check of UC3 (detailed_design.md §7)
+    end
     H -> R : setSale(s, returnedQuantities)
     H --> C : SaleView(lines, bought, already returned, tender)
     C -->[ : 200 lines of the sale with the quantity bought and already returned, and the tender
