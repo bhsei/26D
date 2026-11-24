@@ -1,9 +1,9 @@
 @startuml
-' NewEra POS - Design sequence diagram: UC5 Return Rental, start and find the rental (Contracts 22 to 25), W11 draft
+' NewEra POS - Design sequence diagram: UC5 Return Rental, start and find the rental (Contracts 22 to 25), W11, review #68
 ' Team D - editable source of assets/dsd_uc5_find_rental.png
 ' Render with: java -jar plantuml.jar -charset UTF-8 -tpng assets/dsd_uc5_find_rental.puml
 ' Participants: classes of the logical view (architecture.md 4.2). Operations: system_interfaces.md 3.5 and 4.3.
-' Messages marked <<new>> are not in the logical view or in system_interfaces.md yet (sent to Borja for the design class diagram).
+' Messages marked <<new>> are not in the design class diagram yet, or have a new signature there (review #68, sent to Borja).
 
 skinparam shadowing false
 skinparam dpi 130
@@ -25,16 +25,19 @@ skinparam maxMessageSize 190
 
 title NewEra POS - Design sequence diagram: UC5 Return Rental, find the rental (Contracts 22-25)
 
-box "UI layer (ui.api)" #F4F8FD
+box "ui.api" #EAF2E3
   participant ":RentalReturn\nController" as Ctl
 end box
-box "Application / domain layer" #F4F8FD
+box "application" #E8EEF7
   participant ":RentalReturn\nHandler" as H
+end box
+box "domain" #FFF7E0
+  participant "reg:\nRegister" as Reg
   participant "session:\nCashierSession" as S
   participant "rr:\nRentalReturn" as RR
   participant "rental:\nRental" as R
 end box
-box "application.interfaces (storage, AD-05)" #F4F8FD
+box "application.interfaces (storage, AD-05)" #F6EDF7
   participant ":Transaction\nRepository" as Repo
   participant ":StoreDatabase\nSync" as Sync
 end box
@@ -42,9 +45,15 @@ end box
 == makeNewRentalReturn() - Contract 22 ==
 [-> Ctl : POST /api/rental-returns
 Ctl -> H : makeNewRentalReturn()
+H -> Reg : currentSession()
+Reg --> H : session
+note right of Reg
+  The open CashierSession of the register,
+  as in UC4 (dsd_uc4_closeSession).
+end note
 H -> Repo : nextTransactionID()
 Repo --> H : id (e.g. R03-000160)
-H -> S : createRentalReturn(id) <<new>>
+H -> S : createRentalReturn(id)
 S -> RR ** : create(id, session)
 note right of RR
   isComplete = false.
@@ -61,73 +70,112 @@ H -> H : kind of code: rental receipt number\n(register ID + counter) or serial 
 alt rental receipt number
   H -> Repo : find(transactionID)
   Repo --> H : Optional<Transaction>
-  opt not on this register (rented at another register)
+  opt empty (not on this register)
     H -> Sync : findTransaction(transactionID)
-    Sync --> H : FOUND, NOT_FOUND or NOT_AVAILABLE
+    Sync --> H : TransactionResult: FOUND, NOT_FOUND or NOT_AVAILABLE
+    opt FOUND
+      H -> Repo : find(transactionID)
+      Repo --> H : Optional<Transaction> (read-only copy)
+    end
   end
+  H -> H : the Transaction is a Rental?\n(a sale or a return: same answer as 5a)
 else serial number
-  H -> Repo : findOpenRentalOfItem(serialNumber) <<new>>
+  H -> Repo : findOpenRentalOfItem(serialNumber)
   Repo --> H : Optional<Rental>
-  opt not found on this register
-    H -> Sync : findOpenRentalOfItem(serialNumber) <<new>>
-    Sync --> H : FOUND, NOT_FOUND or NOT_AVAILABLE
+  opt empty (not on this register)
+    H -> Sync : findOpenRentalOfItem(serialNumber)
+    Sync --> H : RentalResult: FOUND, NOT_FOUND or NOT_AVAILABLE
+    opt FOUND
+      H -> Repo : findOpenRentalOfItem(serialNumber)
+      Repo --> H : Optional<Rental> (read-only copy)
+    end
   end
 end
-alt rental found
-  H -> R : openLineFor(code)
+note right of Sync
+  With FOUND, StoreDatabaseSync keeps a read-only copy
+  in the local database (AD-05), so the rental is always
+  the result of a TransactionRepository message.
+end note
+alt NOT_AVAILABLE (store database down, the rental is not on this register)
+  H --> Ctl : RENTAL_NOT_AVAILABLE
+  [<-- Ctl : 409 "Store database not available, try again later"
+else NOT_FOUND, or the Transaction is not a Rental (5a)
+  H --> Ctl : NO_OPEN_RENTAL
+  [<-- Ctl : 404 "No open rental for this item"
+else rental found
+  H -> R : openLineFor(code) <<new>>
   note right of R
     Information Expert: the rental knows its lines
     and which one is still open. One line item
     per rental return (contracts, open point 3).
   end note
-  R --> H : line: RentalLineItem (Customer, Item, due date, deposit)
-  H -> RR : setRentalLine(line)
-  RR --> H : customer, item, rental date, due date, deposit, tender
-  H --> Ctl : rental data
-  [<-- Ctl : 200 customer, item, rental date,\ndue date, deposit, tender
-else NOT_FOUND, or the rental is closed (5a)
-  H --> Ctl : no open rental
-  [<-- Ctl : 404 "No open rental for this item"
-else store database NOT_AVAILABLE and the rental is not on this register
-  H --> Ctl : not available
-  [<-- Ctl : 409 store database not available\n(open point: fallback for UC5)
+  R --> H : Optional<RentalLineItem>
+  alt empty: the rental is already closed (5a)
+    H --> Ctl : NO_OPEN_RENTAL
+    [<-- Ctl : 404 "No open rental for this item"
+  else line
+    H -> RR : setRentalLine(line)
+    RR --> H : RentalData (customer, item, rental date, due date, deposit, tender)
+    H --> Ctl : rental data
+    [<-- Ctl : 200 customer, item, rental date,\ndue date, deposit, tender
+  end
 end
 
 == findRentalsOfCustomer(customerID) - Contract 24 (ext. 5b) ==
 [-> Ctl : GET /api/rentals?customerID=...&open=true
 Ctl -> H : findRentalsOfCustomer(customerID)
-H -> Repo : findOpenRentalsOfCustomer(customerID) <<new>>
-Repo --> H : open rentals on this register
-opt store database reachable
-  H -> Sync : findOpenRentalsOfCustomer(customerID) <<new>>
-  Sync --> H : open rentals at the other registers
+H -> Repo : findCustomer(customerID)
+Repo --> H : Optional<Customer>
+alt empty: unknown customer
+  H --> Ctl : CUSTOMER_NOT_FOUND
+  [<-- Ctl : 404 "Customer not found"
+else customer
+  H -> Sync : findOpenRentalsOfCustomer(customerID)
+  Sync --> H : RentalsResult: FOUND, NOT_FOUND or NOT_AVAILABLE
+  note right of Sync
+    FOUND: the rentals of the other registers are
+    kept as read-only copies (AD-05).
+  end note
+  H -> Repo : findOpenRentalsOfCustomer(customerID)
+  Repo --> H : openRentals: List<Rental>
+  note right of Repo
+    The repository merges the rentals of this register
+    and the read-only copies, one per rental ID
+    (no duplicates for the rentals already sent up).
+  end note
+  H -> RR : setCustomer(customer, openRentals)
+  alt NOT_AVAILABLE
+    H --> Ctl : open rentals of this register, store database not available
+    [<-- Ctl : 409 store database not available\n(only the rentals of this register are listed)
+  else FOUND or NOT_FOUND
+    H --> Ctl : open rentals (ID, item, due date)
+    [<-- Ctl : 200 open rentals of the customer
+  end
 end
-H -> RR : setCustomer(customer, openRentals)
-H --> Ctl : open rentals (ID, item, due date)
-[<-- Ctl : 200 open rentals of the customer
 
 == selectRental(rentalID) - Contract 25 ==
 [-> Ctl : PUT /api/rental-returns/{id}/selected-rental {"rentalID"}
 Ctl -> H : selectRental(rentalID)
 H -> RR : openRentalOfCustomer(rentalID) <<new>>
-RR --> H : rental
-note right of RR
-  Not one of the open rentals of
-  the customer: 409 the rental is not open
-end note
-H -> R : openLine()
-R --> H : line: RentalLineItem
-H -> RR : setRentalLine(line)
-RR --> H : same data as findRental
-H --> Ctl : rental data
-[<-- Ctl : 200 as findRental
+RR --> H : Optional<Rental>
+alt empty: rentalID is not one of the open rentals given to setCustomer
+  H --> Ctl : RENTAL_NOT_OPEN
+  [<-- Ctl : 409 "The rental is not open"
+else rental
+  H -> R : openLine()
+  R --> H : line: RentalLineItem
+  H -> RR : setRentalLine(line)
+  RR --> H : RentalData (same data as findRental)
+  H --> Ctl : rental data
+  [<-- Ctl : 200 as findRental
+end
 
 legend bottom left
   **GRASP**
   Controller: RentalReturnController receives the system operations of S-09 and gives them to RentalReturnHandler (one handler per use case).
-  Creator: CashierSession creates the RentalReturn, because the session records its transactions (Contract 22).
-  Information Expert: Rental finds its open line; RentalReturn knows its customer and its rental line.
+  Creator: CashierSession creates the RentalReturn, because the session records its transactions (Contract 22). The handler gets the current session from Register, as in UC4.
+  Information Expert: Rental finds its open line (empty when it is closed); RentalReturn knows its customer, its open rentals and its rental line.
   Indirection, Protected Variations: the handler sees only TransactionRepository and StoreDatabaseSync; the local and the store
-  database (AD-05) can change without changing the handler.
+  database (AD-05) can change without changing the handler. TransactionRepository merges the local rentals and the read-only copies.
 endlegend
 @enduml
