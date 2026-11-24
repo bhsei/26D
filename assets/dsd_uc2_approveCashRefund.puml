@@ -69,7 +69,7 @@ else f waits for approval
     R --> H : original
     H -> PMS : get(CASH)
     PMS --> H : cash
-    H -> PM : refund(original, f.amount)
+    H -> PM : refund(original, f.amount, employeeID)
     note right of PM : the same PaymentMethod interface as in confirmReturn (AD-08): the handler does not depend on a tender class
     PM -> DR : open(CASH_REFUND, employeeID)
     DR --> PM : OPENED (logged, IR-14)
