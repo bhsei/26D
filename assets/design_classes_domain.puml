@@ -35,7 +35,6 @@ title NewEra POS - Design class diagram (2 of 3): domain classes
 package "domain.store" {
   class Store {
     - name : String
-    - defaultTaxRate : Decimal
     + findEmployee(employeeID : String) : Employee
   }
   class Register {
@@ -76,7 +75,7 @@ package "domain.store" {
 
 package "domain.catalog" {
   class ProductCatalog {
-    + getProduct(itemID : String) : ProductDescription
+    + getProduct(itemID : String) : Optional<ProductDescription>
     + isAvailable() : boolean
   }
   class ProductDescription {
@@ -98,6 +97,7 @@ package "domain.catalog" {
     - serialNumber : String
     - status : ItemStatus
     + status() : ItemStatus «new»
+    + markReturned(condition : ItemCondition) : void «new»
     + description() : ProductDescription
   }
 }
@@ -159,16 +159,18 @@ package "domain.transactions" {
     - rentalDate : Date
     - isPaid : boolean
     + addLine(item : Item) : RentalLineItem «new»
+    + hasItem(serialNumber : String) : boolean «new»
     + setPeriod(lineNumber : int, days : int) : LineTerms «new»
     + setCustomer(customer : Customer) : void «new»
     + registerNewCustomer(customerID : String) : Customer «new»
     + hasOverdueLine(today : Date) : boolean «new»
     + taxLines() : List<TaxLine> «new»
-    + setTax(tax : Money, toBeCorrected : boolean) : void «new»
+    + setTax(taxPerLine : List<LineTax>) : void «new»
+    + applyDefaultTaxRate(rate : Decimal) : void «new»
     + complete() : RentalTotals «new»
     + setItemsRented() : void «new»
     + openLine() : RentalLineItem
-    + openLineFor(code : String) : RentalLineItem
+    + openLineFor(code : String) : Optional<RentalLineItem> «new»
     + payment() : Payment
     + close(refundPending : boolean) : void «new»
   }
@@ -182,6 +184,7 @@ package "domain.transactions" {
     + dueDate() : Date
     + feePerDay() : Money
     + deposit() : Money
+    + item() : Item «new»
   }
   class RentalReturn {
     - returnDate : Date
@@ -195,7 +198,9 @@ package "domain.transactions" {
     - refundTotal : Money
     + setRentalLine(line : RentalLineItem) : RentalData
     + setCustomer(customer : Customer, openRentals : List<Rental>) : void
-    + openRentalOfCustomer(rentalID : String) : Rental «new»
+    + openRentalOfCustomer(rentalID : String) : Optional<Rental> «new»
+    + toTaxRequest() : TaxRequest «new»
+    + applyDefaultTaxRate(rate : Decimal) : void «new»
     + recordCondition(condition : ItemCondition, damageNote : String, today : Date) : Money «new»
     + setLateFeeTax(tax : Money, toBeCorrected : boolean) : void «new»
     + calculateRefund() : RefundData «new»
@@ -308,10 +313,11 @@ end note
 note bottom of Money
   Enumerations: ItemStatus (Available, Rented, UnderMaintenance), ItemCondition (Undamaged, Damaged,
   Resellable, NotResellable), TenderType (Cash, CreditCard, Check), EmployeeRole (Cashier, StoreManager),
-  RefundState (CardRefunded, CashPaid, NeedsApproval, Pending), RecordStatus (Queued, Sent).
+  RefundState (CardRefunded, CashPaid, NeedsApproval, Pending), RecordStatus (Waiting, Rejected: a record is deleted after RECEIVED, DR-12).
   Value classes used in signatures and not drawn (they only carry data):
   CashCount, RentalData, LineTerms, LineTax, TaxLine, TaxRequest, RentalTotals,
-  TotalData, RefundData, RefundOutcome, PayCheck. The UI screens are in
+  TotalData, RefundData, RefundOutcome, PayCheck. The default tax rate is not an attribute of Store:
+  it is a setting (Settings, read with SettingsRepository.current(), diagram 3b). The UI screens are in
   assets/ui_classes.puml. The handlers are in diagram 1 of 3.
 end note
 @enduml
