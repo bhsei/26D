@@ -3,7 +3,7 @@
 ' Team D - editable source of assets/dsd_uc5_record_condition.png
 ' Render with: java -jar plantuml.jar -charset UTF-8 -tpng assets/dsd_uc5_record_condition.puml
 ' Participants: classes of the logical view (architecture.md 4.2). Operations: system_interfaces.md 3.5, 4.1 and 4.3.
-' Messages marked <<new>> are not in the design class diagram yet, or have a new signature there (review #68, sent to Borja).
+' Messages marked <<new>> are not in the logical view (architecture.md 4.2), or have a new signature; Borja added them to the design class diagram after review #68.
 
 skinparam shadowing false
 skinparam dpi 130
