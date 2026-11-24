@@ -88,10 +88,12 @@ Team: D · Project: NewEra POS / Role: Quality and Requirements
 
 ### W11
 **What I did:** 
-- A4: Designed the Design Sequence Diagrams (DSD) for UC4 (startUp, logIn, enterOpeningCash, closeSession, and confirmSessionReview) using PlantUML, and justified the GRASP patterns used for each one.
-- B6: Aligned the analysis models with the new design. Corrected Contract 16 to include the void of open authorizations after a crash (IR-15), and updated the traceability matrix in `requirements_conventions.md` up to FR-77.
-- Part C: Reviewed Haifa's Design Sequence Diagrams for UC5 and the consistency of `architecture.md`, publishing the findings in a GitHub Issue.
-- Part D: Sent Alfonso the summary of my work across Increment 2 (W07-W11) for the final design milestone presentation.
-**Hours:** 8
-**Problems:** Ensuring the DSDs matched Borja's design class diagram method names, and handling the asynchronous voiding of card authorizations at start-up.
+- A4: Designed the Design Sequence Diagrams (DSD) for UC4 (startUp, logIn, enterOpeningCash, closeSession, and confirmSessionReview) using PlantUML.
+- Applied peer review feedback from Borja, Alfonso, and Yasmine: updated diagrams to use only interfaces (no stubs), moved catalog import to the background thread, enforced the Creator pattern for sessions, and handled the NOT_TO_REVIEW edge case.
+- Updated analysis models: edited Contracts 16, 17, and 29, and updated the traceability matrix up to FR-77.
+- Updated `ui_design.md` §4 and `ui_classes` to move `reprintReceipt` to `SessionController` and add pending refunds/printer status to S-02.
+- Part C: Reviewed Haifa's UC5 DSDs and published findings in a GitHub Issue. Replied to Issue #63 (Borja) and Issue #65 (Haifa).
+- Part D: Sent Alfonso the Increment 2 summary for the final design milestone presentation.
+**Hours:** 10
+**Problems:** Ensuring the diagrams matched the exact method names in Borja's design class diagram and managing the numerous asynchronous background tasks in the start-up sequence.
 **Next:** Prepare for the W12 cross-team reviews and the final design milestone freeze.
