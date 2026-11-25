@@ -82,7 +82,7 @@ else NOT_AVAILABLE: timeout or error (9b2b)
   PM --> H : NOT_AVAILABLE
   H --> C : NOT_AVAILABLE (retry allowed)
   C -->[ : 200 result NOT_AVAILABLE: retry, another tender or cancel
-  note over H : no Payment is created; the sale stays open with the same transaction ID.\nIf the cashier then uses another tender or cancels, the handler first calls\nPaymentService.voidAuthorization(transactionID) (AD-07, IR-15)
+  note over H : no Payment is created; the sale stays open with the same transaction ID.\nIf the cashier then uses another tender or cancels, the handler first calls\npm.giveUp(s), which sends PaymentService.voidAuthorization(transactionID) (AD-07, IR-15), as in UC3
 end
 end
 
