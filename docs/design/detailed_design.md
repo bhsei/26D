@@ -3,12 +3,12 @@
 | | |
 | --- | --- |
 | **Maintainer** | Alfonso Pinto |
-| **Version** | 0.1 (draft for review) |
+| **Version** | 1.0 (baseline of increment 2) |
 | **Last updated** | W11 |
 | **Part of** | Increment 2 – Design (milestone W11) |
 | **Inputs** | [Architecture](architecture.md) (logical view §4.2, AD-01 to AD-10), [system interfaces](system_interfaces.md), [operation contracts](operation_contracts.md), [system sequence diagrams](system_sequence_diagrams.md), [domain model](domain_model.md), [data model](data_model.md), [UI design](ui_design.md) |
 
-> **Status: draft.** This document collects the detailed design of the five use cases: design sequence diagrams, design class diagram, activity diagrams and state diagrams. It is detailed enough to start coding in increment 3. Sections marked *To do* are filled in by their owners this week (task_plan_W11.md); everything is at v1.0 on Tue 24 Nov.
+> **Status: baseline v1.0 (W11).** This document collects the detailed design of the five use cases: design sequence diagrams, design class diagram, activity diagrams and state diagrams. It is detailed enough to start coding in increment 3. All sections were reviewed in W11 (Issues #63 to #69) and the diagrams agree with [system interfaces](system_interfaces.md) v1.0, [architecture](architecture.md) v1.0 and [UI design](ui_design.md) v1.0. Changes after the baseline go through a review Issue.
 
 ## 1. Purpose and how to read the diagrams
 
@@ -137,13 +137,13 @@ One diagram per layer, with attributes, methods, visibility and navigability. Th
 
 The attributes are those of the [domain model](domain_model.md) v0.9 and the methods come from the design sequence diagrams of §2 (UC1 to UC5). Visibility: `-` private, `+` public; getters and setters are not drawn. Methods marked «new» are used by a design sequence diagram and were not in the logical view or in system_interfaces.md v0.5. Every «new» method of §2.2 (Yasmine), §2.3 (Avni), §2.4 (Josué) and §2.5 (Haifa, after review #68) is in the diagrams, as are `Register.openSession` and `SessionHandler.pendingCashier`. A new class is `Money` (package `domain.shared`), which carries the amount in cents (data model §6). `returnedQuantities` of UC2 is both an attribute (`Return.returnedQuantities`) and a method (`TransactionRepository.returnedQuantities(receiptNumber)`).
 
-**Points that the owners of the diagrams confirm** (the diagrams use the first name):
+**Points that the owners of the diagrams confirmed** (all closed for v1.0):
 
-| Point | Where | Proposal |
+| Point | Where | Decision |
 | --- | --- | --- |
-| `PaymentMethod.giveUp(t)`: AD-08 says that `cancelSale` of UC1 and `cancelRental` of UC3 void a card payment with no answer with `paymentMethods.get(CREDIT_CARD).giveUp(transaction)` | UC1 (Alfonso): the notes of `dsd_uc1_makePayment` (NOT_AVAILABLE) still name `PaymentService.voidAuthorization(transactionID)` | Alfonso changes the note to `giveUp`; the design class diagram already has the method in `PaymentMethod` |
-| `PaymentMethod.refund(original, amount, employeeID)` | `architecture.md` AD-08 (Haifa and Avni): the interface has `refund(Payment original, Money amount)` | Add `String employeeID`, as in the design class diagram, UC2 and UC5 |
-| `StoreDatabaseSync.findCustomer` and `StoreDatabaseSync.returnedQuantities` | UC3 (Avni) and UC2 (Yasmine) | Alfonso adds both to system_interfaces.md §4.3, with the answers `FOUND`, `NOT_FOUND` and `NOT_AVAILABLE` |
+| `PaymentMethod.giveUp(t)`: AD-08 says that `cancelSale` of UC1 and `cancelRental` of UC3 void a card payment with no answer with `paymentMethods.get(CREDIT_CARD).giveUp(transaction)` | UC1 (Alfonso): the notes of `dsd_uc1_makePayment` (NOT_AVAILABLE) still name `PaymentService.voidAuthorization(transactionID)` | Closed: the note of `dsd_uc1_makePayment` uses `pm.giveUp(s)` (Alfonso) |
+| `PaymentMethod.refund(original, amount, employeeID)` | `architecture.md` AD-08 (Haifa and Avni): the interface has `refund(Payment original, Money amount)` | Closed: AD-08 has `refund(original, amount, employeeID)` (Avni) |
+| `StoreDatabaseSync.findCustomer` and `StoreDatabaseSync.returnedQuantities` | UC3 (Avni) and UC2 (Yasmine) | Closed: both in system_interfaces.md v1.0 §4.3, and in the rule *Store database down* (Alfonso) |
 
 Closed: `PaymentMethod.refund(original, amount, employeeID)` and `confirmReturn() : ConfirmResult` in UC2 (Yasmine, as in UC5); `ManagerApproval.check` in UC2, UC4 and UC5; the saved return that is paid in cash (UC2 and UC5, `PaymentMethods.get(CASH)`); `Item.status() : ItemStatus` instead of `isAvailable()` (Avni, UC3); `findSale` with `SALE_NOT_AVAILABLE` and `TransactionRepository.returnedQuantities` (system_interfaces.md v0.8); `SessionRepository.open(s)` and `close(s)` and `selectRentalPeriod(lineNumber, days)` (v0.7); `getSystemStatus`, `listPendingRefunds` and the two reprints in `SessionHandler`; `ProductCatalog` reads the products through `ItemRepository` (UC1, shown in diagram 3b).
 
@@ -191,6 +191,10 @@ The state diagrams are in the [domain model](domain_model.md) §7:
 | UC4 Start Up | 16–21, 29 | §2.4 | `SessionController`, `SessionHandler`, `CashierSession`, `Register`, `Employee` |
 | UC5 Return Rental | 22–28 | §2.5 | `RentalReturnController`, `RentalReturnHandler`, `RentalReturn`, `Refund` |
 
+The activity diagrams (§4) cover the card refund of UC2 and UC5 and the background jobs started by UC4 (`AccountingSender`, `StoreDatabaseSync`); the state diagrams (§5) cover the objects whose status the use cases change: item (UC3, UC5), rental (UC3, UC5), cashier session (UC4) and card refund (UC2, UC5).
+
 ## 7. Open points
 
-1. **Second return of the same sale at another register (review #67).** `findSale` asks the store database for the quantities already returned (`StoreDatabaseSync.returnedQuantities`). When it does not answer, only the returns of this register are known and the risk of a second refund at another register is accepted, as for the overdue check of UC3. Owner: Yasmine (UC2); Alfonso adds the operation to `system_interfaces.md`.
+None for v1.0. One risk is accepted on purpose:
+
+1. **Second return of the same sale at another register (review #67).** `findSale` asks the store database for the quantities already returned (`StoreDatabaseSync.returnedQuantities`). When it does not answer, only the returns of this register are known and the risk of a second refund at another register is accepted, as for the overdue check of UC3. `StoreDatabaseSync.returnedQuantities` is in system_interfaces.md v1.0 (Yasmine, Alfonso).
