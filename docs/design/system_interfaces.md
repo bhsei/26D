@@ -3,12 +3,14 @@
 | | |
 | --- | --- |
 | **Maintainer** | Alfonso Pinto |
-| **Version** | 0.8 (draft for review; UC2 design sequence diagrams) |
+| **Version** | 1.0 (baseline of increment 2) |
 | **Last updated** | W11 |
 | **Part of** | Increment 2 – Design (milestone W11); step 2 of the architecture process |
-| **Inputs** | [System sequence diagrams](system_sequence_diagrams.md), [operation contracts](operation_contracts.md), [SRS](../requirements/SRS.md) §3.1 and §3.2, [architecture](architecture.md) AD-01 to AD-10; [UI design](ui_design.md) §1 |
+| **Inputs** | [System sequence diagrams](system_sequence_diagrams.md), [operation contracts](operation_contracts.md), [SRS](../requirements/SRS.md) §3.1 and §3.2, [architecture](architecture.md) AD-01 to AD-10; [UI design](ui_design.md) §1; [detailed design](detailed_design.md) |
 
-> **Status: draft.** The operations of all five use cases have the names of the [system sequence diagrams](system_sequence_diagrams.md) v0.10, and each one refers to its [operation contract](operation_contracts.md) (contracts 1 to 29).
+> **Status: baseline v1.0 (W11).** Checked against the design sequence diagrams of UC1 to UC5 and the design class diagram ([detailed design](detailed_design.md)), [UI design](ui_design.md) v1.0 and [architecture](architecture.md) v1.0: every call of a diagram to an interface of §4 is in this document. Changes after the baseline go through a review Issue. The operations of all five use cases have the names of the [system sequence diagrams](system_sequence_diagrams.md) v0.10, and each one refers to its [operation contract](operation_contracts.md) (contracts 1 to 29).
+>
+> **v1.0 (W11):** baseline. `EmployeeList.lastUpdate()` and `StoreDatabaseSync.findSessionToReview()` (UC4); `StoreDatabaseSync.findCustomer()` (UC3, review #66) and `returnedQuantities()` (UC2, review #67); `NOT_TO_REVIEW` and `409` for a reviewed session; `Settings` with the catalog import file; reprints through `SessionController` (ui_design.md v1.0); open point 10 closed.
 >
 > **v0.8 (W11, UC2 design sequence diagrams):** `findSale` answers `SALE_NOT_AVAILABLE` (`409`); `TransactionRepository.returnedQuantities(receiptNumber)`.
 >
@@ -220,7 +222,7 @@ public interface HRSystem {                                         // timeout 5
     EmployeeListResult employeeList();                              // IR-09, FR-46
 }
 
-public interface CatalogSource {                                    // timeout: import timeout of the Settings (proposed 10 s, AD-07)
+public interface CatalogSource {                                    // timeout: import timeout of the Settings (10 s, AD-07)
     CatalogImport importCatalog(Path exportFile, CatalogFileInfo lastImported); // IR-17: lastImported is null for M-04 (always imported)
 }
 ```
@@ -327,6 +329,8 @@ public interface StoreDatabaseSync {                              // the only cl
     HoldResult putHold(String serialNumber, String transactionID);// UC3 step 7: HELD, HELD_BY_OTHER (ext. 7b) or NOT_AVAILABLE (rent from the local copy)
     void removeHold(String serialNumber, String transactionID);   // queued in store_sync_list when the store database is not available
     TransactionResult findTransaction(String transactionID);      // return of a transaction of another register: FOUND, NOT_FOUND or NOT_AVAILABLE (FR-21)
+    CustomerResult findCustomer(String customerID);               // customer registered at another register: FOUND, NOT_FOUND or NOT_AVAILABLE (UC3 step 4)
+    QuantitiesResult returnedQuantities(String receiptNumber);    // quantities already returned at the other registers: FOUND or NOT_AVAILABLE (UC2, review #67)
     RentalsResult findOpenRentalsOfCustomer(String customerID);   // rentals of the other registers: FOUND, NOT_FOUND or NOT_AVAILABLE (BR-12, UC5 5b)
     RentalResult findOpenRentalOfItem(String serialNumber);       // rental of another register: FOUND, NOT_FOUND or NOT_AVAILABLE (UC5 step 5)
     // Store manager functions marked * in §3.6; each answers NOT_AVAILABLE when the store database cannot be reached
@@ -346,12 +350,12 @@ public interface StoreDatabaseSync {                              // the only cl
 | --- | --- | --- |
 | One save | `saveCompleted` is one database transaction: everything or nothing, also after a power cut. | AD-05, DR-13, IR-07 |
 | Background jobs | `AccountingSender` (application) calls `takeFirst`, `send`, then `delete` or `markFailedAttempt` (also for `REJECTED`, which keeps the record first and is shown in M-06), and waits 5 s, 10 s, 30 s, 60 s and then 5 min between attempts; it never skips a record. A background job of `StoreDatabaseSync` sends the waiting records (`sendWaitingRecordsUp`). Both are started by `SessionHandler` and never delay the start-up. The catalog import of the start-up is a third background job: `importCatalog` with the last imported file, `writeCatalog` when `VALID`, and the `EventLog` when `REJECTED` or `NOT_AVAILABLE`; the register gets the new catalog with the next `copyMasterDataDown`. | AD-06, AD-05, NFR-02, IR-17 |
-| Store database down | The repositories keep working on the local copy. `putHold`, `findTransaction`, `findOpenRentalsOfCustomer` and `findOpenRentalOfItem` answer `NOT_AVAILABLE`; the operations marked * in §3.6 answer `409`, because the store database is the master of settings and catalog. | AD-05, DC-09 |
+| Store database down | The repositories keep working on the local copy. `putHold`, `findTransaction`, `findCustomer`, `returnedQuantities`, `findOpenRentalsOfCustomer` and `findOpenRentalOfItem` answer `NOT_AVAILABLE`; the operations marked * in §3.6 answer `409`, because the store database is the master of settings and catalog. | AD-05, DC-09 |
 | Conflicts | Stock levels are changed by quantities and transactions never change, so the only conflict is two offline rentals of the same item; it is recorded in `sync_conflict` and the store manager sees and resolves it in M-01 (`listRentalConflicts`, `resolveRentalConflict`). | AD-05, SRS §5.3 Q6 |
 | Employee list | `replaceAll` replaces the copy with the list of the HR System but keeps the local disable mark of a store manager, until the HR System also marks the employee inactive or a store manager enables the employee again. | FR-70, IR-09 |
 | Retention | The register deletes acknowledged transactions after 90 days (AD-05), but never a transaction with a pending refund or an open authorization. | AD-05, FR-77, IR-15 |
 
-`SessionRepository` and `SettingsRepository` are new in v0.5; they are proposed for the logical view (architecture.md §4.2, `technical.storage`).
+`SessionRepository` and `SettingsRepository` are new in v0.5; they are in the logical view since architecture.md v1.0 (§4.2, `technical.storage`).
 
 ## 5. Protocol with the stubs (DC-01)
 
@@ -377,5 +381,5 @@ In our project the four external systems are stubs: small HTTP servers that answ
 7. ~~**`startUp()` and S-01**~~ (ui_design.md §4.3, point 2): no screen sends `startUp()`; S-01 shows its result (§3.9). To align ui_design.md §1.2 (Yasmine).
 8. ~~**Status of the external systems**~~ (ui_design.md §1.6 point 1 and §4.3 point 3): `getSystemStatus()` (§3.8). The tax warning of S-08 and S-09 comes from the answers of `endRental()` and `recordCondition()`, which carry `taxToBeCorrected` like `endSale()`.
 9. ~~**Accounting record refused**~~ Closed (W11, AD-06 by Borja) (review #60, finding 8): `REJECTED` keeps the order of the queue (IR-07), so a refused record blocks the others until it is fixed. AD-06 has only `RECEIVED` and `NOT_AVAILABLE`; to add `REJECTED` there (Borja).
-10. **Repositories in the logical view**: `SessionRepository` and `SettingsRepository` (Haifa, architecture.md §4.2).
+10. ~~**Repositories in the logical view**~~ Closed (W11): `SessionRepository` and `SettingsRepository` are in architecture.md v1.0 §4.2 (Haifa).
 11. ~~**Catalog import at start-up**~~ Closed (W11): `CatalogFileInfo` in the `settings` of the data model v1.0 (Borja); the `EventLog` also logs rejected catalog files (architecture.md §4.2, Haifa).
