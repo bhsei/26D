@@ -62,3 +62,9 @@
 - **Hours:** 7
 - **Problems:** My storage interfaces were late: I wrote them on Monday instead of Sunday, so Yasmine's review and my fixes were squeezed into two days. The data model changed after the review of AD-05 (#59), so the interfaces had to follow it.
 - **Next:** W11 design milestone: design sequence diagrams of UC1, the integration of `detailed_design.md`, and every design document at v1.0 by Tue 24 Nov.
+
+## W11
+- **What I did:** Planned W11 (`plans/task_plan_W11.md`): owners of the design sequence diagrams, the documents at v1.0 and the internal reviews. Drew the design sequence diagrams of UC1 (makeNewSale and enterItem, endSale, makePayment; contracts 1 to 4) and fixed the 4 findings of Haifa's review (#64). Started `docs/design/detailed_design.md` and brought it to v1.0 with the sections of the other owners. Kept `system_interfaces.md` aligned with the diagrams and the design class diagram (v0.6 to v1.0: catalog import at start-up, customers and open rentals, store database answers) and fixed the 5 findings of Haifa's review (#65). Reviewed Borja's design class diagram and state diagrams (#69, 8 findings). SRS v1.4 (question 5, DR-02). Collected the increment 2 summaries of the team, updated the README and prepared the W11 report.
+- **Hours:** 9
+- **Problems:** Many diagrams changed on the same two days, so `system_interfaces.md` had to follow them several times (v0.6, v0.7, v0.8). I checked every interface call of the diagrams against the document before v1.0. Two pulls conflicted with other commits on `detailed_design.md` and had to be merged by hand.
+- **Next:** W12: cross-team reviews of the design and the fixes of the findings we receive.
