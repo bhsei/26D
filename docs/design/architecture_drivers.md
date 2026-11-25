@@ -6,8 +6,9 @@ Team D · Software Engineering · BUAA · Increment 2 (Design)
 |---|---|---|---|
 | 0.1 | 2026-10-27 | Alfonso Pinto | First draft: functional drivers, quality attribute drivers with utility tree, constraints (linked to DC-01–DC-08), trade-offs |
 | 0.2 | 2026-11-07 | Alfonso Pinto | Aligned with SRS v1.1 and the W09 decisions: new requirement ranges in the functional drivers, IR-15 in QA-05, constraint C-09 for the shared store database (DC-09), C-08 decided (AD-02, AD-03), open questions linked to SRS §5.3 (question 3 closed by DC-09), next steps |
+| 1.0 | 2026-11-25 | Alfonso Pinto | Baseline of increment 2 for the cross-team review of the design: open questions 1, 2 and 4 closed (SRS v1.4, AD-06), next steps done (architecture.md v1.0) |
 
-> **Status: draft.** First step of the architecture process (identify the drivers → define the system interfaces → create the structure). It is the input for the architecture document (`architecture.md`, ISO/IEC/IEEE 42010) and for the W11 design milestone.
+> **Status: v1.0 (W12).** First step of the architecture process (identify the drivers → define the system interfaces → create the structure). It is the input for the architecture document (`architecture.md`, ISO/IEC/IEEE 42010) and for the W11 design milestone.
 
 ## 1. Purpose
 
@@ -96,15 +97,14 @@ No architecture can maximize every attribute; these conflicts must be decided ex
 
 ## 5. Open questions that affect the architecture
 
-1. Is an offline (deferred) card authorization for small amounts allowed? ([external_interfaces.md](../requirements/external_interfaces.md), open question 1; SRS §5.3, question 4, Haifa, W09)
-2. For rentals paid by card, is the deposit charged or only held (pre-authorization)? (UC3, UC5; SRS §5.3, question 2, Haifa, W09)
+1. ~~Is an offline (deferred) card authorization for small amounts allowed?~~ Closed (SRS §5.3, question 4, W09): not allowed; a card payment needs the Payment Service.
+2. ~~For rentals paid by card, is the deposit charged or only held (pre-authorization)?~~ Closed (SRS §5.3, question 2, W09): the deposit is charged and refunded.
 3. ~~How many registers does a store have, and do they share one database? (QA-16)~~ Closed (W08, review B-D01): a store has several registers that share one store database, each with a local copy (DC-09, C-09).
-4. How long may a register work without the Accounting System before a manager is warned? (UC4 open issues)
+4. ~~How long may a register work without the Accounting System before a manager is warned?~~ Closed (W10, AD-06): the register keeps working; the store manager sees the number of waiting records and the age of the oldest one (FR-76, screen M-06).
 
 Closed: a sale or a rental is paid with one tender (BR-18, SRS §5.3, question 3, W09). The PIN is checked by the HR System; the local employee list keeps it only as a salted hash (IR-08, IR-09, review #23).
 
 ## 6. Next steps
 
 - **Step 2 – System interfaces:** done in W09 in [system_interfaces.md](system_interfaces.md): the system operations of the SSDs and the operation contracts grouped into the interfaces of the system, and the interfaces of the adapters to the external systems and devices.
-- **Step 3 – Structure:** AD-01 to AD-03 were accepted in W09 (layers on each register, local web application, Java). The views and the other decisions (AD-04 to AD-10) are documented in `architecture.md` in W09–W10.
-- Review this document with the team and confirm the ratings of the utility tree.
+- **Step 3 – Structure:** done. AD-01 to AD-03 were accepted in W09 and AD-04 to AD-10 in W11; the views and the decisions are in [architecture.md](architecture.md) v1.0, and the detailed design follows them ([detailed_design.md](detailed_design.md) v1.0).
