@@ -1,7 +1,13 @@
 # Operation Contracts - NewEra POS
 
+| | |
+| --- | --- |
+| **Maintainer** | Josué |
+| **Version** | 1.0 |
+| **Last updated** | W12 (frozen for cross-team review) |
+| **Part of** | Increment 2 (Design) |
+
 An operation contract describes the behavior of a system operation. Postconditions strictly describe state changes (instances created/deleted, associations formed/broken, attributes modified). 
-*Note: Class names match Borja's `domain_model.md`.*
 
 ## UC1 Process Sale
 
