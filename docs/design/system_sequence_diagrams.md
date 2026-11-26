@@ -3,9 +3,11 @@
 | | |
 | --- | --- |
 | **Maintainer** | Borja Nicolás |
-| **Version** | 0.10 (draft for review; Contract 29 for `confirmSessionReview`) |
-| **Last updated** | W09 |
+| **Version** | 1.0 (baseline of increment 2; SSDs of UC1 to UC5 with the system operations of the operation contracts 1 to 29) |
+| **Last updated** | W12 (frozen for cross-team review) |
 | **Part of** | Increment 2 (Design); input to the [operation contracts](operation_contracts.md) |
+
+> **Status: baseline v1.0 (W12).** Frozen for the cross-team review of the design. The system operations have the same names and parameters as the [operation contracts](operation_contracts.md) and [system interfaces](system_interfaces.md) v1.0. Changes after the baseline come from the cross-team review and go into v1.1.
 
 ## 1. Purpose
 
