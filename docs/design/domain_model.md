@@ -3,9 +3,11 @@
 | | |
 | --- | --- |
 | **Maintainer** | Borja Nicolás |
-| **Version** | 0.9 (draft for review; review #69: maintenance transition and record status) |
-| **Last updated** | W11 |
+| **Version** | 1.0 (baseline of increment 2; aligned with the design class diagram, data model v1.0 and SRS v1.4) |
+| **Last updated** | W12 (frozen for cross-team review) |
 | **Part of** | Increment 2 (Design), input to the SRS section 3.5, the [system sequence diagram](system_sequence_diagrams.md) and the [operation contracts](operation_contracts.md) |
+
+> **Status: baseline v1.0 (W12).** Frozen for the cross-team review of the design. The concepts and attributes have the same names as the [operation contracts](operation_contracts.md) 1 to 29 and the [design class diagram](detailed_design.md) (§3). Changes after the baseline come from the cross-team review and go into v1.1.
 
 ## 1. Purpose
 
