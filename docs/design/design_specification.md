@@ -18,15 +18,15 @@ NewEra POS is a point-of-sale system for one store with several registers: sales
 
 | # | Document | Version | What it contains | Owner |
 | --- | --- | --- | --- | --- |
-| 1 | [Domain model](domain_model.md) | see header | Concepts, attributes and associations of UC1–UC5; state diagrams of the item, the rental, the cashier session and the card refund | Borja |
-| 2 | [System sequence diagrams](system_sequence_diagrams.md) | see header | System operations of UC1 to UC5 | Borja |
-| 3 | [Operation contracts](operation_contracts.md) | see header | Contracts 1 to 29: preconditions and postconditions of each system operation | Josué |
-| 4 | [Architecture drivers](architecture_drivers.md) | see header | Functional drivers, quality attributes (utility tree), constraints and trade-offs | Alfonso |
+| 1 | [Domain model](domain_model.md) | 1.0 | Concepts, attributes and associations of UC1–UC5; state diagrams of the item, the rental, the cashier session and the card refund | Borja |
+| 2 | [System sequence diagrams](system_sequence_diagrams.md) | 1.0 | System operations of UC1 to UC5 | Borja |
+| 3 | [Operation contracts](operation_contracts.md) | 1.0 | Contracts 1 to 29: preconditions and postconditions of each system operation | Josué |
+| 4 | [Architecture drivers](architecture_drivers.md) | 1.0 | Functional drivers, quality attributes (utility tree), constraints and trade-offs | Alfonso |
 | 5 | [Architecture description](architecture.md) | 1.0 | ISO/IEC/IEEE 42010: context, logical, interaction, deployment and data views, correspondences, decisions AD-01 to AD-10 (all accepted) | Haifa |
 | 6 | [System interfaces](system_interfaces.md) | 1.0 | System API used by the screens, Java interfaces of the external systems, devices and storage, protocol with the stubs | Alfonso |
 | 7 | [Data model](data_model.md) | 1.0 | E/R model of the store database and of the local database of each register | Borja |
 | 8 | [UI design](ui_design.md) | 1.0 | Screens, navigation, UI rules, UI class diagram, navigation sequence diagrams | Yasmine, Josué |
-| 9 | [UI prototype](ui_prototype.md) | see header | Clickable prototype of every screen ([`prototype/`](prototype/)) | Haifa, Yasmine |
+| 9 | [UI prototype](ui_prototype.md) | 0.4 | Clickable prototype of every screen ([`prototype/`](prototype/)) | Haifa, Yasmine |
 | 10 | [Detailed design](detailed_design.md) | 1.0 | 20 design sequence diagrams of UC1 to UC5 with their GRASP patterns, design class diagram in four parts, activity and state diagrams, traceability | all |
 
 A reader who wants only the design of one use case can start in [Detailed design](detailed_design.md) §2 (one subsection per use case) and follow its links to the contracts and the interfaces.
