@@ -1,6 +1,6 @@
 # Team D – Task plan W12
 
-Last update: 2026-11-25 · Owner: Alfonso (project lead)
+Last update: 2026-11-26 (parts of the review set to the real chapters of E and F) · Owner: Alfonso (project lead)
 
 **Goals of the week**
 1. Cross-team review of the design (W12 panel review), as in W08 for the SRS: Team D reviews **Team E** and **Team F**, and is reviewed by **Team B** and **Team C** (same groups as in W08; to confirm in the statistics form).
@@ -39,16 +39,20 @@ The other groups download our design from GitHub. `docs/design/design_specificat
 
 ## Part B – Review of Teams E and F (Mon 30 Nov, 12:00)
 
-Download the design specification of each group from its repository on Thu 26 Nov after 12:00 and review **that version** (write it in the Issue title). Team E's repository has only the SRS so far, so the parts below are by topic; the consolidator adjusts them on Thursday to the real chapters.
+Review the version that is in the repository on Thu 26 Nov at 12:00 and write it in the Issue title:
+- Team E: `bhsei/26E` → `docs/DeGlitch_Design_Specification_Document_v1.0.md` (also `.pdf`), v1.0, 23 chapters + appendices A–C; diagrams in `docs/DeGlitch_DSD_Assets_v1.0/`. Their SRS is `docs/SRS v1.5.md`.
+- Team F: `bhsei/26F` → `docs/design/design.md`, v1.0 (2026-11-24), 9 chapters + appendices A–B. Their SRS is `docs/requirements/SRS.md`.
 
-| # | Reviewer | Team E | Team F |
+Each reviewer reads **only his or her part**, so that we cover the whole document without duplicates.
+
+| # | Reviewer | Team E (DēGlitch) | Team F (CampusShare) |
 |---|---|---|---|
-| B1 | **Borja** | Data model, class diagrams, state diagrams | – |
-| B2 | **Avni** | Architecture views and decisions | – |
-| B3 | **Josué** (consolidator E) | Sequence diagrams and their GRASP patterns | – |
-| B4 | **Alfonso** | Interfaces, and consistency with their SRS (every use case designed, same names) | – |
-| B5 | **Yasmine** | – | UI design, architecture views and decisions |
-| B6 | **Haifa** (consolidator F) | – | Sequence diagrams, class diagrams, data model, consistency with their SRS |
+| B1 | **Borja** | Ch. 5 data-flow design · ch. 7 connection state model and error handling · ch. 8 data design | – |
+| B2 | **Avni** | Ch. 1–4 purpose, stakeholders, context, architecture overview · ch. 11 deployment · ch. 21–22 decisions, open issues and risks | – |
+| B3 | **Josué** (consolidator E) | Ch. 6 runtime interaction and sequence design · ch. 10 security and privacy · ch. 12–14 navigation, user journeys, screens | – |
+| B4 | **Alfonso** | Ch. 9 external interfaces · ch. 15–20 visual design, screen inventory, engagement, accessibility, verification and handoff · ch. 23 and appendix B (consistency with their SRS v1.5) | – |
+| B5 | **Yasmine** | – | Ch. 1–3 · §4.1 context view · §4.4 process view · §4.5 deployment view · ch. 6–7 decisions and future architecture |
+| B6 | **Haifa** (consolidator F) | – | §4.2 logical view · §4.3 data view · §4.6–4.8 element catalog, correspondences, consistency · ch. 5 security · ch. 8–9 traceability and limitations · appendix A |
 
 **What to check** (the same criteria as in our internal reviews #63 to #69):
 - Every use case and system operation of their SRS has a design (sequence diagram or equivalent); nothing is missing.
@@ -97,9 +101,9 @@ Teams B and C open their Issues in `bhsei/26D` by Mon 30 Nov, 12:00.
 
 | Member | Part A | Part B (review) | Part C (answers) |
 |---|---|---|---|
-| Alfonso | Design Specification · drivers v1.0 | E: interfaces, consistency with their SRS | Triage, findings on UC1, interfaces, detailed design, statistics form |
-| Borja | Domain model, SSDs v1.0 | E: data, classes, states | Findings on data model, class diagram, states, domain model, SSDs |
-| Josué | Contracts v1.0 | E: sequence diagrams · consolidates E | Findings on UC4, contracts, UI classes |
-| Yasmine | – | F: UI, architecture | Findings on UC2, UI design, activity diagrams |
-| Haifa | – | F: sequence and class diagrams, data, SRS consistency · consolidates F | Findings on architecture, UC5 |
-| Avni | – | E: architecture | Findings on UC3 |
+| Alfonso | Design Specification · drivers v1.0 | E: ch. 9, 15–20, 23, app. B | Triage, findings on UC1, interfaces, detailed design, statistics form |
+| Borja | Domain model, SSDs v1.0 | E: ch. 5, 7, 8 | Findings on data model, class diagram, states, domain model, SSDs |
+| Josué | Contracts v1.0 | E: ch. 6, 10, 12–14 · consolidates E | Findings on UC4, contracts, UI classes |
+| Yasmine | – | F: ch. 1–3, §4.1, 4.4, 4.5, ch. 6–7 | Findings on UC2, UI design, activity diagrams |
+| Haifa | – | F: §4.2, 4.3, 4.6–4.8, ch. 5, 8–9, app. A · consolidates F | Findings on architecture, UC5 |
+| Avni | – | E: ch. 1–4, 11, 21–22 | Findings on UC3 |
