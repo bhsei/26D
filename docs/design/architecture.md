@@ -24,14 +24,14 @@ NewEra POS is the application a cashier uses at a store register to process sale
 
 | Input                                  | Document                                                                                                                                         |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Requirements (FR, NFR, IR, BR)         | [SRS.md](../requirements/SRS.md) v1.3                                                                                                            |
+| Requirements (FR, NFR, IR, BR)         | [SRS.md](../requirements/SRS.md) v1.4                                                                                                            |
 | External interfaces                    | [external_interfaces.md](../requirements/external_interfaces.md)                                                                                 |
 | Design constraints                     | SRS §3.6 (DC-01 to DC-09)                                                                                                                        |
-| Architecture drivers                   | [architecture_drivers.md](architecture_drivers.md) v0.2 (Alfonso)                                                                                |
-| Domain model, SSD, operation contracts | [domain_model.md](domain_model.md) v0.8, [system_sequence_diagrams.md](system_sequence_diagrams.md) v0.10, [operation_contracts.md](operation_contracts.md) (contracts 1 to 29) |
-| UI design, UI prototype                | [ui_design.md](ui_design.md) v0.2, [ui_prototype.md](ui_prototype.md) v0.4                                                                       |
-| Data model, system interfaces          | [data_model.md](data_model.md) v1.0 (Borja), [system_interfaces.md](system_interfaces.md) v0.6 (Alfonso)                                         |
-| Detailed design                        | [detailed_design.md](detailed_design.md) v0.1: design sequence diagrams of UC1 to UC5, design class diagram, state diagrams                      |
+| Architecture drivers                   | [architecture_drivers.md](architecture_drivers.md) v1.0 (Alfonso)                                                                                |
+| Domain model, SSD, operation contracts | [domain_model.md](domain_model.md) v1.0, [system_sequence_diagrams.md](system_sequence_diagrams.md) v1.0, [operation_contracts.md](operation_contracts.md) v1.0 (contracts 1 to 29) |
+| UI design, UI prototype                | [ui_design.md](ui_design.md) v1.0, [ui_prototype.md](ui_prototype.md) v0.4                                                                       |
+| Data model, system interfaces          | [data_model.md](data_model.md) v1.0 (Borja), [system_interfaces.md](system_interfaces.md) v1.0 (Alfonso)                                         |
+| Detailed design                        | [detailed_design.md](detailed_design.md) v1.0: design sequence diagrams of UC1 to UC5, design class diagram, state diagrams                      |
 
 ## 2. Stakeholders and concerns
 
